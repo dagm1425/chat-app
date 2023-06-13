@@ -49,7 +49,7 @@ function App() {
 
     if (!docSnap.exists()) return;
     setFetchingUserData(false);
-    dispatch(setUser(docSnap));
+    dispatch(setUser(docSnap.data()));
   };
 
   const subscribeChats = () => {
@@ -60,7 +60,6 @@ function App() {
       where("members", "array-contains", {
         uid: userData.uid,
         displayName: userData.displayName,
-        email: userData.email,
         photoURL: userData.photoURL,
       })
     );
@@ -80,7 +79,7 @@ function App() {
     // return <Spinner />;
     return <></>;
   // return <Home />;
-  return <></>;
+  // return <></>;
 }
 
 export default App;
