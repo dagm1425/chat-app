@@ -16,7 +16,7 @@ function userLogin() {
     await setDoc(doc(db, "users", `${user.uid}`), {
       uid: user.uid,
       displayName: user.displayName,
-      photoUrl: user.photoURL,
+      photoURL: user.photoURL,
     });
   };
 
