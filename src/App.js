@@ -13,13 +13,15 @@ import {
 import { setUser } from "./features/user/userSlice";
 import UserLogin from "./features/user/userLogin";
 import { setChats } from "./features/chats/chatsSlice";
+import Home from "./features/chats/Home";
+import CircularProgress from "@mui/material/CircularProgress";
 
 function App() {
   const dispatch = useDispatch();
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   const [fetchingUserData, setFetchingUserData] = useState(true);
-  const [fetchingChatsData, setFetchingChatsData] = useState(true);
+  // const [fetchingChatsData, setFetchingChatsData] = useState(true);
 
   useEffect(() => {
     let unsubscribe;
@@ -69,17 +71,14 @@ function App() {
       querySnapshot.forEach((doc) => {
         chats.push(doc.data());
       });
-      setFetchingChatsData(false);
+      // setFetchingChatsData(false);
       dispatch(setChats(chats));
     });
   };
 
   if (!isUserSignedIn) return <UserLogin />;
-  if (isUserSignedIn && (fetchingUserData || fetchingChatsData))
-    // return <Spinner />;
-    return <></>;
-  // return <Home />;
-  // return <></>;
+  if (isUserSignedIn && fetchingUserData) return <CircularProgress />;
+  return <Home />;
 }
 
 export default App;
