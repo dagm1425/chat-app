@@ -3,14 +3,13 @@ import { useDispatch } from "react-redux";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  doc,
-  getDoc,
+  getDocs,
   collection,
   query,
   where,
   onSnapshot,
 } from "firebase/firestore";
-import { setUser } from "./features/user/userSlice";
+import { setUsers } from "./features/user/userSlice";
 import UserLogin from "./features/user/userLogin";
 import { setChats } from "./features/chats/chatsSlice";
 import Home from "./features/chats/Home";
@@ -20,7 +19,7 @@ function App() {
   const dispatch = useDispatch();
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [fetchingUserData, setFetchingUserData] = useState(true);
+  const [fetchingUsersData, setFetchingUsersData] = useState(true);
   // const [fetchingChatsData, setFetchingChatsData] = useState(true);
 
   useEffect(() => {
@@ -35,7 +34,7 @@ function App() {
       }
     });
 
-    fetchUserData();
+    fetchUsersData();
     unsubscribe = subscribeChats;
 
     return () => {
@@ -43,15 +42,17 @@ function App() {
     };
   }, [isUserSignedIn]);
 
-  const fetchUserData = async () => {
+  const fetchUsersData = async () => {
     if (!isUserSignedIn) return;
 
-    const docRef = doc(db, "users", `${userData.uid}`);
-    const docSnap = await getDoc(docRef);
+    const querySnapshot = await getDocs(collection(db, "users"));
+    const users = [];
+    querySnapshot.forEach((doc) => {
+      users.push(doc.data());
+    });
 
-    if (!docSnap.exists()) return;
-    setFetchingUserData(false);
-    dispatch(setUser(docSnap.data()));
+    setFetchingUsersData(false);
+    dispatch(setUsers(users));
   };
 
   const subscribeChats = () => {
@@ -77,7 +78,7 @@ function App() {
   };
 
   if (!isUserSignedIn) return <UserLogin />;
-  if (isUserSignedIn && fetchingUserData) return <CircularProgress />;
+  if (isUserSignedIn && fetchingUsersData) return <CircularProgress />;
   return <Home />;
 }
 
