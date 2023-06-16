@@ -12,7 +12,7 @@ export const usersSlice = createSlice({
 
 export const { setUsers } = usersSlice.actions;
 
-export const selectAllUsers = (state) => state.user;
+export const selectAllUsers = (state) => state.users;
 
 export const selectUserById = (state, id) =>
   state.users.find((user) => user.uid == id);
