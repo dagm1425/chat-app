@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 
 export const chatsSlice = createSlice({
   name: "chats",
-  initialState: null,
+  initialState: [],
   reducers: {
     setChats: (state, action) => {
       return action.payload;
