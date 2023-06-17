@@ -78,7 +78,7 @@ function App() {
 
   if (!isUserSignedIn) return <UserLogin />;
   if (isUserSignedIn && fetchingUserData) return <CircularProgress />;
-  return <Home uid={userData.uid} />;
+  return <Home />;
 }
 
 export default App;
