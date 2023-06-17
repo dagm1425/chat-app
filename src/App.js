@@ -3,13 +3,14 @@ import { useDispatch } from "react-redux";
 import { auth, db } from "./firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
-  getDocs,
+  doc,
+  getDoc,
   collection,
   query,
   where,
   onSnapshot,
 } from "firebase/firestore";
-import { setUsers } from "./features/user/userSlice";
+import { setUser } from "./features/user/userSlice";
 import UserLogin from "./features/user/userLogin";
 import { setChats } from "./features/chats/chatsSlice";
 import Home from "./features/chats/Home";
@@ -19,7 +20,7 @@ function App() {
   const dispatch = useDispatch();
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
   const [userData, setUserData] = useState(null);
-  const [fetchingUsersData, setFetchingUsersData] = useState(true);
+  const [fetchingUserData, setFetchingUserData] = useState(true);
   // const [fetchingChatsData, setFetchingChatsData] = useState(true);
 
   useEffect(() => {
@@ -34,7 +35,7 @@ function App() {
       }
     });
 
-    fetchUsersData();
+    fetchUserData();
     unsubscribe = subscribeChats;
 
     return () => {
@@ -42,17 +43,15 @@ function App() {
     };
   }, [isUserSignedIn]);
 
-  const fetchUsersData = async () => {
+  const fetchUserData = async () => {
     if (!isUserSignedIn) return;
 
-    const querySnapshot = await getDocs(collection(db, "users"));
-    const users = [];
-    querySnapshot.forEach((doc) => {
-      users.push(doc.data());
-    });
+    const userRef = doc(db, "users", `${userData.uid}`);
+    const user = await getDoc(userRef);
 
-    setFetchingUsersData(false);
-    dispatch(setUsers(users));
+    if (!user.exists()) return;
+    setFetchingUserData(false);
+    dispatch(setUser(user));
   };
 
   const subscribeChats = () => {
@@ -78,8 +77,8 @@ function App() {
   };
 
   if (!isUserSignedIn) return <UserLogin />;
-  if (isUserSignedIn && fetchingUsersData) return <CircularProgress />;
-  return <Home />;
+  if (isUserSignedIn && fetchingUserData) return <CircularProgress />;
+  return <Home uid={userData.uid} />;
 }
 
 export default App;
