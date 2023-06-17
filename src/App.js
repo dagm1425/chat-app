@@ -51,7 +51,7 @@ function App() {
 
     if (!user.exists()) return;
     setFetchingUserData(false);
-    dispatch(setUser(user));
+    dispatch(setUser(user.data()));
   };
 
   const subscribeChats = () => {
