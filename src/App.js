@@ -36,7 +36,7 @@ function App() {
     });
 
     fetchUserData();
-    unsubscribe = subscribeChats;
+    unsubscribe = subscribeChats();
 
     return () => {
       unsubscribe();
