@@ -21,7 +21,7 @@ function App() {
   const [isUserSignedIn, setIsUserSignedIn] = useState(false);
   const [userData, setUserData] = useState(null);
   const [fetchingUserData, setFetchingUserData] = useState(true);
-  // const [fetchingChatsData, setFetchingChatsData] = useState(true);
+  const [fetchingChatsData, setFetchingChatsData] = useState(true);
 
   useEffect(() => {
     let unsubscribe;
@@ -71,13 +71,14 @@ function App() {
       querySnapshot.forEach((doc) => {
         chats.push(doc.data());
       });
-      // setFetchingChatsData(false);
+      setFetchingChatsData(false);
       dispatch(setChats(chats));
     });
   };
 
   if (!isUserSignedIn) return <UserLogin />;
-  if (isUserSignedIn && fetchingUserData) return <CircularProgress />;
+  if (isUserSignedIn && (fetchingUserData || fetchingChatsData))
+    return <CircularProgress />;
   return <Home />;
 }
 
