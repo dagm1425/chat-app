@@ -14,4 +14,7 @@ export const { setChats } = chatsSlice.actions;
 
 export const selectChats = (state) => state.chats;
 
+export const selectChatById = (state, chatId) =>
+  state.chats.find((chat) => chat.chatId === chatId);
+
 export default chatsSlice.reducer;
