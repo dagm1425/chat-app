@@ -9,14 +9,16 @@ import ListItemAvatar from "@mui/material/ListItemAvatar";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { selectChats } from "./chatsSlice";
-import { collection, addDoc, getDocs } from "firebase/firestore";
+import { doc, collection, setDoc, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
+import { useId } from "react";
 
 function NewPrivateChatDialogContent({ onClose }) {
   const user = useSelector(selectUser);
   const [users, setUsers] = useState([]);
   const chats = useSelector(selectChats);
   const [searchValue, setSearchValue] = useState("");
+  const chatId = useId();
 
   useEffect(() => {
     fetchUsers();
@@ -57,14 +59,15 @@ function NewPrivateChatDialogContent({ onClose }) {
   };
 
   const createNewPrivateChat = async (otherChatMember) => {
-    await addDoc(collection(db, "chats"), {
-      chatId: user.uid,
+    await setDoc(doc(db, "chats", `${chatId}`), {
+      chatId: `${chatId}`,
       displayName: otherChatMember.displayName,
       photoURL: otherChatMember.photoURL,
       type: "private",
       createdBy: user,
       recentMsg: "You created this chat",
       members: [user, otherChatMember],
+      messages: [],
     });
   };
 

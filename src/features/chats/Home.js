@@ -1,15 +1,21 @@
 /* eslint-disable react/prop-types */
 import React from "react";
-import Userbar from "./UserBar";
+import Userbar from "./Userbar";
 import ChatsList from "./ChatsList";
-import { Box } from "@mui/material";
+import ChatsSection from "./ChatsSection";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
 function Home() {
   return (
-    <Box sx={{ width: 1 / 4 }}>
-      <Userbar />
-      <ChatsList />
-    </Box>
+    <>
+      <Router>
+        <Userbar />
+        <ChatsList />
+        <Routes>
+          <Route path="/:id" element={<ChatsSection />}></Route>
+        </Routes>
+      </Router>
+    </>
   );
 }
 
