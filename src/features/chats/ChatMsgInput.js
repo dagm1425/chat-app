@@ -25,6 +25,8 @@ function ChatMsgInput({ chatId }) {
         // timestamp: serverTimestamp(),
       }),
     });
+
+    setMsg("");
   };
 
   return (
