@@ -1,7 +1,6 @@
 /* eslint-disable react/prop-types */
 import React from "react";
-import Userbar from "./Userbar";
-import ChatsList from "./ChatsList";
+import Sidebar from "./Sidebar";
 import ChatsSection from "./ChatsSection";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
@@ -9,8 +8,7 @@ function Home() {
   return (
     <>
       <Router>
-        <Userbar />
-        <ChatsList />
+        <Sidebar />
         <Routes>
           <Route path="/:id" element={<ChatsSection />}></Route>
         </Routes>
