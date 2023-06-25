@@ -91,7 +91,11 @@ function NewPrivateChatDialogContent({ onClose }) {
 
   return (
     <>
-      <input type="text" onChange={(e) => setSearchValue(e.target.value)} />
+      <input
+        type="text"
+        value={searchValue}
+        onChange={(e) => setSearchValue(e.target.value)}
+      />
       <List>{usersList}</List>
     </>
   );

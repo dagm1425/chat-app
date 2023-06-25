@@ -32,7 +32,11 @@ function NewPublicChatDialogContent({ onClose }) {
 
   return (
     <>
-      <input type="text" onChange={(e) => setChatName(e.target.value)} />
+      <input
+        type="text"
+        value={chatName}
+        onChange={(e) => setChatName(e.target.value)}
+      />
       <Button onClick={handleBtnClick}>Create chat</Button>
     </>
   );
