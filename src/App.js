@@ -66,7 +66,7 @@ function App() {
       })
     );
 
-    onSnapshot(q, (querySnapshot) => {
+    return onSnapshot(q, (querySnapshot) => {
       const chats = [];
       querySnapshot.forEach((doc) => {
         chats.push(doc.data());
