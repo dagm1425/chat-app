@@ -13,7 +13,14 @@ function ChatsSection() {
   const chat = useSelector((state) => selectChatById(state, id));
 
   return (
-    <Box>
+    <Box
+      sx={{
+        ml: "22%",
+        width: "78%",
+        height: "100vh",
+        bgcolor: "secondary.main",
+      }}
+    >
       <ChatHeader chat={chat} />
       <ChatMsgDisp chat={chat} />
       <ChatMsgInput chatId={id} />
