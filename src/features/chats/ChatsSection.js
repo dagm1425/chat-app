@@ -22,7 +22,7 @@ function ChatsSection() {
       }}
     >
       <ChatHeader chat={chat} />
-      <ChatMsgDisp chat={chat} />
+      <ChatMsgDisp chatId={id} />
       <ChatMsgInput chatId={id} />
     </Box>
   );

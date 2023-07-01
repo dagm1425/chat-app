@@ -21,7 +21,6 @@ function NewPublicChatDialogContent({ onClose }) {
       createdBy: user,
       members: [user],
       recentMsg: "You created this chat",
-      messages: [],
     });
   };
 

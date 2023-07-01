@@ -1,43 +1,59 @@
 /* eslint-disable react/prop-types */
-import React, { useState } from "react";
+import React, { useState, useId } from "react";
 import Box from "@mui/material/Box";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
 import {
   doc,
-  updateDoc,
-  arrayUnion,
-  // serverTimestamp,
+  // updateDoc,
+  // arrayUnion,
+  serverTimestamp,
+  // getDoc,
+  setDoc,
 } from "firebase/firestore";
 
 function ChatMsgInput({ chatId }) {
   const user = useSelector(selectUser);
   const [msg, setMsg] = useState("");
+  const msgId = useId();
 
   const handleSendMsg = async () => {
-    const chatRef = doc(db, "chats", `${chatId}`);
+    const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
 
-    await updateDoc(chatRef, {
-      messages: arrayUnion({
-        from: user,
-        msg: msg,
-        // timestamp: serverTimestamp(),
-      }),
+    await setDoc(msgRef, {
+      msgId,
+      from: user,
+      msg: msg,
+      timestamp: serverTimestamp(),
     });
 
     setMsg("");
   };
 
   return (
-    <Box sx={{ height: "10%" }}>
+    <Box
+      sx={{
+        width: "78%",
+        display: "flex",
+        position: "fixed",
+        bottom: "0",
+        fontSize: "1.125rem",
+      }}
+    >
       <input
         type="text"
         placeholder="Enter msg"
         value={msg}
         onChange={(e) => setMsg(e.target.value)}
+        style={{ font: "inherit", padding: "1rem 0.75rem", width: "90%" }}
+        autoFocus
       />
-      <button type="button" onClick={handleSendMsg}>
+      <button
+        type="button"
+        style={{ font: "inherit", padding: "1rem 0", width: "10%" }}
+        onClick={handleSendMsg}
+      >
         Send Msg
       </button>
     </Box>

@@ -67,7 +67,6 @@ function NewPrivateChatDialogContent({ onClose }) {
       createdBy: user,
       recentMsg: "You created this chat",
       members: [user, otherChatMember],
-      messages: [],
     });
   };
 
