@@ -4,6 +4,7 @@ import { auth } from "../../firebase";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import { Typography } from "@mui/material";
+import Avatar from "@mui/material/Avatar";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
 import Menu from "@mui/material/Menu";
@@ -26,7 +27,7 @@ function Userbar() {
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
 
-  const signOutUser = () => {
+  const signOutUser = async () => {
     signOut(auth);
   };
 
@@ -65,7 +66,7 @@ function Userbar() {
         }}
       >
         <Typography>{user.displayName}</Typography>
-        <Box component="img" src={user.photoURL} />
+        <Avatar src={user.photoURL} />
         <Button onClick={signOutUser}>Sign Out</Button>
 
         <IconButton onClick={handleNewChatOpen}>
