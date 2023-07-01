@@ -32,7 +32,13 @@ function ChatsList() {
             <Avatar src={chat.photoURL} />
           </ListItemAvatar>
           <Box>
-            <ListItemText primary={otherMember.displayName} />
+            <ListItemText
+              primary={
+                chat.type === "private"
+                  ? otherMember.displayName
+                  : chat.displayName
+              }
+            />
             <ListItemText primary={chat.recentMsg} />
           </Box>
         </ListItem>
