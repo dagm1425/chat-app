@@ -18,15 +18,16 @@ function ChatsList() {
     const otherMember = chat.members.find((member) => member.uid !== user.uid);
 
     return (
-      <ListItem key={chat.chatId}>
-        <Link
-          style={{
-            textDecoration: "none",
-            display: "flex",
-            alignItems: "center",
-          }}
-          to={`/${chat.chatId}`}
-        >
+      <Link
+        key={chat.chatId}
+        style={{
+          textDecoration: "none",
+          display: "flex",
+          alignItems: "center",
+        }}
+        to={`/${chat.chatId}`}
+      >
+        <ListItem sx={{ bgcolor: "#9dad99", cursor: "pointer" }}>
           <ListItemAvatar>
             <Avatar src={chat.photoURL} />
           </ListItemAvatar>
@@ -34,8 +35,8 @@ function ChatsList() {
             <ListItemText primary={otherMember.displayName} />
             <ListItemText primary={chat.recentMsg} />
           </Box>
-        </Link>
-      </ListItem>
+        </ListItem>
+      </Link>
     );
   });
 
