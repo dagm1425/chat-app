@@ -2,7 +2,13 @@
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
-import { collection, onSnapshot } from "firebase/firestore";
+import {
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
 import { db } from "../../firebase";
 import { format } from "date-fns";
 import {
@@ -33,14 +39,17 @@ function ChatMsgDisp({ chatId }) {
   }, [chatId]);
 
   const subscribeChatMsg = () => {
-    return onSnapshot(
+    const q = query(
       collection(db, "chats", `${chatId}`, "chatMessages"),
-      (snap) => {
-        const messages = [];
-        snap.forEach((doc) => messages.push(doc.data()));
-        setChatMsg(messages);
-      }
+      orderBy("timestamp", "asc"),
+      limit(30)
     );
+
+    return onSnapshot(q, (querySnap) => {
+      const messages = [];
+      querySnap.forEach((doc) => messages.push(doc.data()));
+      setChatMsg(messages);
+    });
   };
 
   const handleMsgOptionsOpen = (e) => {
