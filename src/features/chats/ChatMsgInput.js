@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useState, useId } from "react";
+import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -12,13 +12,14 @@ import {
   // getDoc,
   setDoc,
 } from "firebase/firestore";
+import { v4 as uuid } from "uuid";
 
 function ChatMsgInput({ chatId }) {
   const user = useSelector(selectUser);
   const [msg, setMsg] = useState("");
-  const msgId = useId();
 
   const handleSendMsg = async () => {
+    const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
 
     await setDoc(msgRef, {
