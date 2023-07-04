@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
+  Timestamp,
   collection,
   limit,
   onSnapshot,
@@ -11,6 +12,8 @@ import {
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { format } from "date-fns";
+import formatRelative from "date-fns/formatRelative";
+import { uk } from "date-fns/esm/locale";
 import {
   Box,
   Menu,
@@ -29,6 +32,17 @@ function ChatMsgDisp({ chatId }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [msgId, setMsgId] = useState("");
+  const msgDates = new Set();
+  msgDates.add("");
+  const formatRelativeLocale = {
+    yesterday: "'Yesterday'",
+    today: "'Today'",
+    other: "MMMM dd,  yyyy",
+  };
+  const locale = {
+    ...uk,
+    formatRelative: (token) => formatRelativeLocale[token],
+  };
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
@@ -78,46 +92,73 @@ function ChatMsgDisp({ chatId }) {
     setIsDeleteMsgOpen(false);
   };
 
-  const msgList = chatMsg.map((message) => {
-    const isSentFromUser = message.from.uid === user.uid;
-    const time =
-      message.timestamp == null
-        ? ""
-        : format(message.timestamp.toDate(), "hh:mm a");
+  const renderMsgDate = (msgDate) => {
+    msgDates.add(msgDate);
 
     return (
       <Box
-        key={message.msgId}
-        id={message.msgId}
-        onClick={handleMsgClick}
-        onContextMenu={handleMsgClick}
         sx={{
-          alignSelf: isSentFromUser ? "flex-end" : "flex-start",
-          padding: "0.75rem 1rem",
+          alignSelf: "center",
+          padding: "0.5rem 1rem",
           margin: "1rem",
           background: "#FFF",
-          borderRadius: isSentFromUser
-            ? "1.125rem 1.125rem 0 1.125rem"
-            : "1.125rem 1.125rem 1.125rem 0",
+          borderRadius: "1.125rem 1.125rem 1.125rem 1.125rem",
           width: "fit-content",
           maxWidth: "66%",
-          boxShadow: 2,
+          boxShadow: 1,
         }}
       >
-        {message.msg}
+        {msgDate}
+      </Box>
+    );
+  };
+
+  const msgList = chatMsg.map((message) => {
+    const isSentFromUser = message.from.uid === user.uid;
+    const timestamp =
+      message.timestamp == null ? "" : message.timestamp.toDate();
+    const msgTime = timestamp == "" ? "" : format(timestamp, "hh:mm a");
+    const msgDate =
+      timestamp == ""
+        ? ""
+        : formatRelative(timestamp, Timestamp.now().toDate(), { locale });
+
+    return (
+      <>
+        {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
         <Box
-          component="span"
+          key={message.msgId}
+          id={message.msgId}
+          onClick={handleMsgClick}
+          onContextMenu={handleMsgClick}
           sx={{
-            position: "relative",
-            top: "6px",
-            color: "rgba(0, 0, 0, 0.45)",
-            display: "inline-block",
-            ml: "1rem",
+            alignSelf: isSentFromUser ? "flex-end" : "flex-start",
+            padding: "0.75rem 1rem",
+            margin: "1rem",
+            background: "#FFF",
+            borderRadius: isSentFromUser
+              ? "1.125rem 1.125rem 0 1.125rem"
+              : "1.125rem 1.125rem 1.125rem 0",
+            width: "fit-content",
+            maxWidth: "66%",
+            boxShadow: 2,
           }}
         >
-          {time}
+          {message.msg}
+          <Box
+            component="span"
+            sx={{
+              position: "relative",
+              top: "6px",
+              color: "rgba(0, 0, 0, 0.45)",
+              display: "inline-block",
+              ml: "1rem",
+            }}
+          >
+            {msgTime}
+          </Box>
         </Box>
-      </Box>
+      </>
     );
   });
 
