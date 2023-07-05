@@ -127,10 +127,9 @@ function ChatMsgDisp({ chatId }) {
         : formatRelative(timestamp, Timestamp.now().toDate(), { locale });
 
     return (
-      <>
+      <React.Fragment key={message.msgId}>
         {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
         <Box
-          key={message.msgId}
           id={message.msgId}
           onClick={handleMsgClick}
           onContextMenu={handleMsgClick}
@@ -161,7 +160,7 @@ function ChatMsgDisp({ chatId }) {
             {msgTime}
           </Box>
         </Box>
-      </>
+      </React.Fragment>
     );
   });
 
