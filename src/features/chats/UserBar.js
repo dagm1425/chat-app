@@ -3,17 +3,23 @@ import React, { useState } from "react";
 import { auth } from "../../firebase";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
-import { Typography } from "@mui/material";
+import {
+  Divider,
+  Drawer,
+  IconButton,
+  List,
+  ListItem,
+  ListItemButton,
+  Typography,
+} from "@mui/material";
 import Avatar from "@mui/material/Avatar";
 import Dialog from "@mui/material/Dialog";
 import DialogTitle from "@mui/material/DialogTitle";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import IconButton from "@mui/material/IconButton";
+import ContactsIcon from "@mui/icons-material/Contacts";
 import ListItemIcon from "@mui/material/ListItemIcon";
-import PersonIcon from "@mui/icons-material/Person";
-import AddIcon from "@mui/icons-material/Add";
 import PeopleIcon from "@mui/icons-material/People";
+import LogoutIcon from "@mui/icons-material/Logout";
+import MenuIcon from "@mui/icons-material/Menu";
 import ListItemText from "@mui/material/ListItemText";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -23,24 +29,23 @@ import NewPublicChatDialogContent from "./NewPublicChatDialogContent";
 
 function Userbar() {
   const user = useSelector(selectUser);
-  const [anchorEl, setAnchorEl] = useState(null);
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const signOutUser = async () => {
     signOut(auth);
   };
 
-  const handleNewChatOpen = (e) => {
-    setAnchorEl(e.currentTarget);
+  const handleDrawerOpen = () => {
+    setIsDrawerOpen(true);
   };
 
-  const handleNewChatClose = () => {
-    setAnchorEl(null);
+  const handleDrawerClose = () => {
+    setIsDrawerOpen(false);
   };
 
   const handleNewPrivateChatOpen = () => {
-    setAnchorEl(null);
     setIsNewPrivateChatOpen(true);
   };
 
@@ -49,7 +54,6 @@ function Userbar() {
   };
 
   const handleNewPublicChatOpen = () => {
-    setAnchorEl(null);
     setIsNewPublicChatOpen(true);
   };
 
@@ -59,40 +63,62 @@ function Userbar() {
 
   return (
     <>
-      <Box
-        sx={{
-          display: "flex",
-          gap: "8px",
-        }}
-      >
-        <Typography>{user.displayName}</Typography>
-        <Avatar src={user.photoURL} />
-        <Button onClick={signOutUser}>Sign Out</Button>
+      <IconButton size="large" onClick={handleDrawerOpen}>
+        <MenuIcon fontSize="large" />
+      </IconButton>
 
-        <IconButton onClick={handleNewChatOpen}>
-          <AddIcon />
-        </IconButton>
-      </Box>
+      <Drawer anchor="left" open={isDrawerOpen} onClose={handleDrawerClose}>
+        <Box
+          sx={{
+            width: 340,
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <Box sx={{ margin: "1.5rem", textAlign: "center" }}>
+            <Avatar
+              sx={{
+                display: "inline-block",
+                width: 56,
+                height: 56,
+                mb: "0.5rem",
+              }}
+              src={user.photoURL}
+            />
+            <Typography>{user.displayName}</Typography>
+          </Box>
+          <Divider />
 
-      <Menu
-        anchorEl={anchorEl}
-        keepMounted
-        open={Boolean(anchorEl)}
-        onClose={handleNewChatClose}
-      >
-        <MenuItem onClick={handleNewPrivateChatOpen}>
-          <ListItemIcon>
-            <PersonIcon />
-          </ListItemIcon>
-          <ListItemText primary="Private" />
-        </MenuItem>
-        <MenuItem onClick={handleNewPublicChatOpen}>
-          <ListItemIcon>
-            <PeopleIcon />
-          </ListItemIcon>
-          <ListItemText primary="Public" />
-        </MenuItem>
-      </Menu>
+          <List sx={{ mb: "1rem" }}>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleNewPublicChatOpen}>
+                <ListItemIcon>
+                  <PeopleIcon />
+                </ListItemIcon>
+                <ListItemText primary="New Public Chat" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleNewPrivateChatOpen}>
+                <ListItemIcon>
+                  <ContactsIcon />
+                </ListItemIcon>
+                <ListItemText primary="Contacts" />
+              </ListItemButton>
+            </ListItem>
+          </List>
+          {/* <Divider /> */}
+
+          <Button
+            sx={{ py: "0.75rem" }}
+            startIcon={<LogoutIcon />}
+            color="error"
+            onClick={signOutUser}
+          >
+            Sign Out
+          </Button>
+        </Box>
+      </Drawer>
 
       <Dialog open={isNewPrivateChatOpen} onClose={handleNewPrivateChatClose}>
         <DialogTitle>Find Users</DialogTitle>
