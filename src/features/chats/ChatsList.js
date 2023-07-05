@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
@@ -13,8 +13,19 @@ import { selectUser } from "../user/userSlice";
 function ChatsList() {
   const chats = useSelector(selectChats);
   const user = useSelector(selectUser);
+  const [searchValue, setSearchValue] = useState("");
 
-  const list = chats.map((chat) => {
+  const filteredChats = () => {
+    if (searchValue === "") return chats;
+
+    const re = new RegExp(searchValue, "gi");
+
+    return chats.filter((chat) => {
+      return chat.displayName.match(re);
+    });
+  };
+
+  const list = filteredChats().map((chat) => {
     const otherMember = chat.members.find((member) => member.uid !== user.uid);
 
     return (
@@ -46,7 +57,18 @@ function ChatsList() {
     );
   });
 
-  return chats ? <List>{list}</List> : null;
+  return (
+    <>
+      <input
+        type="text"
+        value={searchValue}
+        placeholder="Search chats"
+        autoFocus
+        onChange={(e) => setSearchValue(e.target.value)}
+      />
+      {chats ? <List>{list}</List> : null}
+    </>
+  );
 }
 
 export default ChatsList;
