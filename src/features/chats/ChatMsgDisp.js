@@ -13,7 +13,7 @@ import {
 import { db } from "../../firebase";
 import { format } from "date-fns";
 import formatRelative from "date-fns/formatRelative";
-import { uk } from "date-fns/esm/locale";
+import { enUS } from "date-fns/esm/locale";
 import {
   Box,
   Menu,
@@ -35,12 +35,15 @@ function ChatMsgDisp({ chatId }) {
   const msgDates = new Set();
   msgDates.add("");
   const formatRelativeLocale = {
+    lastWeek: " MMMM dd, yyy",
     yesterday: "'Yesterday'",
     today: "'Today'",
-    other: "MMMM dd,  yyyy",
+    tomorrow: " MMMM dd, yyy",
+    nextWeek: " MMMM dd, yyy",
+    other: " MMMM dd, yyy",
   };
   const locale = {
-    ...uk,
+    ...enUS,
     formatRelative: (token) => formatRelativeLocale[token],
   };
 
