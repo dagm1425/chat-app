@@ -19,6 +19,7 @@ import {
   ListItemText,
   Avatar,
 } from "@mui/material";
+import UsersSearchBar from "./UsersSearchBar";
 
 function AddPublicChatMembersDialogContent({ chat, onClose }) {
   const user = useSelector(selectUser);
@@ -115,14 +116,11 @@ function AddPublicChatMembersDialogContent({ chat, onClose }) {
 
   return (
     <>
-      <input
-        type="text"
-        autoFocus
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-      />
+      <UsersSearchBar value={searchValue} setSearchValue={setSearchValue} />
       <List>{usersList}</List>
-      <Button onClick={addMembers}>Add Members</Button>
+      <Button sx={{ mb: 2 }} onClick={addMembers}>
+        Add Members
+      </Button>
     </>
   );
 }

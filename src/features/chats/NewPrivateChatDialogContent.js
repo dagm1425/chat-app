@@ -12,6 +12,7 @@ import { selectChats } from "./chatsSlice";
 import { doc, collection, setDoc, getDocs } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useId } from "react";
+import UsersSearchBar from "./UsersSearchBar";
 
 function NewPrivateChatDialogContent({ onClose }) {
   const user = useSelector(selectUser);
@@ -90,11 +91,7 @@ function NewPrivateChatDialogContent({ onClose }) {
 
   return (
     <>
-      <input
-        type="text"
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-      />
+      <UsersSearchBar value={searchValue} setSearchValue={setSearchValue} />
       <List>{usersList}</List>
     </>
   );
