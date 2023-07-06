@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+/* eslint-disable react/prop-types */
+import React from "react";
 import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
@@ -10,10 +11,9 @@ import ListItemText from "@mui/material/ListItemText";
 import { Link } from "react-router-dom";
 import { selectUser } from "../user/userSlice";
 
-function ChatsList() {
+function ChatsList({ searchValue }) {
   const chats = useSelector(selectChats);
   const user = useSelector(selectUser);
-  const [searchValue, setSearchValue] = useState("");
 
   const filteredChats = () => {
     if (searchValue === "") return chats;
@@ -57,18 +57,7 @@ function ChatsList() {
     );
   });
 
-  return (
-    <>
-      <input
-        type="text"
-        value={searchValue}
-        placeholder="Search chats"
-        autoFocus
-        onChange={(e) => setSearchValue(e.target.value)}
-      />
-      {chats ? <List>{list}</List> : null}
-    </>
-  );
+  return <>{chats ? <List>{list}</List> : null}</>;
 }
 
 export default ChatsList;

@@ -1,14 +1,39 @@
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useState } from "react";
 import Userbar from "./UserBar";
 import ChatsList from "./ChatsList";
+import ChatsSearchBar from "./ChatsSearchBar";
 import { Box } from "@mui/material";
 
 function Sidebar() {
+  const [searchValue, setSearchValue] = useState("");
+
   return (
-    <Box sx={{ width: 1 / 4 }}>
-      <Userbar />
-      <ChatsList />
+    <Box
+      sx={{
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "22%",
+        height: "100vh",
+        bgcolor: "#f8ebd3",
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1,
+        }}
+      >
+        <Userbar />
+        <ChatsSearchBar
+          sx={{}}
+          searchValue={searchValue}
+          setSearchValue={setSearchValue}
+        />
+      </Box>
+      <ChatsList searchValue={searchValue} />
     </Box>
   );
 }
