@@ -71,6 +71,7 @@ function Userbar() {
         <Box
           sx={{
             width: 340,
+            role: "presentation",
             display: "flex",
             flexDirection: "column",
           }}
@@ -107,7 +108,6 @@ function Userbar() {
               </ListItemButton>
             </ListItem>
           </List>
-          {/* <Divider /> */}
 
           <Button
             sx={{ py: "0.75rem" }}
