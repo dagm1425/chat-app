@@ -13,6 +13,8 @@ import {
   setDoc,
 } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
+import SendIcon from "@mui/icons-material/Send";
+import { IconButton } from "@mui/material";
 
 function ChatMsgInput({ chatId }) {
   const user = useSelector(selectUser);
@@ -35,11 +37,15 @@ function ChatMsgInput({ chatId }) {
   return (
     <Box
       sx={{
-        width: "78%",
+        width: "inherit",
         display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         position: "fixed",
         bottom: "0",
         fontSize: "1.125rem",
+        bgcolor: "#eee",
+        py: "1.5rem",
       }}
     >
       <input
@@ -47,16 +53,25 @@ function ChatMsgInput({ chatId }) {
         placeholder="Enter msg"
         value={msg}
         onChange={(e) => setMsg(e.target.value)}
-        style={{ font: "inherit", padding: "1rem 0.75rem", width: "90%" }}
+        style={{
+          font: "inherit",
+          padding: "1rem 1.75rem",
+          width: "65%",
+          border: "1px solid #000",
+          borderRadius: "50px",
+        }}
         autoFocus
       />
-      <button
-        type="button"
-        style={{ font: "inherit", padding: "1rem 0", width: "10%" }}
-        onClick={handleSendMsg}
+      <IconButton
+        size="large"
+        sx={{
+          "&.MuiButtonBase-root:hover": {
+            bgcolor: "transparent",
+          },
+        }}
       >
-        Send Msg
-      </button>
+        <SendIcon fontSize="inherit" onClick={handleSendMsg} />
+      </IconButton>
     </Box>
   );
 }
