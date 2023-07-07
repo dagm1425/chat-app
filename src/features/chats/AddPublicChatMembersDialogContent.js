@@ -18,6 +18,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Avatar,
+  Box,
 } from "@mui/material";
 import UsersSearchBar from "./UsersSearchBar";
 
@@ -115,13 +116,17 @@ function AddPublicChatMembersDialogContent({ chat, onClose }) {
   });
 
   return (
-    <>
+    <Box sx={{ textAlign: "center" }}>
       <UsersSearchBar value={searchValue} setSearchValue={setSearchValue} />
       <List>{usersList}</List>
-      <Button sx={{ mb: 2 }} onClick={addMembers}>
+      <Button
+        variant="contained"
+        sx={{ mb: "1.5rem", mt: "2.25rem" }}
+        onClick={addMembers}
+      >
         Add Members
       </Button>
-    </>
+    </Box>
   );
 }
 

@@ -188,7 +188,7 @@ function ChatMsgDisp({ chatId }) {
       </Menu>
 
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
-        <DialogTitle>Confirm chat deletion</DialogTitle>
+        <DialogTitle>Confirm message deletion</DialogTitle>
         <DeleteMsgDialogContent
           onClose={handleDeleteMsgClose}
           chatId={chatId}

@@ -4,6 +4,7 @@ import { db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import { doc, deleteDoc } from "firebase/firestore";
 import { Box, Button } from "@mui/material";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 function DeleteChatDialogContent({ onClose, chatId }) {
   const navigate = useNavigate();
@@ -15,9 +16,26 @@ function DeleteChatDialogContent({ onClose, chatId }) {
   };
 
   return (
-    <Box>
-      <Button onClick={deleteChat}>Delete</Button>
-      <Button onClick={onClose}>Cancel</Button>
+    <Box
+      sx={{
+        display: "flex",
+        width: 280,
+        justifyContent: "space-around",
+        my: "1.5rem",
+      }}
+    >
+      <Button
+        variant="contained"
+        color="error"
+        startIcon={<DeleteIcon />}
+        onClick={deleteChat}
+      >
+        Delete
+      </Button>
+
+      <Button variant="outlined" onClick={onClose}>
+        Cancel
+      </Button>
     </Box>
   );
 }

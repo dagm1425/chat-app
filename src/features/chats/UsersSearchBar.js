@@ -8,12 +8,12 @@ function UsersSearchBar({ searchValue, setSearchValue }) {
     <Input
       type="text"
       value={searchValue}
-      sx={{ fontSize: "18px", width: 280, mx: "1.25rem" }}
+      sx={{ fontSize: "18px", width: 280, mx: "1.25rem", px: "6px" }}
       onChange={(e) => setSearchValue(e.target.value)}
       startAdornment={
         <Box
           sx={{
-            margin: "8px",
+            m: "8px 8px 8px 0",
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
