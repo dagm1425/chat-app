@@ -107,8 +107,9 @@ function ChatMsgInput({ chatId }) {
             bgcolor: "transparent",
           },
         }}
+        onClick={handleSendMsg}
       >
-        <SendIcon fontSize="inherit" onClick={handleSendMsg} />
+        <SendIcon fontSize="inherit" />
       </IconButton>
     </Box>
   );
