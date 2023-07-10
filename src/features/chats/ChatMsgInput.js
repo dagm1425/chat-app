@@ -11,6 +11,7 @@ import {
   serverTimestamp,
   // getDoc,
   setDoc,
+  updateDoc,
 } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
@@ -26,12 +27,18 @@ function ChatMsgInput({ chatId }) {
   const handleSendMsg = async () => {
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-
-    await setDoc(msgRef, {
+    const chatRef = doc(db, "chats", `${chatId}`);
+    const message = {
       msgId,
       from: user,
       msg: msg,
       timestamp: serverTimestamp(),
+    };
+
+    await setDoc(msgRef, message);
+
+    await updateDoc(chatRef, {
+      recentMsg: message,
     });
 
     setMsg("");

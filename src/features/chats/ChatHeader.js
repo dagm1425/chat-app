@@ -166,13 +166,13 @@ function ChatHeader({ chat }) {
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
-            <Typography variant="subtitle1">
-              {/* {otherChatMember.status === "online"
-          ? "Online"
-          : // <TimeAgo timestamp={otherChatMember.lastSeen} />
-            otherChatMember.lastSeen} */}
-              Last message at
-            </Typography>
+            JSON.stringify(chat.recentMsg) === "{}" ? null : (
+              <Typography variant="subtitle1">
+                Last message was
+                {chat.recentMsg.timestamp.includes("/") ? "on" : " "}
+                {chat.recentMsg.timestamp}
+              </Typography>
+            )
           ) : (
             <Typography
               variant="subtitle1"

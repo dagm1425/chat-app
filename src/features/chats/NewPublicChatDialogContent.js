@@ -20,7 +20,7 @@ function NewPublicChatDialogContent({ onClose }) {
       type: "public",
       createdBy: user,
       members: [user],
-      recentMsg: "You created this chat",
+      recentMsg: {},
     });
   };
 

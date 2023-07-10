@@ -66,7 +66,7 @@ function NewPrivateChatDialogContent({ onClose }) {
       photoURL: otherChatMember.photoURL,
       type: "private",
       createdBy: user,
-      recentMsg: "You created this chat",
+      recentMsg: {},
       members: [user, otherChatMember],
     });
   };
