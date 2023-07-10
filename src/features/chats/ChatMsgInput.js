@@ -95,7 +95,7 @@ function ChatMsgInput({ chatId }) {
 
       <input
         type="text"
-        placeholder="Enter msg"
+        placeholder="Message"
         value={msg}
         onChange={(e) => setMsg(e.target.value)}
         style={{
