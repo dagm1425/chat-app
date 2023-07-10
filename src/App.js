@@ -27,8 +27,8 @@ function App() {
   const [fetchingChatsData, setFetchingChatsData] = useState(true);
   const formatRelativeLocale = {
     lastWeek: " EEEE",
-    yesterday: "'Yesterday'",
-    today: "'Today'",
+    yesterday: "'yesterday'",
+    today: "'today'",
     tomorrow: " EEEE",
     nextWeek: " EEEE",
     other: "dd/MM/yyy",
