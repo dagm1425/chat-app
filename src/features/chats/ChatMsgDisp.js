@@ -35,11 +35,11 @@ function ChatMsgDisp({ chatId }) {
   const msgDates = new Set();
   msgDates.add("");
   const formatRelativeLocale = {
-    lastWeek: " MMMM dd, yyy",
+    lastWeek: " EEEE",
     yesterday: "'Yesterday'",
     today: "'Today'",
-    tomorrow: " MMMM dd, yyy",
-    nextWeek: " MMMM dd, yyy",
+    tomorrow: " EEEE",
+    nextWeek: " EEEE",
     other: " MMMM dd, yyy",
   };
   const locale = {
