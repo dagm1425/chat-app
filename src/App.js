@@ -26,11 +26,11 @@ function App() {
   const [fetchingUserData, setFetchingUserData] = useState(true);
   const [fetchingChatsData, setFetchingChatsData] = useState(true);
   const formatRelativeLocale = {
-    lastWeek: " EEEE",
-    yesterday: "'yesterday'",
-    today: "'today'",
-    tomorrow: " EEEE",
-    nextWeek: " EEEE",
+    lastWeek: "EEEE",
+    yesterday: "'Yesterday'",
+    today: "'Today'",
+    tomorrow: "EEEE",
+    nextWeek: "EEEE",
     other: "dd/MM/yyy",
   };
   const locale = {
@@ -93,7 +93,7 @@ function App() {
               ...doc.data().recentMsg,
               timestamp: formatRelative(timestamp, Timestamp.now().toDate(), {
                 locale,
-              }),
+              }).toLowerCase(),
             },
           });
         } else {
