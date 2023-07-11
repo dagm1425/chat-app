@@ -168,9 +168,8 @@ function ChatHeader({ chat }) {
           {chat.type === "private" ? (
             JSON.stringify(chat.recentMsg) === "{}" ? null : (
               <Typography variant="subtitle1">
-                Last message was
-                {chat.recentMsg.timestamp.includes("/") ? "on" : " "}
-                {chat.recentMsg.timestamp}
+                Last message was on
+                {" " + chat.recentMsg.timestamp}
               </Typography>
             )
           ) : (
