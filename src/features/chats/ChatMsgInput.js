@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -15,14 +15,19 @@ import {
 } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
-import { IconButton, Popover } from "@mui/material";
+import { Dialog, DialogTitle, IconButton, Popover } from "@mui/material";
+import AttachmentIcon from "@mui/icons-material/Attachment";
 import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
+import FileMsgDialogContent from "./FileMsgDialogContent";
 
-function ChatMsgInput({ chatId }) {
+function ChatMsgInput({ chatId, setUploadTask }) {
   const user = useSelector(selectUser);
   const [msg, setMsg] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
+  const fileInput = useRef(null);
+  const [file, setFile] = useState(null);
+  const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
 
   const handleSendMsg = async () => {
     const msgId = uuid();
@@ -55,6 +60,29 @@ function ChatMsgInput({ chatId }) {
   const addEmoji = (emojiData) => {
     setMsg(msg + emojiData.emoji);
     closeEmojiPicker();
+  };
+
+  const handleFileSelectClick = () => {
+    fileInput.current.click();
+  };
+
+  const handleFileMsgDialogOpen = () => {
+    setIsFileMsgDialogOpen(true);
+  };
+
+  const handleFileMsgDialogClose = () => {
+    setIsFileMsgDialogOpen(false);
+    fileInput.current.value = "";
+  };
+
+  const reviewFileMsg = async (e) => {
+    e.preventDefault();
+
+    const file = e.target.files[0];
+
+    setFile(file);
+
+    handleFileMsgDialogOpen();
   };
 
   return (
@@ -92,6 +120,29 @@ function ChatMsgInput({ chatId }) {
       >
         <EmojiPicker onEmojiClick={addEmoji} />
       </Popover>
+
+      <input
+        type="file"
+        id="fileElem"
+        onChange={reviewFileMsg}
+        style={{ display: "none" }}
+        ref={fileInput}
+      />
+
+      <IconButton onClick={handleFileSelectClick}>
+        <AttachmentIcon />
+      </IconButton>
+
+      <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
+        <DialogTitle>Send as a file</DialogTitle>
+        <FileMsgDialogContent
+          chatId={chatId}
+          user={user}
+          file={file}
+          setUploadTask={setUploadTask}
+          onClose={handleFileMsgDialogClose}
+        ></FileMsgDialogContent>
+      </Dialog>
 
       <input
         type="text"

@@ -5,6 +5,8 @@ import { selectUser } from "../user/userSlice";
 import {
   Timestamp,
   collection,
+  deleteDoc,
+  doc,
   limit,
   onSnapshot,
   orderBy,
@@ -22,16 +24,24 @@ import {
   ListItemText,
   Dialog,
   DialogTitle,
+  Typography,
+  IconButton,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import CloseIcon from "@mui/icons-material/Close";
+import DownloadIcon from "@mui/icons-material/Download";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
+import CircularProgress from "@mui/material/CircularProgress";
 
-function ChatMsgDisp({ chatId }) {
+function ChatMsgDisp({ chatId, uploadTask }) {
   const user = useSelector(selectUser);
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [msgId, setMsgId] = useState("");
+  const [fileMsgId, setFileMsgId] = useState("");
+
   const msgDates = new Set();
   msgDates.add("");
   const formatRelativeLocale = {
@@ -116,6 +126,30 @@ function ChatMsgDisp({ chatId }) {
     );
   };
 
+  const cancelUpload = async (msgId) => {
+    uploadTask.cancel();
+
+    await deleteDoc(doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`));
+  };
+
+  const downloadFile = (url) => {
+    var xhr = new XMLHttpRequest();
+    xhr.responseType = "blob";
+    // eslint-disable-next-line no-unused-vars
+    xhr.onload = function (event) {
+      var a = document.createElement("a");
+      a.href = window.URL.createObjectURL(xhr.response);
+      a.download = "someFileName"; // replace "someFileName" with actual file name
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      // eslint-disable-next-line no-unused-vars
+      var blob = xhr.response;
+    };
+    xhr.open("GET", url);
+    xhr.send();
+  };
+
   const msgList = chatMsg.map((message) => {
     const isSentFromUser = message.from.uid === user.uid;
     const timestamp =
@@ -146,7 +180,91 @@ function ChatMsgDisp({ chatId }) {
             boxShadow: 2,
           }}
         >
-          {message.msg}
+          {message.msg ? (
+            message.msg
+          ) : (
+            <>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: "1rem",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "grid",
+                    placeItems: "center",
+                    height: 65,
+                    width: 65,
+                    bgcolor: "#eee",
+                    borderRadius: "50%",
+                  }}
+                  onMouseOver={() => setFileMsgId(message.msgId)}
+                  onMouseOut={() => setFileMsgId("")}
+                >
+                  {message.fileMsg.progress != 100 ? (
+                    <Box sx={{ display: "grid" }}>
+                      <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
+                      <IconButton
+                        sx={{ gridColumn: 1, gridRow: 1 }}
+                        onClick={() =>
+                          // const uploadObj = JSON.parse(
+                          //   message.fileMsg.uploadTask
+                          // );
+                          cancelUpload(message.msgId)
+                        }
+                      >
+                        <CloseIcon />
+                      </IconButton>
+                    </Box>
+                  ) : message.msgId === fileMsgId ? (
+                    <IconButton
+                      sx={{
+                        size: "large",
+                        "&.MuiButtonBase-root:hover": {
+                          bgcolor: "transparent",
+                        },
+                      }}
+                      onClick={() => downloadFile(message.fileMsg.fileUrl)}
+                    >
+                      <DownloadIcon fontSize="large" sx={{ color: "#000" }} />
+                    </IconButton>
+                  ) : (
+                    <InsertDriveFileIcon fontSize="large" />
+                  )}
+                </Box>
+                <div>
+                  <Typography variant="subtitle1">
+                    {message.fileMsg.fileName}
+                  </Typography>
+                  <Typography
+                    variant="subtitle1"
+                    sx={{
+                      display: "inline-block",
+                      color: "rgba(0, 0, 0, 0.45)",
+                      mr: "0.75rem",
+                    }}
+                  >
+                    {message.fileMsg.fileSize}
+                  </Typography>
+                  {message.fileMsg.progress != 100 && (
+                    <Typography
+                      variant="subtitle1"
+                      sx={{
+                        display: "inline-block",
+                        color: "rgba(0, 0, 0, 0.45)",
+                      }}
+                    >
+                      {`${message.fileMsg.progress.toFixed(0)}% done`}
+                    </Typography>
+                  )}
+                </div>
+              </Box>
+              <Typography variant="subtitle1">{message.caption}</Typography>
+            </>
+          )}
           <Box
             component="span"
             sx={{

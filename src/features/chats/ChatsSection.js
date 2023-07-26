@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useState } from "react";
 import Box from "@mui/material/Box";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -11,6 +11,7 @@ import ChatMsgInput from "./ChatMsgInput";
 function ChatsSection() {
   const { id } = useParams();
   const chat = useSelector((state) => selectChatById(state, id));
+  const [uploadTask, setUploadTask] = useState(null);
 
   return (
     <Box
@@ -22,8 +23,8 @@ function ChatsSection() {
       }}
     >
       <ChatHeader chat={chat} />
-      <ChatMsgDisp chatId={id} />
-      <ChatMsgInput chatId={id} />
+      <ChatMsgDisp chatId={id} uploadTask={uploadTask} />
+      <ChatMsgInput chatId={id} setUploadTask={setUploadTask} />
     </Box>
   );
 }
