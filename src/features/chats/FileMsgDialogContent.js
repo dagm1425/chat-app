@@ -55,8 +55,7 @@ function FileMsgDialogContent({ chatId, user, file, setUploadTask, onClose }) {
         fileName,
         fileType,
         fileSize,
-        fileThumbnailUrl: "https://icons8.com/icon/11204/file", // review necessity of these icon links
-        fileUrl: "https://icons8.com/icon/11204/file",
+        fileUrl: "",
         progress: 0,
         uploadTask: null,
       },
