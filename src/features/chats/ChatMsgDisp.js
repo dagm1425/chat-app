@@ -176,7 +176,8 @@ function ChatMsgDisp({ chatId, uploadTask }) {
               ? "1.125rem 1.125rem 0 1.125rem"
               : "1.125rem 1.125rem 1.125rem 0",
             width: "fit-content",
-            maxWidth: "66%",
+            maxWidth: "45%",
+            maxHeight: "45%",
             boxShadow: 2,
           }}
         >
@@ -184,27 +185,18 @@ function ChatMsgDisp({ chatId, uploadTask }) {
             message.msg
           ) : (
             <>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: "1rem",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "grid",
-                    placeItems: "center",
-                    height: 65,
-                    width: 65,
-                    bgcolor: "#eee",
-                    borderRadius: "50%",
-                  }}
-                  onMouseOver={() => setFileMsgId(message.msgId)}
-                  onMouseOut={() => setFileMsgId("")}
-                >
-                  {message.fileMsg.progress != 100 ? (
+              {message.fileMsg.fileType.includes("image") ? (
+                message.fileMsg.progress != 100 ? (
+                  <Box
+                    sx={{
+                      display: "grid",
+                      placeItems: "center",
+                      height: 65,
+                      width: 65,
+                      bgcolor: "#eee",
+                      borderRadius: "50%",
+                    }}
+                  >
                     <Box sx={{ display: "grid" }}>
                       <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
                       <IconButton
@@ -219,49 +211,97 @@ function ChatMsgDisp({ chatId, uploadTask }) {
                         <CloseIcon />
                       </IconButton>
                     </Box>
-                  ) : message.msgId === fileMsgId ? (
-                    <IconButton
-                      sx={{
-                        size: "large",
-                        "&.MuiButtonBase-root:hover": {
-                          bgcolor: "transparent",
-                        },
-                      }}
-                      onClick={() => downloadFile(message.fileMsg.fileUrl)}
-                    >
-                      <DownloadIcon fontSize="large" sx={{ color: "#000" }} />
-                    </IconButton>
-                  ) : (
-                    <InsertDriveFileIcon fontSize="large" />
-                  )}
-                </Box>
-                <div>
-                  <Typography variant="subtitle1">
-                    {message.fileMsg.fileName}
-                  </Typography>
-                  <Typography
-                    variant="subtitle1"
-                    sx={{
-                      display: "inline-block",
-                      color: "rgba(0, 0, 0, 0.45)",
-                      mr: "0.75rem",
+                  </Box>
+                ) : (
+                  <img
+                    src={message.fileMsg.fileUrl}
+                    style={{
+                      height: "100%",
+                      width: "100%",
+                      objectFit: "cover",
                     }}
+                  />
+                )
+              ) : (
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    gap: "1rem",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "grid",
+                      placeItems: "center",
+                      height: 65,
+                      width: 65,
+                      bgcolor: "#eee",
+                      borderRadius: "50%",
+                    }}
+                    onMouseOver={() => setFileMsgId(message.msgId)}
+                    onMouseOut={() => setFileMsgId("")}
                   >
-                    {message.fileMsg.fileSize}
-                  </Typography>
-                  {message.fileMsg.progress != 100 && (
+                    {message.fileMsg.progress != 100 ? (
+                      <Box sx={{ display: "grid" }}>
+                        <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
+                        <IconButton
+                          sx={{ gridColumn: 1, gridRow: 1 }}
+                          onClick={() =>
+                            // const uploadObj = JSON.parse(
+                            //   message.fileMsg.uploadTask
+                            // );
+                            cancelUpload(message.msgId)
+                          }
+                        >
+                          <CloseIcon />
+                        </IconButton>
+                      </Box>
+                    ) : message.msgId === fileMsgId ? (
+                      <IconButton
+                        sx={{
+                          size: "large",
+                          "&.MuiButtonBase-root:hover": {
+                            bgcolor: "transparent",
+                          },
+                        }}
+                        onClick={() => downloadFile(message.fileMsg.fileUrl)}
+                      >
+                        <DownloadIcon fontSize="large" sx={{ color: "#000" }} />
+                      </IconButton>
+                    ) : (
+                      <InsertDriveFileIcon fontSize="large" />
+                    )}
+                  </Box>
+                  <div>
+                    <Typography variant="subtitle1">
+                      {message.fileMsg.fileName}
+                    </Typography>
                     <Typography
                       variant="subtitle1"
                       sx={{
                         display: "inline-block",
                         color: "rgba(0, 0, 0, 0.45)",
+                        mr: "0.75rem",
                       }}
                     >
-                      {`${message.fileMsg.progress.toFixed(0)}% done`}
+                      {message.fileMsg.fileSize}
                     </Typography>
-                  )}
-                </div>
-              </Box>
+                    {message.fileMsg.progress != 100 && (
+                      <Typography
+                        variant="subtitle1"
+                        sx={{
+                          display: "inline-block",
+                          color: "rgba(0, 0, 0, 0.45)",
+                        }}
+                      >
+                        {`${message.fileMsg.progress.toFixed(0)}% done`}
+                      </Typography>
+                    )}
+                  </div>
+                </Box>
+              )}
               <Typography variant="subtitle1">{message.caption}</Typography>
             </>
           )}
