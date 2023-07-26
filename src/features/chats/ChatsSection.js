@@ -18,7 +18,6 @@ function ChatsSection() {
       sx={{
         ml: "22%",
         width: "78%",
-        height: "100vh",
         bgcolor: "secondary.main",
       }}
     >
