@@ -85,15 +85,21 @@ function App() {
       const chats = [];
       querySnapshot.forEach((doc) => {
         if (JSON.stringify(doc.data().recentMsg) !== "{}") {
-          const timestamp = doc.data().recentMsg.timestamp.toDate();
+          const timestamp =
+            doc.data().recentMsg.timestamp == null
+              ? ""
+              : doc.data().recentMsg.timestamp.toDate();
 
           chats.push({
             ...doc.data(),
             recentMsg: {
               ...doc.data().recentMsg,
-              timestamp: formatRelative(timestamp, Timestamp.now().toDate(), {
-                locale,
-              }).toLowerCase(),
+              timestamp:
+                timestamp === ""
+                  ? ""
+                  : formatRelative(timestamp, Timestamp.now().toDate(), {
+                      locale,
+                    }).toLowerCase(),
             },
           });
         } else {
