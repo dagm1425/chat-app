@@ -15,13 +15,21 @@ import {
 } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
-import { Dialog, DialogTitle, IconButton, Popover } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  IconButton,
+  Popover,
+  Typography,
+} from "@mui/material";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import FileMsgDialogContent from "./FileMsgDialogContent";
+import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import CloseIcon from "@mui/icons-material/Close";
 
-function ChatMsgInput({ chatId, setUploadTask }) {
+function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
   const user = useSelector(selectUser);
   const [msg, setMsg] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
@@ -30,6 +38,10 @@ function ChatMsgInput({ chatId, setUploadTask }) {
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
 
   const handleSendMsg = async () => {
+    setMsg("");
+
+    if (msgReply) setMsgReply(null);
+
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const chatRef = doc(db, "chats", `${chatId}`);
@@ -37,6 +49,7 @@ function ChatMsgInput({ chatId, setUploadTask }) {
       msgId,
       from: user,
       msg: msg,
+      msgReply,
       timestamp: serverTimestamp(),
     };
 
@@ -45,8 +58,6 @@ function ChatMsgInput({ chatId, setUploadTask }) {
     await updateDoc(chatRef, {
       recentMsg: message,
     });
-
-    setMsg("");
   };
 
   const openEmojiPicker = (e) => {
@@ -97,8 +108,9 @@ function ChatMsgInput({ chatId, setUploadTask }) {
         bottom: "0",
         fontSize: "1.125rem",
         bgcolor: "#eee",
-        mt: "1rem",
+        // mt: "1rem",
         py: "1.5rem",
+        // flex: "0 1 40px",
       }}
     >
       <IconButton
@@ -142,26 +154,72 @@ function ChatMsgInput({ chatId, setUploadTask }) {
           file={file}
           setUploadTask={setUploadTask}
           onClose={handleFileMsgDialogClose}
+          msgReply={msgReply}
+          setMsgReply={setMsgReply}
         ></FileMsgDialogContent>
       </Dialog>
 
-      <input
-        type="text"
-        placeholder="Message"
-        value={msg}
-        onChange={(e) => setMsg(e.target.value)}
-        style={{
-          font: "inherit",
-          padding: "1rem 1.25rem",
+      <Box
+        sx={{
           width: "65%",
-          border: "none",
-          outline: "none",
-          boxShadow:
-            "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-          borderRadius: "50px",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
         }}
-        autoFocus
-      />
+      >
+        {msgReply && (
+          <Box
+            sx={{
+              width: "95%",
+              display: "flex",
+              justifyContent: "flex-start",
+              alignItems: "center",
+              gap: "0.75rem",
+              background: "#fff",
+              p: "0.5rem 1.25rem",
+              boxShadow:
+                "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
+              borderRadius: "30px 30px 0 0",
+            }}
+          >
+            {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
+            <div>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                {msgReply.from.displayName}
+              </Typography>
+              <Typography variant="subtitle1">
+                {msgReply.msg
+                  ? msgReply.msg
+                  : msgReply.caption
+                  ? msgReply.caption
+                  : msgReply.fileMsg.fileName}
+              </Typography>
+            </div>
+            <IconButton onClick={() => setMsgReply(null)}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+        )}
+        <input
+          type="text"
+          placeholder="Message"
+          value={msg}
+          onChange={(e) => setMsg(e.target.value)}
+          style={{
+            font: "inherit",
+            padding: "1rem 1.25rem",
+            // margin: "0 auto",
+            width: "95%",
+            border: "none",
+            outline: "none",
+            boxShadow:
+              "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
+            borderRadius: msgReply ? "0 0 30px 30px" : "30px",
+          }}
+          autoFocus
+        />
+      </Box>
+
       <IconButton
         size="large"
         sx={{

@@ -7,7 +7,15 @@ import { v4 as uuid } from "uuid";
 import { Box, Button, Typography, TextField } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
-function FileMsgDialogContent({ chatId, user, file, setUploadTask, onClose }) {
+function FileMsgDialogContent({
+  chatId,
+  user,
+  file,
+  setUploadTask,
+  onClose,
+  msgReply,
+  setMsgReply,
+}) {
   let fileName;
   const [caption, setCaption] = useState("");
 
@@ -43,6 +51,7 @@ function FileMsgDialogContent({ chatId, user, file, setUploadTask, onClose }) {
 
   const sendFileMsg = async () => {
     onClose();
+    if (msgReply) setMsgReply(null);
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
@@ -53,6 +62,7 @@ function FileMsgDialogContent({ chatId, user, file, setUploadTask, onClose }) {
       from: user,
       caption,
       timestamp: serverTimestamp(),
+      msgReply,
       fileMsg: {
         fileName,
         fileType,

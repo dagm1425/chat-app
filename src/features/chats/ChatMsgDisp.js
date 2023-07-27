@@ -33,8 +33,9 @@ import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
+import ReplyIcon from "@mui/icons-material/Reply";
 
-function ChatMsgDisp({ chatId, uploadTask }) {
+function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
   const user = useSelector(selectUser);
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -126,6 +127,13 @@ function ChatMsgDisp({ chatId, uploadTask }) {
     );
   };
 
+  const handleMsgReply = async () => {
+    const msgReply = chatMsg.find((msg) => msg.msgId === msgId);
+    setMsgReply(msgReply);
+
+    handleMsgOptionsClose();
+  };
+
   const cancelUpload = async (msgId) => {
     uploadTask.cancel();
 
@@ -181,6 +189,33 @@ function ChatMsgDisp({ chatId, uploadTask }) {
             boxShadow: 2,
           }}
         >
+          {message.msgReply && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                px: "0.5rem",
+                borderLeft: "4px solid #80b3ff",
+              }}
+            >
+              {message.msgReply.fileMsg && (
+                <InsertDriveFileIcon fontSize="medium" />
+              )}
+              <div>
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                  {message.msgReply.from.displayName}
+                </Typography>
+                <Typography variant="subtitle1">
+                  {message.msgReply.msg
+                    ? message.msgReply.msg
+                    : message.msgReply.caption
+                    ? message.msgReply.caption
+                    : message.msgReply.fileMsg.fileName}
+                </Typography>
+              </div>
+            </Box>
+          )}
           {message.msg ? (
             message.msg
           ) : (
@@ -342,6 +377,12 @@ function ChatMsgDisp({ chatId, uploadTask }) {
             <DeleteIcon />
           </ListItemIcon>
           <ListItemText primary="Delete" />
+        </MenuItem>
+        <MenuItem onClick={handleMsgReply}>
+          <ListItemIcon>
+            <ReplyIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reply" />
         </MenuItem>
       </Menu>
 
