@@ -414,6 +414,7 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
             onClose={handleDeleteMsgClose}
             chatId={chatId}
             msgId={msgId}
+            chatMsg={chatMsg}
           />
         </Dialog>
 
