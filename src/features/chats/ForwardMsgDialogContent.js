@@ -91,6 +91,7 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
         ...msg,
         from: user,
         msgId: msgId,
+        msgReply: null,
         timestamp: serverTimestamp(),
       };
 
@@ -106,6 +107,7 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
         ...msg,
         from: user,
         msgId: msgId,
+        msgReply: null,
         timestamp: serverTimestamp(),
       };
       let chatRef;
