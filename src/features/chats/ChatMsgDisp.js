@@ -34,12 +34,15 @@ import DownloadIcon from "@mui/icons-material/Download";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
+import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
 
 function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
   const user = useSelector(selectUser);
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
+  const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
 
@@ -104,6 +107,15 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
 
   const handleDeleteMsgClose = () => {
     setIsDeleteMsgOpen(false);
+  };
+
+  const handleMsgForwardOpen = () => {
+    handleMsgOptionsClose();
+    setIsForwardMsgOpen(true);
+  };
+
+  const handleMsgForwardClose = () => {
+    setIsForwardMsgOpen(false);
   };
 
   const renderMsgDate = (msgDate) => {
@@ -384,6 +396,12 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
           </ListItemIcon>
           <ListItemText primary="Reply" />
         </MenuItem>
+        <MenuItem onClick={handleMsgForwardOpen}>
+          <ListItemIcon>
+            <ArrowForwardIcon />
+          </ListItemIcon>
+          <ListItemText primary="Forward" />
+        </MenuItem>
       </Menu>
 
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
@@ -392,6 +410,15 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
           onClose={handleDeleteMsgClose}
           chatId={chatId}
           msgId={msgId}
+        />
+      </Dialog>
+
+      <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
+        <DialogTitle>Forward message</DialogTitle>
+        <ForwardMsgDialogContent
+          onClose={handleMsgForwardClose}
+          chatId={chatId}
+          msg={chatMsg.find((msg) => msg.msgId === msgId)}
         />
       </Dialog>
     </Box>
