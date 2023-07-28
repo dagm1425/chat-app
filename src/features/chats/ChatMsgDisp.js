@@ -36,6 +36,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
+import LoaderDots from "../components/LoaderDots";
 
 function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -351,18 +352,20 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
               <Typography variant="subtitle1">{message.caption}</Typography>
             </>
           )}
-          <Box
-            component="span"
-            sx={{
-              position: "relative",
-              top: "6px",
-              color: "rgba(0, 0, 0, 0.45)",
-              display: "inline-block",
-              ml: "1rem",
-            }}
-          >
-            {msgTime}
-          </Box>
+          {msgTime === "" ? (
+            <LoaderDots />
+          ) : (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontSize: 14,
+                color: "rgba(0, 0, 0, 0.45)",
+                textAlign: "right",
+              }}
+            >
+              {msgTime}
+            </Typography>
+          )}
         </Box>
       </React.Fragment>
     );
