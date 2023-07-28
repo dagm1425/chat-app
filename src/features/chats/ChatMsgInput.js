@@ -40,8 +40,6 @@ function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
   const handleSendMsg = async () => {
     setMsg("");
 
-    if (msgReply) setMsgReply(null);
-
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const chatRef = doc(db, "chats", `${chatId}`);
@@ -56,8 +54,10 @@ function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
     await setDoc(msgRef, message);
 
     await updateDoc(chatRef, {
-      recentMsg: message,
+      recentMsg: { ...message, msgReply: null },
     });
+
+    if (msgReply) setMsgReply(null);
   };
 
   const openEmojiPicker = (e) => {
