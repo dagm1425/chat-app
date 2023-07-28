@@ -99,138 +99,146 @@ function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
   return (
     <Box
       sx={{
-        width: "100%",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: "0.5rem",
+        flex: "0 1 auto",
         position: "sticky",
         bottom: "0",
-        fontSize: "1.125rem",
         bgcolor: "#eee",
-        // mt: "1rem",
         py: "1.5rem",
-        // flex: "0 1 40px",
       }}
     >
-      <IconButton
-        sx={{
-          size: "large",
-          "&.MuiButtonBase-root:hover": {
-            bgcolor: "transparent",
-          },
-        }}
-        onClick={openEmojiPicker}
-      >
-        <EmojiEmotionsIcon sx={{ fontSize: "inherit" }} />
-      </IconButton>
-
-      <Popover
-        anchorEl={anchorEl}
-        keepMounted
-        open={Boolean(anchorEl)}
-        onClose={closeEmojiPicker}
-      >
-        <EmojiPicker onEmojiClick={addEmoji} />
-      </Popover>
-
-      <input
-        type="file"
-        id="fileElem"
-        onChange={reviewFileMsg}
-        style={{ display: "none" }}
-        ref={fileInput}
-      />
-
-      <IconButton onClick={handleFileSelectClick}>
-        <AttachmentIcon />
-      </IconButton>
-
-      <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
-        <DialogTitle>Send as a file</DialogTitle>
-        <FileMsgDialogContent
-          chatId={chatId}
-          user={user}
-          file={file}
-          setUploadTask={setUploadTask}
-          onClose={handleFileMsgDialogClose}
-          msgReply={msgReply}
-          setMsgReply={setMsgReply}
-        ></FileMsgDialogContent>
-      </Dialog>
-
       <Box
         sx={{
-          width: "65%",
+          height: "100%",
+          width: "100%",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
+          justifyContent: "center",
+          gap: "0.5rem",
+
+          fontSize: "1.125rem",
+
+          // mt: "1rem",
         }}
       >
-        {msgReply && (
-          <Box
-            sx={{
+        <IconButton
+          sx={{
+            size: "large",
+            "&.MuiButtonBase-root:hover": {
+              bgcolor: "transparent",
+            },
+          }}
+          onClick={openEmojiPicker}
+        >
+          <EmojiEmotionsIcon sx={{ fontSize: "inherit" }} />
+        </IconButton>
+
+        <Popover
+          anchorEl={anchorEl}
+          keepMounted
+          open={Boolean(anchorEl)}
+          onClose={closeEmojiPicker}
+        >
+          <EmojiPicker onEmojiClick={addEmoji} />
+        </Popover>
+
+        <input
+          type="file"
+          id="fileElem"
+          onChange={reviewFileMsg}
+          style={{ display: "none" }}
+          ref={fileInput}
+        />
+
+        <IconButton onClick={handleFileSelectClick}>
+          <AttachmentIcon />
+        </IconButton>
+
+        <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
+          <DialogTitle>Send as a file</DialogTitle>
+          <FileMsgDialogContent
+            chatId={chatId}
+            user={user}
+            file={file}
+            setUploadTask={setUploadTask}
+            onClose={handleFileMsgDialogClose}
+            msgReply={msgReply}
+            setMsgReply={setMsgReply}
+          ></FileMsgDialogContent>
+        </Dialog>
+
+        <Box
+          sx={{
+            width: "65%",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+          }}
+        >
+          {msgReply && (
+            <Box
+              sx={{
+                width: "95%",
+                display: "flex",
+                justifyContent: "flex-start",
+                alignItems: "center",
+                gap: "0.75rem",
+                background: "#fff",
+                p: "0.5rem 1.25rem",
+                boxShadow:
+                  "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
+                borderRadius: "30px 30px 0 0",
+              }}
+            >
+              {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
+              <div>
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                  {msgReply.from.displayName}
+                </Typography>
+                <Typography variant="subtitle1">
+                  {msgReply.msg
+                    ? msgReply.msg
+                    : msgReply.caption
+                    ? msgReply.caption
+                    : msgReply.fileMsg.fileName}
+                </Typography>
+              </div>
+              <IconButton onClick={() => setMsgReply(null)}>
+                <CloseIcon />
+              </IconButton>
+            </Box>
+          )}
+          <input
+            type="text"
+            placeholder="Message"
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            style={{
+              font: "inherit",
+              padding: "1rem 1.25rem",
+              // margin: "0 auto",
               width: "95%",
-              display: "flex",
-              justifyContent: "flex-start",
-              alignItems: "center",
-              gap: "0.75rem",
-              background: "#fff",
-              p: "0.5rem 1.25rem",
+              border: "none",
+              outline: "none",
               boxShadow:
                 "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-              borderRadius: "30px 30px 0 0",
+              borderRadius: msgReply ? "0 0 30px 30px" : "30px",
             }}
-          >
-            {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
-            <div>
-              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                {msgReply.from.displayName}
-              </Typography>
-              <Typography variant="subtitle1">
-                {msgReply.msg
-                  ? msgReply.msg
-                  : msgReply.caption
-                  ? msgReply.caption
-                  : msgReply.fileMsg.fileName}
-              </Typography>
-            </div>
-            <IconButton onClick={() => setMsgReply(null)}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-        )}
-        <input
-          type="text"
-          placeholder="Message"
-          value={msg}
-          onChange={(e) => setMsg(e.target.value)}
-          style={{
-            font: "inherit",
-            padding: "1rem 1.25rem",
-            // margin: "0 auto",
-            width: "95%",
-            border: "none",
-            outline: "none",
-            boxShadow:
-              "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-            borderRadius: msgReply ? "0 0 30px 30px" : "30px",
-          }}
-          autoFocus
-        />
-      </Box>
+            autoFocus
+          />
+        </Box>
 
-      <IconButton
-        size="large"
-        sx={{
-          "&.MuiButtonBase-root:hover": {
-            bgcolor: "transparent",
-          },
-        }}
-        onClick={handleSendMsg}
-      >
-        <SendIcon fontSize="inherit" />
-      </IconButton>
+        <IconButton
+          size="large"
+          sx={{
+            "&.MuiButtonBase-root:hover": {
+              bgcolor: "transparent",
+            },
+          }}
+          onClick={handleSendMsg}
+        >
+          <SendIcon fontSize="inherit" />
+        </IconButton>
+      </Box>
     </Box>
   );
 }

@@ -370,57 +370,60 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
   });
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {msgList.length > 0 ? msgList : null}
-
-      <Menu
-        anchorEl={anchorEl}
-        keepMounted
-        open={Boolean(anchorEl)}
-        onClose={handleMsgOptionsClose}
+    <Box sx={{ flex: "1 1 auto", p: "2rem 4rem", bgcolor: "secondary.main" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          height: "100%",
+        }}
       >
-        <MenuItem onClick={handleDeleteMsgOpen}>
-          <ListItemIcon>
-            <DeleteIcon />
-          </ListItemIcon>
-          <ListItemText primary="Delete" />
-        </MenuItem>
-        <MenuItem onClick={handleMsgReply}>
-          <ListItemIcon>
-            <ReplyIcon />
-          </ListItemIcon>
-          <ListItemText primary="Reply" />
-        </MenuItem>
-        <MenuItem onClick={handleMsgForwardOpen}>
-          <ListItemIcon>
-            <ArrowForwardIcon />
-          </ListItemIcon>
-          <ListItemText primary="Forward" />
-        </MenuItem>
-      </Menu>
+        {msgList.length > 0 ? msgList : null}
 
-      <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
-        <DialogTitle>Confirm message deletion</DialogTitle>
-        <DeleteMsgDialogContent
-          onClose={handleDeleteMsgClose}
-          chatId={chatId}
-          msgId={msgId}
-        />
-      </Dialog>
+        <Menu
+          anchorEl={anchorEl}
+          keepMounted
+          open={Boolean(anchorEl)}
+          onClose={handleMsgOptionsClose}
+        >
+          <MenuItem onClick={handleDeleteMsgOpen}>
+            <ListItemIcon>
+              <DeleteIcon />
+            </ListItemIcon>
+            <ListItemText primary="Delete" />
+          </MenuItem>
+          <MenuItem onClick={handleMsgReply}>
+            <ListItemIcon>
+              <ReplyIcon />
+            </ListItemIcon>
+            <ListItemText primary="Reply" />
+          </MenuItem>
+          <MenuItem onClick={handleMsgForwardOpen}>
+            <ListItemIcon>
+              <ArrowForwardIcon />
+            </ListItemIcon>
+            <ListItemText primary="Forward" />
+          </MenuItem>
+        </Menu>
 
-      <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
-        <DialogTitle>Forward message</DialogTitle>
-        <ForwardMsgDialogContent
-          onClose={handleMsgForwardClose}
-          chatId={chatId}
-          msg={chatMsg.find((msg) => msg.msgId === msgId)}
-        />
-      </Dialog>
+        <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
+          <DialogTitle>Confirm message deletion</DialogTitle>
+          <DeleteMsgDialogContent
+            onClose={handleDeleteMsgClose}
+            chatId={chatId}
+            msgId={msgId}
+          />
+        </Dialog>
+
+        <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
+          <DialogTitle>Forward message</DialogTitle>
+          <ForwardMsgDialogContent
+            onClose={handleMsgForwardClose}
+            chatId={chatId}
+            msg={chatMsg.find((msg) => msg.msgId === msgId)}
+          />
+        </Dialog>
+      </Box>
     </Box>
   );
 }

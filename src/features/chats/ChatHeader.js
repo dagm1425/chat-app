@@ -149,14 +149,23 @@ function ChatHeader({ chat }) {
   // }, []);
 
   return (
-    <>
+    <Box
+      sx={{
+        flex: "0 1 auto",
+        position: "fixed",
+        top: "0",
+        width: "78%",
+        p: "1rem",
+        bgcolor: "header.main",
+      }}
+    >
       <Box
         sx={{
-          bgcolor: "header.main",
+          width: "95%",
+          margin: "0 auto",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          p: "0.75rem",
         }}
       >
         <div>
@@ -189,56 +198,56 @@ function ChatHeader({ chat }) {
         <IconButton onClick={handleChatOptionsOpen}>
           <MoreVertIcon />
         </IconButton>
-      </Box>
 
-      <Menu
-        anchorEl={anchorEl}
-        keepMounted
-        open={Boolean(anchorEl)}
-        onClose={handleChatOptionsClose}
-      >
-        {MenuItems}
-      </Menu>
+        <Menu
+          anchorEl={anchorEl}
+          keepMounted
+          open={Boolean(anchorEl)}
+          onClose={handleChatOptionsClose}
+        >
+          {MenuItems}
+        </Menu>
 
-      <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
-        <DialogTitle>Confirm chat deletion</DialogTitle>
-        <DeleteChatDialogContent
-          onClose={handleDeleteChatClose}
-          chatId={chat.chatId}
-        />
-      </Dialog>
+        <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
+          <DialogTitle>Confirm chat deletion</DialogTitle>
+          <DeleteChatDialogContent
+            onClose={handleDeleteChatClose}
+            chatId={chat.chatId}
+          />
+        </Dialog>
 
-      <Dialog
-        open={isAddPublicChatMembersOpen}
-        onClose={handleAddPublicChatMembersClose}
-      >
-        <DialogTitle>Add members</DialogTitle>
-        <AddPublicChatMembersDialogContent
+        <Dialog
+          open={isAddPublicChatMembersOpen}
           onClose={handleAddPublicChatMembersClose}
-          chat={chat}
-        />
-      </Dialog>
+        >
+          <DialogTitle>Add members</DialogTitle>
+          <AddPublicChatMembersDialogContent
+            onClose={handleAddPublicChatMembersClose}
+            chat={chat}
+          />
+        </Dialog>
 
-      <Dialog
-        open={isRenamePublicChatOpen}
-        onClose={handleRenamePublicChatClose}
-      >
-        <DialogTitle>Rename chat</DialogTitle>
-        <RenamePublicChatDialogContent
+        <Dialog
+          open={isRenamePublicChatOpen}
           onClose={handleRenamePublicChatClose}
-          chatId={chat.chatId}
-        />
-      </Dialog>
+        >
+          <DialogTitle>Rename chat</DialogTitle>
+          <RenamePublicChatDialogContent
+            onClose={handleRenamePublicChatClose}
+            chatId={chat.chatId}
+          />
+        </Dialog>
 
-      <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
-        <DialogTitle>Leave chat</DialogTitle>
-        <LeaveChatDialogContent
-          onClose={handleLeaveChatClose}
-          chatId={chat.chatId}
-          user={user}
-        />
-      </Dialog>
-    </>
+        <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
+          <DialogTitle>Leave chat</DialogTitle>
+          <LeaveChatDialogContent
+            onClose={handleLeaveChatClose}
+            chatId={chat.chatId}
+            user={user}
+          />
+        </Dialog>
+      </Box>
+    </Box>
   );
 }
 

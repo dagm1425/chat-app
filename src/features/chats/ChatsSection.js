@@ -19,9 +19,8 @@ function ChatsSection() {
       sx={{
         ml: "22%",
         width: "78%",
-        // minHeight: "100vh",
-        // display: "flex",
-        // flexFlow: "column",
+        display: "flex",
+        flexDirection: "column",
         height: "100vh",
       }}
     >
