@@ -65,7 +65,11 @@ function ChatsList({ searchValue }) {
                     component="span"
                     variant="subtitle1"
                   >
-                    {chat.recentMsg.msg}
+                    {chat.recentMsg.msg
+                      ? chat.recentMsg.msg
+                      : chat.recentMsg.caption
+                      ? chat.recentMsg.caption
+                      : chat.recentMsg.fileMsg.fileName}
                   </Typography>
                   <Typography
                     variant="subtitle1"
