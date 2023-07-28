@@ -37,7 +37,7 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
 
-function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
+function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -45,7 +45,6 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
-
   const msgDates = new Set();
   msgDates.add("");
   const formatRelativeLocale = {
@@ -379,7 +378,7 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply }) {
         }}
       >
         {msgList.length > 0 ? msgList : null}
-
+        <span ref={scroll}></span>
         <Menu
           anchorEl={anchorEl}
           keepMounted

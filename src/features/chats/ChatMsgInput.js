@@ -29,7 +29,13 @@ import FileMsgDialogContent from "./FileMsgDialogContent";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 
-function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
+function ChatMsgInput({
+  chatId,
+  setUploadTask,
+  msgReply,
+  setMsgReply,
+  scroll,
+}) {
   const user = useSelector(selectUser);
   const [msg, setMsg] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
@@ -58,6 +64,8 @@ function ChatMsgInput({ chatId, setUploadTask, msgReply, setMsgReply }) {
     });
 
     if (msgReply) setMsgReply(null);
+
+    scroll.current.scrollIntoView({ behavior: "smooth" });
   };
 
   const openEmojiPicker = (e) => {
