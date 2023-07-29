@@ -110,7 +110,8 @@ function Userbar() {
           </List>
 
           <Button
-            sx={{ py: "0.75rem" }}
+            variant="outlined"
+            sx={{ p: "0.5rem 1.25rem", alignSelf: "center" }}
             startIcon={<LogoutIcon />}
             color="error"
             onClick={signOutUser}
