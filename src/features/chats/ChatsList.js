@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React from "react";
+import React, { useState } from "react";
 import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
@@ -10,10 +10,12 @@ import ListItemText from "@mui/material/ListItemText";
 import { Link } from "react-router-dom";
 import { selectUser } from "../user/userSlice";
 import { Box, Typography } from "@mui/material";
+import { styled } from "styled-components";
 
 function ChatsList({ searchValue }) {
   const chats = useSelector(selectChats);
   const user = useSelector(selectUser);
+  const [selectedChatId, setSelectedChatId] = useState("");
 
   const filteredChats = () => {
     if (searchValue === "") return chats;
@@ -37,12 +39,12 @@ function ChatsList({ searchValue }) {
         : false;
 
     return (
-      <Link
+      <StyledLink
+        id={chat.chatId}
         key={chat.chatId}
-        style={{
-          textDecoration: "none",
-        }}
         to={`/${chat.chatId}`}
+        selectedchat={chat.chatId === selectedChatId}
+        onClick={() => setSelectedChatId(chat.chatId)}
       >
         <ListItem
           sx={{
@@ -113,11 +115,20 @@ function ChatsList({ searchValue }) {
             </Box>
           )}
         </ListItem>
-      </Link>
+      </StyledLink>
     );
   });
 
   return <>{chats ? <List>{list}</List> : null}</>;
 }
+
+const StyledLink = styled(Link)`
+  display: block;
+  background-color: ${(props) => (props.selectedchat ? "gray" : "lightgray")};
+  text-decoration: none;
+  &:hover {
+    filter: brightness(0.8);
+  }
+`;
 
 export default ChatsList;
