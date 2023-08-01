@@ -385,7 +385,13 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   });
 
   return (
-    <Box sx={{ flex: "1 1 auto", p: "2rem 4rem", bgcolor: "secondary.main" }}>
+    <Box
+      sx={{
+        flex: "1 1 auto",
+        p: "6rem 4rem",
+        bgcolor: "secondary.main",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
