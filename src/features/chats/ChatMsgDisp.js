@@ -210,7 +210,7 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
               : "1.125rem 1.125rem 1.125rem 0",
             width: "fit-content",
             maxWidth: "45%",
-            maxHeight: "45%",
+            // maxHeight: "45%",
             boxShadow: 2,
           }}
         >
@@ -276,9 +276,8 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
                   <img
                     src={message.fileMsg.fileUrl}
                     style={{
-                      height: "100%",
                       width: "100%",
-                      objectFit: "cover",
+                      height: "auto",
                     }}
                   />
                 )
