@@ -64,7 +64,6 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
-
     return () => {
       unsub();
     };
@@ -77,14 +76,15 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   const subscribeChatMsg = () => {
     const q = query(
       collection(db, "chats", `${chatId}`, "chatMessages"),
-      orderBy("timestamp", "asc"),
+      orderBy("timestamp", "desc"),
       limit(30)
     );
 
     return onSnapshot(q, (querySnap) => {
       const messages = [];
       querySnap.forEach((doc) => messages.push(doc.data()));
-      setChatMsg(messages);
+      const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
+      setChatMsg(sortedMessages);
     });
   };
 
