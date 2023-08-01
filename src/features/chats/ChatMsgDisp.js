@@ -11,6 +11,7 @@ import {
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import { format } from "date-fns";
@@ -69,6 +70,10 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     };
   }, [chatId]);
 
+  useEffect(() => {
+    if (chatMsg.length) resetUnreadMsg();
+  }, [chatMsg]);
+
   const subscribeChatMsg = () => {
     const q = query(
       collection(db, "chats", `${chatId}`, "chatMessages"),
@@ -80,6 +85,14 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
       const messages = [];
       querySnap.forEach((doc) => messages.push(doc.data()));
       setChatMsg(messages);
+    });
+  };
+
+  const resetUnreadMsg = async () => {
+    if (chatMsg[chatMsg.length - 1].from.uid === user.uid) return;
+
+    await updateDoc(doc(db, "chats", `${chatId}`), {
+      unreadMsg: 0,
     });
   };
 

@@ -68,6 +68,7 @@ function NewPrivateChatDialogContent({ onClose }) {
       createdBy: user,
       recentMsg: {},
       members: [user, otherChatMember],
+      unreadMsg: 0,
     });
   };
 

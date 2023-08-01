@@ -9,7 +9,7 @@ import ListItemAvatar from "@mui/material/ListItemAvatar";
 import ListItemText from "@mui/material/ListItemText";
 import { Link } from "react-router-dom";
 import { selectUser } from "../user/userSlice";
-import { Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 function ChatsList({ searchValue }) {
   const chats = useSelector(selectChats);
@@ -29,6 +29,12 @@ function ChatsList({ searchValue }) {
     const otherMember = chat.members.find((member) => member.uid !== user.uid);
     const chatCreator =
       chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;
+    const isRecentMsgUnread =
+      JSON.stringify(chat.recentMsg) !== "{}"
+        ? chat.recentMsg.from.uid !== user.uid && chat.unreadMsg > 0
+          ? true
+          : false
+        : false;
 
     return (
       <Link
@@ -61,7 +67,10 @@ function ChatsList({ searchValue }) {
               ) : (
                 <React.Fragment>
                   <Typography
-                    sx={{ mr: "50%" }}
+                    sx={{
+                      mr: "50%",
+                      fontWeight: isRecentMsgUnread ? "bold" : "normal",
+                    }}
                     component="span"
                     variant="subtitle1"
                   >
@@ -74,7 +83,10 @@ function ChatsList({ searchValue }) {
                   <Typography
                     variant="subtitle1"
                     component="span"
-                    sx={{ color: "rgba(0, 0, 0, 0.45)" }}
+                    sx={{
+                      color: "rgba(0, 0, 0, 0.45)",
+                      fontWeight: isRecentMsgUnread ? "bold" : "normal",
+                    }}
                   >
                     {chat.recentMsg.timestamp}
                   </Typography>
@@ -82,6 +94,24 @@ function ChatsList({ searchValue }) {
               )
             }
           />
+          {isRecentMsgUnread && (
+            <Box
+              component="span"
+              sx={{
+                display: "grid",
+                placeItems: "center",
+                fontWeight: "bold",
+                color: "white",
+                bgcolor: "#001e80",
+                height: 25,
+                width: 25,
+                p: "0.125rem",
+                borderRadius: "50%",
+              }}
+            >
+              {chat.unreadMsg}
+            </Box>
+          )}
         </ListItem>
       </Link>
     );

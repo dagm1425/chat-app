@@ -6,6 +6,7 @@ import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
 import {
   doc,
+  increment,
   // updateDoc,
   // arrayUnion,
   serverTimestamp,
@@ -61,6 +62,7 @@ function ChatMsgInput({
 
     await updateDoc(chatRef, {
       recentMsg: { ...message, msgReply: null },
+      unreadMsg: increment(1),
     });
 
     if (msgReply) setMsgReply(null);
