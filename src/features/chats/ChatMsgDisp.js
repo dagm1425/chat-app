@@ -27,6 +27,7 @@ import {
   DialogTitle,
   Typography,
   IconButton,
+  Modal,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
@@ -45,6 +46,8 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
+  const [isImgModalOpen, setIsImgModalOpen] = useState(false);
+  const [imgUrl, setImgUrl] = useState("");
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
@@ -133,6 +136,15 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     setIsForwardMsgOpen(false);
   };
 
+  const openImgModal = (url) => {
+    setIsImgModalOpen(true);
+    setImgUrl(url);
+  };
+
+  const closeImgModal = () => {
+    setIsImgModalOpen(false);
+    setImgUrl("");
+  };
   const renderMsgDate = (msgDate) => {
     msgDates.add(msgDate);
 
@@ -300,7 +312,9 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
                     style={{
                       width: "100%",
                       height: "auto",
+                      cursor: "pointer",
                     }}
+                    onClick={() => openImgModal(message.fileMsg.fileUrl)}
                   />
                 )
               ) : (
@@ -467,6 +481,33 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
             msg={chatMsg.find((msg) => msg.msgId === msgId)}
           />
         </Dialog>
+
+        <Modal
+          open={isImgModalOpen}
+          onClose={closeImgModal}
+          sx={{ display: "grid", placeItems: "center" }}
+        >
+          <>
+            <img
+              src={imgUrl}
+              style={{
+                maxWidth: "50%",
+                height: "auto",
+              }}
+            />
+            <IconButton
+              sx={{
+                size: "large",
+                position: "absolute",
+                bottom: "4%",
+                right: "4%",
+              }}
+              onClick={(imgUrl) => downloadFile(imgUrl)}
+            >
+              <DownloadIcon fontSize="large" sx={{ color: "#eee" }} />
+            </IconButton>
+          </>
+        </Modal>
       </Box>
     </Box>
   );
