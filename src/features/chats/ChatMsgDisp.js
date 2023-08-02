@@ -198,7 +198,7 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     setTimeout(() => {
       msg.style.scrollMarginTop = "";
       msg.style.background = "#fff";
-    }, 600);
+    }, 1000);
   };
 
   const msgList = chatMsg.map((message) => {
