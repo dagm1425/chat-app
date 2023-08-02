@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
@@ -48,6 +48,8 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
+  let ref = useRef(null);
+
   msgDates.add("");
   const formatRelativeLocale = {
     lastWeek: " EEEE",
@@ -183,6 +185,19 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     xhr.send();
   };
 
+  const scrollToMsg = (id) => {
+    const msgList = ref.current.children;
+    const i = Array.from(msgList).findIndex((msg) => msg.id === id);
+    const msg = ref.current.children.item(i);
+
+    msg.scrollIntoView({ behavior: "smooth" });
+
+    msg.style.background = "#eee";
+    setTimeout(() => {
+      msg.style.background = "#fff";
+    }, 600);
+  };
+
   const msgList = chatMsg.map((message) => {
     const isSentFromUser = message.from.uid === user.uid;
     const timestamp =
@@ -222,6 +237,10 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
                 gap: "0.5rem",
                 px: "0.5rem",
                 borderLeft: "4px solid #80b3ff",
+                cursor: "pointer",
+              }}
+              onClick={() => {
+                scrollToMsg(message.msgReply.msgId);
               }}
             >
               {message.msgReply.fileMsg && (
@@ -392,6 +411,7 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
       }}
     >
       <Box
+        ref={ref}
         sx={{
           display: "flex",
           flexDirection: "column",
