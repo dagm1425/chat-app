@@ -190,10 +190,13 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
     const msg = ref.current.children.item(i);
 
+    msg.style.scrollMarginTop = "7rem";
+    msg.style.background = "#eee";
+
     msg.scrollIntoView({ behavior: "smooth" });
 
-    msg.style.background = "#eee";
     setTimeout(() => {
+      msg.style.scrollMarginTop = "";
       msg.style.background = "#fff";
     }, 600);
   };
