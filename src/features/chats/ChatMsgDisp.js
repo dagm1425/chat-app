@@ -7,6 +7,7 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   limit,
   onSnapshot,
   orderBy,
@@ -69,14 +70,16 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
+    updateUnreadMsg();
+
     return () => {
       unsub();
     };
   }, [chatId]);
 
-  useEffect(() => {
-    if (chatMsg.length) resetUnreadMsg();
-  }, [chatMsg]);
+  // useEffect(() => {
+  //   if (chatMsg.length) resetUnreadMsg();
+  // }, [chatMsg]);
 
   const subscribeChatMsg = () => {
     const q = query(
@@ -93,13 +96,25 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     });
   };
 
-  const resetUnreadMsg = async () => {
-    if (chatMsg[chatMsg.length - 1].from.uid === user.uid) return;
-
-    await updateDoc(doc(db, "chats", `${chatId}`), {
-      unreadMsg: 0,
+  const updateUnreadMsg = async () => {
+    const querySnapshot = await getDocs(
+      collection(db, "chats", `${chatId}`, "chatMessages")
+    );
+    querySnapshot.forEach(async (doc) => {
+      if (doc.data().from.uid === user.uid || doc.data().isMsgRead == true)
+        return;
+      await updateDoc(doc.ref, {
+        isMsgRead: true,
+      });
     });
   };
+  // const resetUnreadMsg = async () => {
+  //   if (chatMsg[chatMsg.length - 1].from.uid === user.uid) return;
+
+  //   await updateDoc(doc(db, "chats", `${chatId}`), {
+  //     unreadMsg: 0,
+  //   });
+  // };
 
   const handleMsgOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);

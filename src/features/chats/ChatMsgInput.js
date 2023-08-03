@@ -6,13 +6,13 @@ import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
 import {
   doc,
-  increment,
+  // increment,
   // updateDoc,
   // arrayUnion,
   serverTimestamp,
   // getDoc,
   setDoc,
-  updateDoc,
+  // updateDoc,
 } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
@@ -30,14 +30,9 @@ import FileMsgDialogContent from "./FileMsgDialogContent";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 
-function ChatMsgInput({
-  chatId,
-  setUploadTask,
-  msgReply,
-  setMsgReply,
-  scroll,
-}) {
+function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
+  const chatId = chat.chatId;
   const [msg, setMsg] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInput = useRef(null);
@@ -49,21 +44,22 @@ function ChatMsgInput({
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-    const chatRef = doc(db, "chats", `${chatId}`);
+    // const chatRef = doc(db, "chats", `${chatId}`);
     const message = {
       msgId,
       from: user,
       msg: msg,
       msgReply,
+      isMsgRead: false,
       timestamp: serverTimestamp(),
     };
 
     await setDoc(msgRef, message);
 
-    await updateDoc(chatRef, {
-      recentMsg: { ...message, msgReply: null },
-      unreadMsg: increment(1),
-    });
+    // await updateDoc(chatRef, {
+    //   recentMsg: { ...message, msgReply: null },
+    //   unreadMsg: increment(1),
+    // });
 
     if (msgReply) setMsgReply(null);
 

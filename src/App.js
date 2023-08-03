@@ -9,15 +9,15 @@ import {
   query,
   where,
   onSnapshot,
-  Timestamp,
+  // Timestamp,
 } from "firebase/firestore";
 import { setUser } from "./features/user/userSlice";
 import UserLogin from "./features/user/userLogin";
 import { setChats } from "./features/chats/chatsSlice";
 import Home from "./features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";
-import formatRelative from "date-fns/formatRelative";
-import { enUS } from "date-fns/esm/locale";
+// import formatRelative from "date-fns/formatRelative";
+// import { enUS } from "date-fns/esm/locale";
 
 function App() {
   const dispatch = useDispatch();
@@ -25,18 +25,18 @@ function App() {
   const [userData, setUserData] = useState(null);
   const [fetchingUserData, setFetchingUserData] = useState(true);
   const [fetchingChatsData, setFetchingChatsData] = useState(true);
-  const formatRelativeLocale = {
-    lastWeek: "EEEE",
-    yesterday: "'Yesterday'",
-    today: "'Today'",
-    tomorrow: "EEEE",
-    nextWeek: "EEEE",
-    other: "dd/MM/yyy",
-  };
-  const locale = {
-    ...enUS,
-    formatRelative: (token) => formatRelativeLocale[token],
-  };
+  // const formatRelativeLocale = {
+  //   lastWeek: "EEEE",
+  //   yesterday: "'Yesterday'",
+  //   today: "'Today'",
+  //   tomorrow: "EEEE",
+  //   nextWeek: "EEEE",
+  //   other: "dd/MM/yyy",
+  // };
+  // const locale = {
+  //   ...enUS,
+  //   formatRelative: (token) => formatRelativeLocale[token],
+  // };
 
   useEffect(() => {
     let unsubscribe;
@@ -84,27 +84,27 @@ function App() {
     return onSnapshot(q, (querySnapshot) => {
       const chats = [];
       querySnapshot.forEach((doc) => {
-        if (JSON.stringify(doc.data().recentMsg) !== "{}") {
-          const timestamp =
-            doc.data().recentMsg.timestamp == null
-              ? ""
-              : doc.data().recentMsg.timestamp.toDate();
+        // if (JSON.stringify(doc.data().recentMsg) !== "{}") {
+        //   const timestamp =
+        //     doc.data().recentMsg.timestamp == null
+        //       ? ""
+        //       : doc.data().recentMsg.timestamp.toDate();
 
-          chats.push({
-            ...doc.data(),
-            recentMsg: {
-              ...doc.data().recentMsg,
-              timestamp:
-                timestamp === ""
-                  ? ""
-                  : formatRelative(timestamp, Timestamp.now().toDate(), {
-                      locale,
-                    }).toLowerCase(),
-            },
-          });
-        } else {
-          chats.push(doc.data());
-        }
+        //   chats.push({
+        //     ...doc.data(),
+        //     recentMsg: {
+        //       ...doc.data().recentMsg,
+        //       timestamp:
+        //         timestamp === ""
+        //           ? ""
+        //           : formatRelative(timestamp, Timestamp.now().toDate(), {
+        //               locale,
+        //             }).toLowerCase(),
+        //     },
+        //   });
+        // } else {
+        chats.push(doc.data());
+        // }
       });
       setFetchingChatsData(false);
       dispatch(setChats(chats));

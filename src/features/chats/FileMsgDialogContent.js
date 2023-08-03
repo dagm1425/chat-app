@@ -55,12 +55,13 @@ function FileMsgDialogContent({
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-    const chatRef = doc(db, "chats", `${chatId}`);
+    // const chatRef = doc(db, "chats", `${chatId}`);
 
     const message = {
       msgId,
       from: user,
       caption,
+      isMsgRead: false,
       timestamp: serverTimestamp(),
       msgReply,
       fileMsg: {
@@ -75,14 +76,14 @@ function FileMsgDialogContent({
 
     await setDoc(msgRef, message);
 
-    await updateDoc(chatRef, {
-      recentMsg: {
-        msgId,
-        from: user,
-        msg: caption === "" ? fileName : caption,
-        timestamp: serverTimestamp(),
-      },
-    });
+    // await updateDoc(chatRef, {
+    //   recentMsg: {
+    //     msgId,
+    //     from: user,
+    //     msg: caption === "" ? fileName : caption,
+    //     timestamp: serverTimestamp(),
+    //   },
+    // });
 
     const filePath = `${user.uid}/${msgId}/${file.name}`;
     const newFileRef = ref(storage, filePath);
