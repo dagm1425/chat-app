@@ -26,6 +26,7 @@ import { enUS } from "date-fns/esm/locale";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
+  const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
   const [recentMsg, setRecentMsg] = useState({});
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
@@ -62,7 +63,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
   const subscribeChatMsg = () => {
     const q = query(
-      collection(db, "chats", `${chat.chatId}`, "chatMessages"),
+      collection(db, "chats", `${chatId}`, "chatMessages"),
       orderBy("timestamp", "desc"),
       limit(30)
     );
@@ -76,20 +77,28 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   };
 
   const updateUnreadMsgCount = () => {
-    const count = chatMsg.filter(
-      (msg) => msg.from.uid !== user.uid && msg.isMsgRead == false
-    ).length;
+    let count;
+
+    if (chat.type === "private") {
+      count = chatMsg.filter(
+        (msg) => msg.from.uid !== user.uid && msg.isMsgRead == false
+      ).length;
+    } else {
+      count = chatMsg.filter(
+        (msg) => msg.from.uid !== user.uid && !msg.isMsgRead.includes(user.uid)
+      ).length;
+    }
 
     setUnreadMsgCount(count);
   };
 
   return (
     <StyledLink
-      id={chat.chatId}
-      key={chat.chatId}
-      to={`/${chat.chatId}`}
-      selectedchat={chat.chatId === selectedChatId}
-      onClick={() => setSelectedChatId(chat.chatId)}
+      id={chatId}
+      key={chatId}
+      to={`/${chatId}`}
+      selectedchat={chatId === selectedChatId}
+      onClick={() => setSelectedChatId(chatId)}
     >
       <ListItem
         sx={{

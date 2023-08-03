@@ -50,7 +50,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       from: user,
       msg: msg,
       msgReply,
-      isMsgRead: false,
+      isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
     };
 
@@ -162,7 +162,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
           <DialogTitle>Send as a file</DialogTitle>
           <FileMsgDialogContent
-            chatId={chatId}
+            chat={chat}
             user={user}
             file={file}
             setUploadTask={setUploadTask}

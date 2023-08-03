@@ -27,14 +27,14 @@ function ChatsSection() {
     >
       <ChatHeader chat={chat} />
       <ChatMsgDisp
-        chatId={id}
+        chat={chat}
         uploadTask={uploadTask}
         msgReply={msgReply}
         setMsgReply={setMsgReply}
         scroll={scroll}
       />
       <ChatMsgInput
-        chatId={id}
+        chat={chat}
         setUploadTask={setUploadTask}
         msgReply={msgReply}
         setMsgReply={setMsgReply}

@@ -8,7 +8,7 @@ import { Box, Button, Typography, TextField } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 
 function FileMsgDialogContent({
-  chatId,
+  chat,
   user,
   file,
   setUploadTask,
@@ -16,6 +16,7 @@ function FileMsgDialogContent({
   msgReply,
   setMsgReply,
 }) {
+  const chatId = chat.chatId;
   let fileName;
   const [caption, setCaption] = useState("");
 
@@ -61,7 +62,7 @@ function FileMsgDialogContent({
       msgId,
       from: user,
       caption,
-      isMsgRead: false,
+      isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
       msgReply,
       fileMsg: {

@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
   Timestamp,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -41,8 +42,9 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
 import LoaderDots from "../components/LoaderDots";
 
-function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
+function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
+  const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
@@ -100,13 +102,26 @@ function ChatMsgDisp({ chatId, uploadTask, setMsgReply, scroll }) {
     const querySnapshot = await getDocs(
       collection(db, "chats", `${chatId}`, "chatMessages")
     );
-    querySnapshot.forEach(async (doc) => {
-      if (doc.data().from.uid === user.uid || doc.data().isMsgRead == true)
-        return;
-      await updateDoc(doc.ref, {
-        isMsgRead: true,
+    if (chat.type === "private") {
+      querySnapshot.forEach(async (doc) => {
+        if (doc.data().from.uid === user.uid || doc.data().isMsgRead == true)
+          return;
+        await updateDoc(doc.ref, {
+          isMsgRead: true,
+        });
       });
-    });
+    } else {
+      querySnapshot.forEach(async (doc) => {
+        if (
+          doc.data().from.uid === user.uid ||
+          doc.data().isMsgRead.includes(user.uid)
+        )
+          return;
+        await updateDoc(doc.ref, {
+          isMsgRead: arrayUnion(user.uid),
+        });
+      });
+    }
   };
   // const resetUnreadMsg = async () => {
   //   if (chatMsg[chatMsg.length - 1].from.uid === user.uid) return;
