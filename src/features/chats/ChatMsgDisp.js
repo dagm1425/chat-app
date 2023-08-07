@@ -51,7 +51,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
-  const [imgUrl, setImgUrl] = useState("");
+  const [imgData, setImgData] = useState(null);
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
@@ -174,15 +174,16 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     setIsForwardMsgOpen(false);
   };
 
-  const openImgModal = (url) => {
+  const openImgModal = (imgData) => {
     setIsImgModalOpen(true);
-    setImgUrl(url);
+    setImgData(imgData);
   };
 
   const closeImgModal = () => {
     setIsImgModalOpen(false);
-    setImgUrl("");
+    setImgData(null);
   };
+
   const renderMsgDate = (msgDate) => {
     msgDates.add(msgDate);
 
@@ -217,14 +218,14 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     await deleteDoc(doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`));
   };
 
-  const downloadFile = (url) => {
+  const downloadFile = (url, fileName) => {
     var xhr = new XMLHttpRequest();
     xhr.responseType = "blob";
     // eslint-disable-next-line no-unused-vars
     xhr.onload = function (event) {
       var a = document.createElement("a");
       a.href = window.URL.createObjectURL(xhr.response);
-      a.download = "someFileName"; // replace "someFileName" with actual file name
+      a.download = `${fileName}`;
       a.style.display = "none";
       document.body.appendChild(a);
       a.click();
@@ -354,7 +355,12 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       cursor: "pointer",
                       marginBottom: "0.5rem",
                     }}
-                    onClick={() => openImgModal(message.fileMsg.fileUrl)}
+                    onClick={() =>
+                      openImgModal({
+                        fileName: message.fileMsg.fileName,
+                        url: message.fileMsg.fileUrl,
+                      })
+                    }
                   />
                 )
               ) : (
@@ -402,7 +408,12 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                             bgcolor: "transparent",
                           },
                         }}
-                        onClick={() => downloadFile(message.fileMsg.fileUrl)}
+                        onClick={() =>
+                          downloadFile(
+                            message.fileMsg.fileUrl,
+                            message.fileMsg.fileName
+                          )
+                        }
                       >
                         <DownloadIcon fontSize="large" sx={{ color: "#000" }} />
                       </IconButton>
@@ -527,7 +538,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           sx={{ display: "grid", placeItems: "center" }}
         >
           <ChatMsgImgDisp
-            imgUrl={imgUrl}
+            imgData={imgData}
             downloadFile={downloadFile}
             onClose={closeImgModal}
           />

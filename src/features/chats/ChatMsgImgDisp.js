@@ -7,7 +7,7 @@ import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import ZoomOutIcon from "@mui/icons-material/ZoomOut";
 import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 
-function ChatMsgImgDisp({ imgUrl, downloadFile, onClose }) {
+function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
   return (
     <TransformWrapper disablePadding={true}>
       {({ zoomIn, zoomOut }) => (
@@ -66,7 +66,7 @@ function ChatMsgImgDisp({ imgUrl, downloadFile, onClose }) {
                   bgcolor: "transparent",
                 },
               }}
-              onClick={(imgUrl) => downloadFile(imgUrl)}
+              onClick={(imgData) => downloadFile(imgData.url)}
             >
               <DownloadIcon fontSize="large" sx={{ color: "#eee" }} />
             </IconButton>
@@ -90,7 +90,7 @@ function ChatMsgImgDisp({ imgUrl, downloadFile, onClose }) {
           </Box>
           <TransformComponent>
             <img
-              src={imgUrl}
+              src={imgData.url}
               style={{
                 width: "100%",
                 height: "auto",
