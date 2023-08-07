@@ -270,7 +270,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           onContextMenu={handleMsgClick}
           sx={{
             alignSelf: isSentFromUser ? "flex-end" : "flex-start",
-            padding: "0.75rem 1rem",
+            padding: "0.75rem 1rem 0.25rem",
             margin: "1rem",
             background: "#FFF",
             borderRadius: isSentFromUser
@@ -289,6 +289,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                 alignItems: "center",
                 gap: "0.5rem",
                 px: "0.5rem",
+                mb: "0.5rem",
                 borderLeft: "4px solid #80b3ff",
                 cursor: "pointer",
               }}
@@ -314,7 +315,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
             </Box>
           )}
           {message.msg ? (
-            message.msg
+            <Typography variant="subtitle1">{message.msg}</Typography>
           ) : (
             <>
               {message.fileMsg.fileType.includes("image") ? (
@@ -351,6 +352,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       width: "100%",
                       height: "auto",
                       cursor: "pointer",
+                      marginBottom: "0.5rem",
                     }}
                     onClick={() => openImgModal(message.fileMsg.fileUrl)}
                   />
@@ -362,6 +364,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                     justifyContent: "center",
                     alignItems: "center",
                     gap: "1rem",
+                    mb: message.caption !== "" ? "0.5rem" : "0rem",
                   }}
                 >
                   <Box
@@ -447,6 +450,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                 fontSize: 14,
                 color: "rgba(0, 0, 0, 0.45)",
                 textAlign: "right",
+                marginLeft: "0.5rem",
               }}
             >
               {msgTime}
