@@ -93,7 +93,15 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     return onSnapshot(q, (querySnap) => {
       const messages = [];
       querySnap.forEach((doc) => messages.push(doc.data()));
-      const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
+      const sortedMessages = messages.sort((a, b) => {
+        if (a.timestamp === null) {
+          return 1;
+        }
+        if (b.timestamp === null) {
+          return -1;
+        }
+        return a.timestamp - b.timestamp;
+      });
       setChatMsg(sortedMessages);
     });
   };
