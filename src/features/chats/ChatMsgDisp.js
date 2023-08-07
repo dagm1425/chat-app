@@ -283,6 +283,17 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
             boxShadow: 2,
           }}
         >
+          {chat.type === "public" && message.from.uid !== user.uid && (
+            <Typography
+              variant="subtitle1"
+              sx={{
+                fontSize: 14,
+                fontWeight: "bold",
+              }}
+            >
+              {message.from.displayName}
+            </Typography>
+          )}
           {message.msgReply && (
             <Box
               sx={{
@@ -489,6 +500,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         }}
       >
         {msgList.length > 0 ? msgList : null}
+        <span></span>
         <Menu
           anchorEl={anchorEl}
           keepMounted
