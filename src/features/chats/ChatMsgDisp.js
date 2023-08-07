@@ -41,6 +41,7 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
 import LoaderDots from "../components/LoaderDots";
+import ChatMsgImgDisp from "./ChatMsgImgDisp";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -502,7 +503,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
             <ListItemText primary="Forward" />
           </MenuItem>
         </Menu>
-
         <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
           <DialogTitle>Confirm message deletion</DialogTitle>
           <DeleteMsgDialogContent
@@ -512,7 +512,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
             chatMsg={chatMsg}
           />
         </Dialog>
-
         <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
           <DialogTitle>Forward message</DialogTitle>
           <ForwardMsgDialogContent
@@ -527,26 +526,11 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           onClose={closeImgModal}
           sx={{ display: "grid", placeItems: "center" }}
         >
-          <>
-            <img
-              src={imgUrl}
-              style={{
-                maxWidth: "50%",
-                height: "auto",
-              }}
-            />
-            <IconButton
-              sx={{
-                size: "large",
-                position: "absolute",
-                bottom: "4%",
-                right: "4%",
-              }}
-              onClick={(imgUrl) => downloadFile(imgUrl)}
-            >
-              <DownloadIcon fontSize="large" sx={{ color: "#eee" }} />
-            </IconButton>
-          </>
+          <ChatMsgImgDisp
+            imgUrl={imgUrl}
+            downloadFile={downloadFile}
+            onClose={closeImgModal}
+          />
         </Modal>
       </Box>
     </Box>
