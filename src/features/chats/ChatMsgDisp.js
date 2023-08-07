@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
@@ -54,7 +54,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
-  let ref = useRef(null);
 
   msgDates.add("");
   const formatRelativeLocale = {
@@ -236,9 +235,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   };
 
   const scrollToMsg = (id) => {
-    const msgList = ref.current.children;
+    const msgList = scroll.current.children;
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
-    const msg = ref.current.children.item(i);
+    const msg = scroll.current.children.item(i);
 
     msg.style.scrollMarginTop = "7rem";
     msg.style.background = "#eee";
@@ -470,7 +469,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       }}
     >
       <Box
-        ref={ref}
+        ref={scroll}
         sx={{
           display: "flex",
           flexDirection: "column",
@@ -478,7 +477,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         }}
       >
         {msgList.length > 0 ? msgList : null}
-        <span ref={scroll}></span>
         <Menu
           anchorEl={anchorEl}
           keepMounted

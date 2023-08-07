@@ -44,6 +44,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
+    const lastMmsg = scroll.current.lastElementChild;
     // const chatRef = doc(db, "chats", `${chatId}`);
     const message = {
       msgId,
@@ -63,7 +64,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
     if (msgReply) setMsgReply(null);
 
-    scroll.current.scrollIntoView({ behavior: "smooth" });
+    lastMmsg.scrollIntoView({ behavior: "smooth" });
   };
 
   const openEmojiPicker = (e) => {
