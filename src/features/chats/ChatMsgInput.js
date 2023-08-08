@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Box from "@mui/material/Box";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -36,11 +36,27 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const [msg, setMsg] = useState("");
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInput = useRef(null);
+  const msgInputForm = useRef(null);
   const [file, setFile] = useState(null);
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
 
-  const handleSendMsg = async () => {
-    setMsg("");
+  useEffect(() => {
+    const listener = (e) => {
+      if (e.code === "Enter" || e.code === "NumpadEnter") {
+        e.preventDefault();
+        msgInputForm.current.requestSubmit();
+      }
+    };
+
+    document.addEventListener("keydown", listener);
+
+    return () => {
+      document.removeEventListener("keydown", listener);
+    };
+  }, []);
+
+  const handleSendMsg = async (e) => {
+    e.preventDefault();
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
@@ -65,6 +81,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     if (msgReply) setMsgReply(null);
 
     lastMmsg.scrollIntoView({ behavior: "smooth" });
+
+    setMsg("");
   };
 
   const openEmojiPicker = (e) => {
@@ -184,7 +202,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           {msgReply && (
             <Box
               sx={{
-                width: "95%",
+                width: "100%",
                 display: "flex",
                 justifyContent: "flex-start",
                 alignItems: "center",
@@ -214,24 +232,32 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
               </IconButton>
             </Box>
           )}
-          <input
-            type="text"
-            placeholder="Message"
-            value={msg}
-            onChange={(e) => setMsg(e.target.value)}
-            style={{
-              font: "inherit",
-              padding: "1rem 1.25rem",
-              // margin: "0 auto",
-              width: "95%",
-              border: "none",
-              outline: "none",
-              boxShadow:
-                "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-              borderRadius: msgReply ? "0 0 30px 30px" : "30px",
-            }}
-            autoFocus
-          />
+          <form
+            style={{ width: "100%" }}
+            onSubmit={handleSendMsg}
+            ref={msgInputForm}
+          >
+            <input
+              type="text"
+              placeholder="Message"
+              value={msg}
+              onChange={(e) => setMsg(e.target.value)}
+              style={{
+                font: "inherit",
+                padding: "1rem 1.25rem",
+                // margin: "0 auto",
+                width: "100%",
+                border: "none",
+                outline: "none",
+                boxShadow:
+                  "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
+                borderRadius: msgReply ? "0 0 30px 30px" : "30px",
+                boxSizing: "border-box",
+              }}
+              autoFocus
+              required
+            />
+          </form>
         </Box>
 
         <IconButton
@@ -241,7 +267,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
               bgcolor: "transparent",
             },
           }}
-          onClick={handleSendMsg}
+          onClick={() => msgInputForm.current.requestSubmit()}
         >
           <SendIcon fontSize="inherit" />
         </IconButton>
