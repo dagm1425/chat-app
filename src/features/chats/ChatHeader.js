@@ -156,6 +156,7 @@ function ChatHeader({ chat }) {
         top: "0",
         width: "78%",
         p: "1rem",
+        zIndex: "1000",
         bgcolor: "header.main",
       }}
     >
