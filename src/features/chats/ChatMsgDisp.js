@@ -30,6 +30,7 @@ import {
   Typography,
   IconButton,
   Modal,
+  Avatar,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
@@ -261,142 +262,100 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       timestamp == ""
         ? ""
         : formatRelative(timestamp, Timestamp.now().toDate(), { locale });
+    const isMsgFromOtherPublicChatMembers =
+      chat.type === "public" && message.from.uid !== user.uid;
 
     return (
       <React.Fragment key={message.msgId}>
         {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
         <Box
-          id={message.msgId}
-          onClick={handleMsgClick}
-          onContextMenu={handleMsgClick}
           sx={{
+            display: isMsgFromOtherPublicChatMembers ? "flex" : "block",
             alignSelf: isSentFromUser ? "flex-end" : "flex-start",
-            padding: "0.75rem 1rem 0.25rem",
-            margin: "1rem",
-            background: "#FFF",
-            borderRadius: isSentFromUser
-              ? "1.125rem 1.125rem 0 1.125rem"
-              : "1.125rem 1.125rem 1.125rem 0",
             width: "fit-content",
             maxWidth: "45%",
-            // maxHeight: "45%",
-            boxShadow: 2,
           }}
         >
-          {chat.type === "public" && message.from.uid !== user.uid && (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontSize: 14,
-                fontWeight: "bold",
-              }}
-            >
-              {message.from.displayName}
-            </Typography>
+          {isMsgFromOtherPublicChatMembers && (
+            <Avatar
+              src={message.from.photoURL}
+              sx={{ alignSelf: "flex-end" }}
+            />
           )}
-          {message.msgReply && (
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                px: "0.5rem",
-                mb: "0.5rem",
-                borderLeft: "4px solid #80b3ff",
-                cursor: "pointer",
-              }}
-              onClick={() => {
-                scrollToMsg(message.msgReply.msgId);
-              }}
-            >
-              {message.msgReply.fileMsg && (
-                <InsertDriveFileIcon fontSize="medium" />
-              )}
-              <div>
-                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                  {message.msgReply.from.displayName}
-                </Typography>
-                <Typography variant="subtitle1">
-                  {message.msgReply.msg
-                    ? message.msgReply.msg
-                    : message.msgReply.caption
-                    ? message.msgReply.caption
-                    : message.msgReply.fileMsg.fileName}
-                </Typography>
-              </div>
-            </Box>
-          )}
-          {message.msg ? (
-            <Typography variant="subtitle1">{message.msg}</Typography>
-          ) : (
-            <>
-              {message.fileMsg.fileType.includes("image") ? (
-                message.fileMsg.progress != 100 ? (
-                  <Box
-                    sx={{
-                      display: "grid",
-                      placeItems: "center",
-                      height: 65,
-                      width: 65,
-                      bgcolor: "#eee",
-                      borderRadius: "50%",
-                    }}
-                  >
-                    <Box sx={{ display: "grid" }}>
-                      <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
-                      <IconButton
-                        sx={{ gridColumn: 1, gridRow: 1 }}
-                        onClick={() =>
-                          // const uploadObj = JSON.parse(
-                          //   message.fileMsg.uploadTask
-                          // );
-                          cancelUpload(message.msgId)
-                        }
-                      >
-                        <CloseIcon />
-                      </IconButton>
-                    </Box>
-                  </Box>
-                ) : (
-                  <img
-                    src={message.fileMsg.fileUrl}
-                    style={{
-                      width: "100%",
-                      height: "auto",
-                      cursor: "pointer",
-                      marginBottom: "0.5rem",
-                    }}
-                    onClick={() =>
-                      openImgModal({
-                        fileName: message.fileMsg.fileName,
-                        url: message.fileMsg.fileUrl,
-                      })
-                    }
-                  />
-                )
-              ) : (
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                    gap: "1rem",
-                    mb: message.caption !== "" ? "0.5rem" : "0rem",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      display: "grid",
-                      placeItems: "center",
-                      height: 65,
-                      width: 65,
-                      bgcolor: "#eee",
-                      borderRadius: "50%",
-                    }}
-                    onMouseOver={() => setFileMsgId(message.msgId)}
-                    onMouseOut={() => setFileMsgId("")}
-                  >
-                    {message.fileMsg.progress != 100 ? (
+          <Box
+            id={message.msgId}
+            onClick={handleMsgClick}
+            onContextMenu={handleMsgClick}
+            sx={{
+              padding: "0.75rem 1rem 0.25rem",
+              margin: "1rem",
+              background: "#FFF",
+              borderRadius: isSentFromUser
+                ? "1.125rem 1.125rem 0 1.125rem"
+                : "1.125rem 1.125rem 1.125rem 0",
+              boxShadow: 2,
+            }}
+          >
+            {isMsgFromOtherPublicChatMembers && (
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontSize: 14,
+                  fontWeight: "bold",
+                  mb: "0.25rem",
+                }}
+              >
+                {message.from.displayName}
+              </Typography>
+            )}
+            {message.msgReply && (
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  px: "0.5rem",
+                  mb: "0.5rem",
+                  borderLeft: "4px solid #80b3ff",
+                  cursor: "pointer",
+                }}
+                onClick={() => {
+                  scrollToMsg(message.msgReply.msgId);
+                }}
+              >
+                {message.msgReply.fileMsg && (
+                  <InsertDriveFileIcon fontSize="medium" />
+                )}
+                <div>
+                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                    {message.msgReply.from.displayName}
+                  </Typography>
+                  <Typography variant="subtitle1">
+                    {message.msgReply.msg
+                      ? message.msgReply.msg
+                      : message.msgReply.caption
+                      ? message.msgReply.caption
+                      : message.msgReply.fileMsg.fileName}
+                  </Typography>
+                </div>
+              </Box>
+            )}
+            {message.msg ? (
+              <Typography variant="subtitle1">{message.msg}</Typography>
+            ) : (
+              <>
+                {message.fileMsg.fileType.includes("image") ? (
+                  message.fileMsg.progress != 100 ? (
+                    <Box
+                      sx={{
+                        display: "grid",
+                        placeItems: "center",
+                        height: 65,
+                        width: 65,
+                        bgcolor: "#eee",
+                        borderRadius: "50%",
+                      }}
+                    >
                       <Box sx={{ display: "grid" }}>
                         <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
                         <IconButton
@@ -411,73 +370,134 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                           <CloseIcon />
                         </IconButton>
                       </Box>
-                    ) : message.msgId === fileMsgId ? (
-                      <IconButton
-                        sx={{
-                          size: "large",
-                          "&.MuiButtonBase-root:hover": {
-                            bgcolor: "transparent",
-                          },
-                        }}
-                        onClick={() =>
-                          downloadFile(
-                            message.fileMsg.fileUrl,
-                            message.fileMsg.fileName
-                          )
-                        }
-                      >
-                        <DownloadIcon fontSize="large" sx={{ color: "#000" }} />
-                      </IconButton>
-                    ) : (
-                      <InsertDriveFileIcon fontSize="large" />
-                    )}
-                  </Box>
-                  <div>
-                    <Typography variant="subtitle1">
-                      {message.fileMsg.fileName}
-                    </Typography>
-                    <Typography
-                      variant="subtitle1"
-                      sx={{
-                        display: "inline-block",
-                        color: "rgba(0, 0, 0, 0.45)",
-                        mr: "0.75rem",
+                    </Box>
+                  ) : (
+                    <img
+                      src={message.fileMsg.fileUrl}
+                      style={{
+                        width: "100%",
+                        height: "auto",
+                        cursor: "pointer",
+                        marginBottom: "0.5rem",
                       }}
+                      onClick={() =>
+                        openImgModal({
+                          fileName: message.fileMsg.fileName,
+                          url: message.fileMsg.fileUrl,
+                        })
+                      }
+                    />
+                  )
+                ) : (
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      gap: "1rem",
+                      mb: message.caption !== "" ? "0.5rem" : "0rem",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "grid",
+                        placeItems: "center",
+                        height: 65,
+                        width: 65,
+                        bgcolor: "#eee",
+                        borderRadius: "50%",
+                      }}
+                      onMouseOver={() => setFileMsgId(message.msgId)}
+                      onMouseOut={() => setFileMsgId("")}
                     >
-                      {message.fileMsg.fileSize}
-                    </Typography>
-                    {message.fileMsg.progress != 100 && (
+                      {message.fileMsg.progress != 100 ? (
+                        <Box sx={{ display: "grid" }}>
+                          <CircularProgress
+                            sx={{ gridColumn: 1, gridRow: 1 }}
+                          />
+                          <IconButton
+                            sx={{ gridColumn: 1, gridRow: 1 }}
+                            onClick={() =>
+                              // const uploadObj = JSON.parse(
+                              //   message.fileMsg.uploadTask
+                              // );
+                              cancelUpload(message.msgId)
+                            }
+                          >
+                            <CloseIcon />
+                          </IconButton>
+                        </Box>
+                      ) : message.msgId === fileMsgId ? (
+                        <IconButton
+                          sx={{
+                            size: "large",
+                            "&.MuiButtonBase-root:hover": {
+                              bgcolor: "transparent",
+                            },
+                          }}
+                          onClick={() =>
+                            downloadFile(
+                              message.fileMsg.fileUrl,
+                              message.fileMsg.fileName
+                            )
+                          }
+                        >
+                          <DownloadIcon
+                            fontSize="large"
+                            sx={{ color: "#000" }}
+                          />
+                        </IconButton>
+                      ) : (
+                        <InsertDriveFileIcon fontSize="large" />
+                      )}
+                    </Box>
+                    <div>
+                      <Typography variant="subtitle1">
+                        {message.fileMsg.fileName}
+                      </Typography>
                       <Typography
                         variant="subtitle1"
                         sx={{
                           display: "inline-block",
                           color: "rgba(0, 0, 0, 0.45)",
+                          mr: "0.75rem",
                         }}
                       >
-                        {`${message.fileMsg.progress.toFixed(0)}% done`}
+                        {message.fileMsg.fileSize}
                       </Typography>
-                    )}
-                  </div>
-                </Box>
-              )}
-              <Typography variant="subtitle1">{message.caption}</Typography>
-            </>
-          )}
-          {msgTime === "" ? (
-            <LoaderDots />
-          ) : (
-            <Typography
-              variant="subtitle1"
-              sx={{
-                fontSize: 14,
-                color: "rgba(0, 0, 0, 0.45)",
-                textAlign: "right",
-                marginLeft: "0.5rem",
-              }}
-            >
-              {msgTime}
-            </Typography>
-          )}
+                      {message.fileMsg.progress != 100 && (
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            display: "inline-block",
+                            color: "rgba(0, 0, 0, 0.45)",
+                          }}
+                        >
+                          {`${message.fileMsg.progress.toFixed(0)}% done`}
+                        </Typography>
+                      )}
+                    </div>
+                  </Box>
+                )}
+                <Typography variant="subtitle1">{message.caption}</Typography>
+              </>
+            )}
+            {msgTime === "" ? (
+              <LoaderDots />
+            ) : (
+              <Typography
+                variant="subtitle1"
+                sx={{
+                  fontSize: 14,
+                  color: "rgba(0, 0, 0, 0.45)",
+                  textAlign: "right",
+                  marginLeft: "0.5rem",
+                }}
+              >
+                {msgTime}
+              </Typography>
+            )}
+          </Box>
         </Box>
       </React.Fragment>
     );
