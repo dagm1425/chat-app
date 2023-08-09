@@ -209,6 +209,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 gap: "0.75rem",
                 background: "#fff",
                 p: "0.5rem 1.25rem",
+                boxSizing: "border-box",
                 boxShadow:
                   "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
                 borderRadius: "30px 30px 0 0",
