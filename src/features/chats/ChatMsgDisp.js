@@ -142,7 +142,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
 
   const handleMsgOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
-    setMsgId(e.currentTarget.id);
+    setMsgId(e.currentTarget.parentElement.id);
   };
 
   const handleMsgOptionsClose = () => {
