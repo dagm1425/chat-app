@@ -482,21 +482,21 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                 <Typography variant="subtitle1">{message.caption}</Typography>
               </>
             )}
-            {msgTime === "" ? (
-              <LoaderDots />
-            ) : (
-              <Typography
-                variant="subtitle1"
-                sx={{
-                  fontSize: 14,
-                  color: "rgba(0, 0, 0, 0.45)",
-                  textAlign: "right",
-                  marginLeft: "0.5rem",
-                }}
-              >
-                {msgTime}
-              </Typography>
-            )}
+            <Box sx={{ textAlign: "right", marginLeft: "0.5rem" }}>
+              {msgTime === "" ? (
+                <LoaderDots />
+              ) : (
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    fontSize: 14,
+                    color: "rgba(0, 0, 0, 0.45)",
+                  }}
+                >
+                  {msgTime}
+                </Typography>
+              )}
+            </Box>
           </Box>
         </Box>
       </React.Fragment>
