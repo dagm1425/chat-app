@@ -240,7 +240,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const scrollToMsg = (id) => {
     const msgList = scroll.current.children;
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
-    const msg = scroll.current.children.item(i);
+    const msg = scroll.current.children.item(i).lastElementChild;
 
     msg.style.scrollMarginTop = "7rem";
     msg.style.background = "#eee";
@@ -269,6 +269,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       <React.Fragment key={message.msgId}>
         {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
         <Box
+          id={message.msgId}
           sx={{
             display: isMsgFromOtherPublicChatMembers ? "flex" : "block",
             alignSelf: isSentFromUser ? "flex-end" : "flex-start",
@@ -283,7 +284,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
             />
           )}
           <Box
-            id={message.msgId}
             onClick={handleMsgClick}
             onContextMenu={handleMsgClick}
             sx={{
