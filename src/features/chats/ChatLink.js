@@ -144,10 +144,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 {recentMsg.timestamp == null ? null : (
                   <Typography
                     variant="subtitle1"
-                    component="span"
+                    // component="span"
                     sx={{
+                      display: "inline-block",
+                      width: "20%",
                       verticalAlign: "middle",
-
                       color: "rgba(0, 0, 0, 0.45)",
                       fontWeight: unreadMsgCount ? "bold" : "normal",
                     }}
@@ -165,20 +166,24 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
         />
         {unreadMsgCount > 0 ? (
           <Box
-            component="span"
             sx={{
-              display: "grid",
-              placeItems: "center",
+              display: "inline-block",
               fontWeight: "bold",
               color: "white",
               bgcolor: "#001e80",
-              height: 25,
-              width: 25,
-              p: "0.125rem",
               borderRadius: "50%",
+              lineHeight: "0px",
+
+              "& span": {
+                display: "inline-block",
+                paddingTop: "50%",
+                paddingBottom: "50%",
+                marginLeft: "8px",
+                marginRight: "8px",
+              },
             }}
           >
-            {unreadMsgCount}
+            <span>{unreadMsgCount}</span>
           </Box>
         ) : null}
       </ListItem>
