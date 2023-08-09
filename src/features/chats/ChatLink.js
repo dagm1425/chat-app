@@ -124,10 +124,15 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               <React.Fragment>
                 <Typography
                   sx={{
-                    mr: "50%",
+                    display: "inline-block",
+                    width: "70%",
+                    pr: "0.5rem",
+                    verticalAlign: "middle",
+                    whiteSpace: "nowrap",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
                     fontWeight: unreadMsgCount ? "bold" : "normal",
                   }}
-                  component="span"
                   variant="subtitle1"
                 >
                   {recentMsg.msg
@@ -141,6 +146,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     variant="subtitle1"
                     component="span"
                     sx={{
+                      verticalAlign: "middle",
+
                       color: "rgba(0, 0, 0, 0.45)",
                       fontWeight: unreadMsgCount ? "bold" : "normal",
                     }}
