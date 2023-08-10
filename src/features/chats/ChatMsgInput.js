@@ -42,7 +42,11 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
   useEffect(() => {
     const listener = (e) => {
-      if (e.code === "Enter" || e.code === "NumpadEnter") {
+      if (
+        (e.code === "Enter" || e.code === "NumpadEnter") &&
+        e.target.nodeName == "INPUT" &&
+        e.target.type == "text"
+      ) {
         e.preventDefault();
         msgInputForm.current.requestSubmit();
       }
