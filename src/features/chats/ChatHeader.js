@@ -1,5 +1,5 @@
 /* eslint-disable react/prop-types */
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import { IconButton } from "@mui/material";
@@ -20,9 +20,21 @@ import DeleteChatDialogContent from "./DeleteChatDialogContent";
 import AddPublicChatMembersDialogContent from "./AddPublicChatMembersDialogContent";
 import RenamePublicChatDialogContent from "./RenamePublicChatDialogContent";
 import LeaveChatDialogContent from "./LeaveChatDialogContent";
+import {
+  Timestamp,
+  collection,
+  limit,
+  onSnapshot,
+  orderBy,
+  query,
+} from "firebase/firestore";
+import { db } from "../../firebase";
+import formatRelative from "date-fns/formatRelative";
+import { enUS } from "date-fns/esm/locale";
 
 function ChatHeader({ chat }) {
   const user = useSelector(selectUser);
+  const chatId = chat.chatId;
   const otherChatMember = chat.members.find(
     (member) => member.uid !== user.uid
   );
@@ -32,11 +44,45 @@ function ChatHeader({ chat }) {
     useState(false);
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
-
+  const [recentMsg, setRecentMsg] = useState({});
   const publicChatMembers =
     chat.type === " private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
+  const formatRelativeLocale = {
+    lastWeek: "EEEE",
+    yesterday: "'Yesterday'",
+    today: "'Today'",
+    tomorrow: "EEEE",
+    nextWeek: "EEEE",
+    other: "dd/MM/yyy",
+  };
+  const locale = {
+    ...enUS,
+    formatRelative: (token) => formatRelativeLocale[token],
+  };
+
+  useEffect(() => {
+    const unsub = subscribeRecentMsg();
+
+    return () => {
+      unsub();
+    };
+  }, [chatId]);
+
+  const subscribeRecentMsg = () => {
+    const q = query(
+      collection(db, "chats", `${chatId}`, "chatMessages"),
+      orderBy("timestamp", "desc"),
+      limit(1)
+    );
+
+    return onSnapshot(q, (querySnap) => {
+      let recentMsg = [];
+      querySnap.forEach((doc) => recentMsg.push(doc.data()));
+      setRecentMsg(recentMsg[0]);
+    });
+  };
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
@@ -176,10 +222,15 @@ function ChatHeader({ chat }) {
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
-            JSON.stringify(chat.recentMsg) === "{}" ? null : (
+            !recentMsg ? null : recentMsg.timestamp == null ? null : (
               <Typography variant="subtitle1">
                 Last message was on
-                {" " + chat.recentMsg.timestamp}
+                {" " +
+                  formatRelative(
+                    recentMsg.timestamp.toDate(),
+                    Timestamp.now().toDate(),
+                    { locale }
+                  )}
               </Typography>
             )
           ) : (
