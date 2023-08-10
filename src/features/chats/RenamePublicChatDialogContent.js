@@ -8,6 +8,8 @@ function RenamePublicChatDialogContent({ chatId, onClose }) {
   const [chatName, setChatName] = useState("");
 
   const handleChatRename = async () => {
+    if (chatName === "") return;
+
     onClose();
 
     await updateDoc(doc(db, "chats", `${chatId}`), {

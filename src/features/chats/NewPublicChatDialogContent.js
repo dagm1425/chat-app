@@ -13,6 +13,8 @@ function NewPublicChatDialogContent({ onClose }) {
   const chatId = useId();
 
   const createPublicChat = async () => {
+    if (chatName === "") return;
+
     await setDoc(doc(db, "chats", `${chatId}`), {
       chatId: `${chatId}`,
       displayName: chatName,

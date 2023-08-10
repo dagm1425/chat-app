@@ -58,6 +58,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const handleSendMsg = async (e) => {
     e.preventDefault();
 
+    if (msg === "") return;
+
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const lastMmsg = scroll.current.lastElementChild;
@@ -256,7 +258,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 boxSizing: "border-box",
               }}
               autoFocus
-              required
             />
           </form>
         </Box>
