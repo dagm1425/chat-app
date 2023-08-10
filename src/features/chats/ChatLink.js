@@ -97,7 +97,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       id={chatId}
       key={chatId}
       to={`/${chatId}`}
-      selectedchat={chatId === selectedChatId}
+      $selectedchat={chatId === selectedChatId}
       onClick={() => setSelectedChatId(chatId)}
     >
       <ListItem
@@ -193,7 +193,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
 const StyledLink = styled(Link)`
   display: block;
-  background-color: ${(props) => (props.selectedchat ? "gray" : "lightgray")};
+  background-color: ${(props) => (props.$selectedchat ? "gray" : "lightgray")};
   text-decoration: none;
   &:hover {
     filter: brightness(0.8);
