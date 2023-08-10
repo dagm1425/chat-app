@@ -341,7 +341,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
               </Box>
             )}
             {message.msg ? (
-              <Typography variant="subtitle1">{message.msg}</Typography>
+              <Typography variant="body1">{message.msg}</Typography>
             ) : (
               <>
                 {message.fileMsg.fileType.includes("image") ? (
@@ -452,7 +452,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       )}
                     </Box>
                     <div>
-                      <Typography variant="subtitle1">
+                      <Typography variant="subtitle1" fontWeight="bold">
                         {message.fileMsg.fileName}
                       </Typography>
                       <Typography
