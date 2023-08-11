@@ -23,6 +23,7 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import formatRelative from "date-fns/formatRelative";
 import { enUS } from "date-fns/esm/locale";
+import PeopleIcon from "@mui/icons-material/People";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
@@ -133,6 +134,12 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               {chat.type === "private"
                 ? otherMember.displayName
                 : chat.displayName}
+              {chat.type === "public" && (
+                <PeopleIcon
+                  fontSize="small"
+                  sx={{ verticalAlign: "middle", ml: "0.5rem" }}
+                />
+              )}
             </Typography>
           }
           secondary={
