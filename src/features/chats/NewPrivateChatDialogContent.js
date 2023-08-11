@@ -62,13 +62,13 @@ function NewPrivateChatDialogContent({ onClose }) {
   const createNewPrivateChat = async (otherChatMember) => {
     await setDoc(doc(db, "chats", `${chatId}`), {
       chatId: `${chatId}`,
-      displayName: otherChatMember.displayName,
-      photoURL: otherChatMember.photoURL,
+      // displayName: otherChatMember.displayName,
+      // photoURL: otherChatMember.photoURL,
       type: "private",
       createdBy: user,
-      recentMsg: {},
+      // recentMsg: {},
       members: [user, otherChatMember],
-      unreadMsg: 0,
+      // unreadMsg: 0,
     });
   };
 

@@ -22,7 +22,6 @@ function NewPublicChatDialogContent({ onClose }) {
       type: "public",
       createdBy: user,
       members: [user],
-      recentMsg: {},
     });
   };
 

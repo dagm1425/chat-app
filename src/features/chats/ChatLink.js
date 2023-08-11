@@ -106,7 +106,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
         }}
       >
         <ListItemAvatar>
-          <Avatar src={chat.photoURL} />
+          <Avatar src={otherMember.photoURL} />
         </ListItemAvatar>
         <ListItemText
           disableTypography
