@@ -115,11 +115,8 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
 
       await setDoc(doc(db, "chats", `${chatId}`), {
         chatId: `${chatId}`,
-        displayName: recipientUser.displayName,
-        photoURL: recipientUser.photoURL,
         type: "private",
         createdBy: user,
-        recentMsg: {},
         members: [user, recipientUser],
       });
 
