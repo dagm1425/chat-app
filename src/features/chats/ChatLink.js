@@ -55,9 +55,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   }, []);
 
   useEffect(() => {
-    if (!chatMsg.length) return;
-
-    setRecentMsg(chatMsg[chatMsg.length - 1]);
+    updateRecentMsg();
     updateUnreadMsgCount();
   }, [chatMsg]);
 
@@ -74,6 +72,18 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
       setChatMsg(sortedMessages);
     });
+  };
+
+  const updateRecentMsg = () => {
+    if (!chatMsg.length) {
+      if (JSON.stringify(recentMsg) !== "{}") {
+        setRecentMsg({});
+        return;
+      }
+      return;
+    }
+
+    setRecentMsg(chatMsg[chatMsg.length - 1]);
   };
 
   const updateUnreadMsgCount = () => {
