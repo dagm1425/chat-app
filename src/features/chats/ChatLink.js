@@ -198,6 +198,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               bgcolor: "#001e80",
               borderRadius: "50%",
               lineHeight: "0px",
+              ml: "1.25rem",
 
               "& span": {
                 display: "inline-block",
