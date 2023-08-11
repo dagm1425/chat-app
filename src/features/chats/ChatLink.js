@@ -89,6 +89,14 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const updateUnreadMsgCount = () => {
     let count;
 
+    if (!chatMsg.length) {
+      if (unreadMsgCount != 0) {
+        setUnreadMsgCount(0);
+        return;
+      }
+      return;
+    }
+
     if (chat.type === "private") {
       count = chatMsg.filter(
         (msg) => msg.from.uid !== user.uid && msg.isMsgRead == false
