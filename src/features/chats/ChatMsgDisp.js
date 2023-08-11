@@ -569,11 +569,13 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           onClose={closeImgModal}
           sx={{ display: "grid", placeItems: "center" }}
         >
-          <ChatMsgImgDisp
-            imgData={imgData}
-            downloadFile={downloadFile}
-            onClose={closeImgModal}
-          />
+          <div>
+            <ChatMsgImgDisp
+              imgData={imgData}
+              downloadFile={downloadFile}
+              onClose={closeImgModal}
+            />
+          </div>
         </Modal>
       </Box>
     </Box>
