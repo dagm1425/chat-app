@@ -8,7 +8,6 @@ import {
   onSnapshot,
   serverTimestamp,
   setDoc,
-  updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import {
@@ -86,7 +85,6 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
       const chatId = chatWithSelectedUser[0].chatId;
       const msgId = uuid();
       const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-      const chatRef = doc(db, "chats", `${chatId}`);
       const message = {
         ...msg,
         from: user,
@@ -96,10 +94,6 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
       };
 
       await setDoc(msgRef, message);
-
-      await updateDoc(chatRef, {
-        recentMsg: message,
-      });
     } else {
       const chatId = uuid();
       const msgId = uuid();
@@ -110,7 +104,6 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
         msgReply: null,
         timestamp: serverTimestamp(),
       };
-      let chatRef;
       let msgRef;
 
       await setDoc(doc(db, "chats", `${chatId}`), {
@@ -121,13 +114,8 @@ function ForwardMsgDialogContent({ chatId, msg, onClose }) {
       });
 
       msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-      chatRef = doc(db, "chats", `${chatId}`);
 
       await setDoc(msgRef, message);
-
-      await updateDoc(chatRef, {
-        recentMsg: message,
-      });
     }
   };
 
