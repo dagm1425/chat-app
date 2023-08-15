@@ -41,7 +41,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
-import LoaderDots from "../components/LoaderDots";
+import LoaderDots from "../../common/components/LoaderDots";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {

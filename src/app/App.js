@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { auth, db } from "./firebase";
+import { auth, db } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
@@ -11,10 +11,10 @@ import {
   onSnapshot,
   // Timestamp,
 } from "firebase/firestore";
-import { setUser } from "./features/user/userSlice";
-import UserLogin from "./features/user/userLogin";
-import { setChats } from "./features/chats/chatsSlice";
-import Home from "./features/chats/Home";
+import { setUser } from "../features/user/userSlice";
+import UserLogin from "../features/user/userLogin";
+import { setChats } from "../features/chats/chatsSlice";
+import Home from "../features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";
 // import formatRelative from "date-fns/formatRelative";
 // import { enUS } from "date-fns/esm/locale";
