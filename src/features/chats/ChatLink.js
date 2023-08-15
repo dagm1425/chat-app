@@ -130,17 +130,44 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
         <ListItemText
           disableTypography
           primary={
-            <Typography variant="h6">
-              {chat.type === "private"
-                ? otherMember.displayName
-                : chat.displayName}
-              {chat.type === "public" && (
-                <PeopleIcon
-                  fontSize="small"
-                  sx={{ verticalAlign: "middle", ml: "0.5rem" }}
-                />
+            <React.Fragment>
+              <Typography
+                variant="h6"
+                sx={{
+                  display: "inline-block",
+                  width: "70%",
+                  verticalAlign: "middle",
+                }}
+              >
+                {chat.type === "private"
+                  ? otherMember.displayName
+                  : chat.displayName}
+                {chat.type === "public" && (
+                  <PeopleIcon
+                    fontSize="small"
+                    sx={{ verticalAlign: "middle", ml: "0.5rem" }}
+                  />
+                )}
+              </Typography>
+              {recentMsg.timestamp == null ? null : (
+                <Typography
+                  variant="subtitle1"
+                  sx={{
+                    display: "inline-block",
+                    width: "20%",
+                    verticalAlign: "middle",
+                    color: "rgba(0, 0, 0, 0.45)",
+                    fontWeight: unreadMsgCount ? "bold" : "normal",
+                  }}
+                >
+                  {formatRelative(
+                    recentMsg.timestamp.toDate(),
+                    Timestamp.now().toDate(),
+                    { locale }
+                  )}
+                </Typography>
               )}
-            </Typography>
+            </React.Fragment>
           }
           secondary={
             JSON.stringify(recentMsg) === "{}" ? (
@@ -166,52 +193,32 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     ? recentMsg.caption
                     : recentMsg.fileMsg.fileName}
                 </Typography>
-                {recentMsg.timestamp == null ? null : (
-                  <Typography
-                    variant="subtitle1"
-                    // component="span"
+                {unreadMsgCount > 0 && (
+                  <Box
                     sx={{
                       display: "inline-block",
-                      width: "20%",
-                      verticalAlign: "middle",
-                      color: "rgba(0, 0, 0, 0.45)",
-                      fontWeight: unreadMsgCount ? "bold" : "normal",
+                      fontWeight: "bold",
+                      color: "white",
+                      bgcolor: "#001e80",
+                      borderRadius: "50%",
+                      lineHeight: "0px",
+
+                      "& span": {
+                        display: "inline-block",
+                        paddingTop: "50%",
+                        paddingBottom: "50%",
+                        marginLeft: "8px",
+                        marginRight: "8px",
+                      },
                     }}
                   >
-                    {formatRelative(
-                      recentMsg.timestamp.toDate(),
-                      Timestamp.now().toDate(),
-                      { locale }
-                    )}
-                  </Typography>
+                    <span>{unreadMsgCount}</span>
+                  </Box>
                 )}
               </React.Fragment>
             )
           }
         />
-        {unreadMsgCount > 0 ? (
-          <Box
-            sx={{
-              display: "inline-block",
-              fontWeight: "bold",
-              color: "white",
-              bgcolor: "#001e80",
-              borderRadius: "50%",
-              lineHeight: "0px",
-              ml: "1.25rem",
-
-              "& span": {
-                display: "inline-block",
-                paddingTop: "50%",
-                paddingBottom: "50%",
-                marginLeft: "8px",
-                marginRight: "8px",
-              },
-            }}
-          >
-            <span>{unreadMsgCount}</span>
-          </Box>
-        ) : null}
       </ListItem>
     </StyledLink>
   );
