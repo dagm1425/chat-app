@@ -29,7 +29,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
-  const [recentMsg, setRecentMsg] = useState({});
+  const [recentMsg, setRecentMsg] = useState(null);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
@@ -40,12 +40,19 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     today: "'Today'",
     tomorrow: "EEEE",
     nextWeek: "EEEE",
-    other: "dd/MM/yyy",
+    other: "dd/MM/yy",
   };
   const locale = {
     ...enUS,
     formatRelative: (token) => formatRelativeLocale[token],
   };
+  const recentMsgTimestamp = !recentMsg
+    ? null
+    : recentMsg.timestamp == null
+    ? null
+    : formatRelative(recentMsg.timestamp.toDate(), Timestamp.now().toDate(), {
+        locale,
+      });
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
@@ -77,8 +84,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
   const updateRecentMsg = () => {
     if (!chatMsg.length) {
-      if (JSON.stringify(recentMsg) !== "{}") {
-        setRecentMsg({});
+      if (recentMsg) {
+        setRecentMsg(null);
         return;
       }
       return;
@@ -149,7 +156,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   />
                 )}
               </Typography>
-              {recentMsg.timestamp == null ? null : (
+              {recentMsgTimestamp && (
                 <Typography
                   variant="subtitle1"
                   sx={{
@@ -160,17 +167,13 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     fontWeight: unreadMsgCount ? "bold" : "normal",
                   }}
                 >
-                  {formatRelative(
-                    recentMsg.timestamp.toDate(),
-                    Timestamp.now().toDate(),
-                    { locale }
-                  )}
+                  {recentMsgTimestamp}
                 </Typography>
               )}
             </React.Fragment>
           }
           secondary={
-            JSON.stringify(recentMsg) === "{}" ? (
+            !recentMsg ? (
               <Typography>{chatCreator} created this chat</Typography>
             ) : (
               <React.Fragment>
