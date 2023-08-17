@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useState } from "react";
-import Userbar from "./UserBar";
+import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
 import ChatsSearchBar from "./ChatsSearchBar";
 import { Box } from "@mui/material";
@@ -26,7 +26,7 @@ function Sidebar() {
           gap: 1,
         }}
       >
-        <Userbar />
+        <UserDrawer />
         <ChatsSearchBar
           sx={{}}
           searchValue={searchValue}
