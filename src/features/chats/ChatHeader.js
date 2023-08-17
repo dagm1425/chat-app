@@ -44,7 +44,7 @@ function ChatHeader({ chat }) {
     useState(false);
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
-  const [recentMsg, setRecentMsg] = useState({});
+  const [recentMsg, setRecentMsg] = useState(null);
   const publicChatMembers =
     chat.type === " private"
       ? null
@@ -55,12 +55,19 @@ function ChatHeader({ chat }) {
     today: "'Today'",
     tomorrow: "EEEE",
     nextWeek: "EEEE",
-    other: "dd/MM/yyy",
+    other: "dd/MM/yy",
   };
   const locale = {
     ...enUS,
     formatRelative: (token) => formatRelativeLocale[token],
   };
+  const recentMsgTimestamp = !recentMsg
+    ? null
+    : recentMsg.timestamp == null
+    ? null
+    : formatRelative(recentMsg.timestamp.toDate(), Timestamp.now().toDate(), {
+        locale,
+      });
 
   useEffect(() => {
     const unsub = subscribeRecentMsg();
@@ -222,15 +229,12 @@ function ChatHeader({ chat }) {
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
-            !recentMsg ? null : recentMsg.timestamp == null ? null : (
+            recentMsgTimestamp && (
               <Typography variant="subtitle1">
-                Last message was on
-                {" " +
-                  formatRelative(
-                    recentMsg.timestamp.toDate(),
-                    Timestamp.now().toDate(),
-                    { locale }
-                  )}
+                Last message was
+                {(recentMsgTimestamp !== "Yesterday" ||
+                  recentMsgTimestamp !== "Today") && <span> on</span>}
+                {" " + recentMsgTimestamp}
               </Typography>
             )
           ) : (
