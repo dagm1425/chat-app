@@ -232,8 +232,8 @@ function ChatHeader({ chat }) {
             recentMsgTimestamp && (
               <Typography variant="subtitle1">
                 Last message was
-                {(recentMsgTimestamp !== "Yesterday" ||
-                  recentMsgTimestamp !== "Today") && <span> on</span>}
+                {recentMsgTimestamp !== "Yesterday" &&
+                  recentMsgTimestamp !== "Today" && <span> on</span>}
                 {" " + recentMsgTimestamp}
               </Typography>
             )
