@@ -49,13 +49,20 @@ function NewPublicChatDialogContent({ onClose }) {
         onChange={(e) => setChatName(e.target.value)}
         inputRef={(input) => input && input.focus()}
       />
-      <Button
-        variant="contained"
-        sx={{ mb: "1.5rem", mt: "2.25rem" }}
-        onClick={handleBtnClick}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "0.5rem",
+          mt: "1.75rem",
+          pb: "1rem",
+          pr: "1rem",
+        }}
       >
-        Create chat
-      </Button>
+        <Button onClick={handleBtnClick}>Create chat</Button>
+        <Button onClick={onClose}>Cancel</Button>
+      </Box>
     </Box>
   );
 }

@@ -33,13 +33,20 @@ function RenamePublicChatDialogContent({ chatId, onClose }) {
         inputRef={(input) => input && input.focus()}
       />
 
-      <Button
-        variant="contained"
-        sx={{ mb: "1.5rem", mt: "2.25rem" }}
-        onClick={handleChatRename}
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "flex-end",
+          alignItems: "center",
+          gap: "0.5rem",
+          mt: "1.75rem",
+          pb: "1rem",
+          pr: "1rem",
+        }}
       >
-        Rename chat
-      </Button>
+        <Button onClick={handleChatRename}>Rename</Button>
+        <Button onClick={onClose}>Cancel</Button>
+      </Box>
     </Box>
   );
 }

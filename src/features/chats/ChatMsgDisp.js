@@ -603,7 +603,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           </MenuItem>
         </Menu>
         <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
-          <DialogTitle>Confirm message deletion</DialogTitle>
+          <DialogTitle>Delete message?</DialogTitle>
           <DeleteMsgDialogContent
             onClose={handleDeleteMsgClose}
             chatId={chatId}

@@ -294,7 +294,9 @@ function ChatHeader({ chat }) {
         </Menu>
 
         <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
-          <DialogTitle>Confirm chat deletion</DialogTitle>
+          <DialogTitle>
+            Delete chat with {otherChatMember.displayName}?
+          </DialogTitle>
           <DeleteChatDialogContent
             onClose={handleDeleteChatClose}
             chatId={chat.chatId}
@@ -326,11 +328,11 @@ function ChatHeader({ chat }) {
         </Dialog>
 
         <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
-          <DialogTitle>Leave chat</DialogTitle>
+          <DialogTitle>Leave chat?</DialogTitle>
           <LeaveChatDialogContent
-            onClose={handleLeaveChatClose}
             chatId={chat.chatId}
             user={user}
+            onClose={handleLeaveChatClose}
           />
         </Dialog>
       </Box>

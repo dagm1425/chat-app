@@ -158,7 +158,7 @@ function Userbar() {
       </Drawer>
 
       <Dialog open={isNewPrivateChatOpen} onClose={handleNewPrivateChatClose}>
-        <DialogTitle>Find Users</DialogTitle>
+        <DialogTitle>Find users</DialogTitle>
         <UsersSearch
           excUsers={[user]}
           handleItemClick={handleItemClick}
@@ -167,7 +167,7 @@ function Userbar() {
       </Dialog>
 
       <Dialog open={isNewPublicChatOpen} onClose={handleNewPublicChatClose}>
-        <DialogTitle>Set Public Chat Name</DialogTitle>
+        <DialogTitle>Set group chat name</DialogTitle>
         <NewPublicChatDialogContent onClose={handleNewPublicChatClose} />
       </Dialog>
     </>
