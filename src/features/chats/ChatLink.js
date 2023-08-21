@@ -132,7 +132,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
         }}
       >
         <ListItemAvatar>
-          <Avatar src={otherMember.photoURL} />
+          {chat.type === "private" ? (
+            <Avatar src={otherMember.photoURL} />
+          ) : (
+            <Avatar>{chat.displayName.substring(0, 1)}</Avatar>
+          )}
         </ListItemAvatar>
         <ListItemText
           disableTypography
