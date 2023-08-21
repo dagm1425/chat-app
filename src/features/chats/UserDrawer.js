@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
-import React, { useState } from "react";
-import { auth } from "../../firebase";
+import React, { useId, useState } from "react";
+import { auth, db } from "../../firebase";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import {
@@ -24,11 +24,18 @@ import ListItemText from "@mui/material/ListItemText";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";
-import NewPrivateChatDialogContent from "./NewPrivateChatDialogContent";
 import NewPublicChatDialogContent from "./NewPublicChatDialogContent";
+import UsersSearch from "./UsersSearch";
+import { selectChats } from "./chatsSlice";
+import { useNavigate } from "react-router-dom";
+import { doc, setDoc } from "firebase/firestore";
 
 function Userbar() {
   const user = useSelector(selectUser);
+  const chats = useSelector(selectChats);
+  const chatId = useId();
+  const navigate = useNavigate();
+
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -59,6 +66,33 @@ function Userbar() {
 
   const handleNewPublicChatClose = () => {
     setIsNewPublicChatOpen(false);
+  };
+
+  const createNewPrivateChat = async (otherChatMember) => {
+    const privateChats = chats.filter((chat) => chat.type === "private");
+
+    const existingChat = privateChats.find((chat) =>
+      chat.members.find((member) => member.uid === otherChatMember.uid)
+    );
+
+    if (existingChat) {
+      navigate(`/${existingChat.chatId}`);
+      return;
+    }
+
+    await setDoc(doc(db, "chats", `${chatId}`), {
+      chatId: `${chatId}`,
+      type: "private",
+      createdBy: user,
+      members: [user, otherChatMember],
+    });
+
+    navigate(`/${chatId}`);
+  };
+
+  const handleItemClick = (otherChatMember) => {
+    createNewPrivateChat(otherChatMember);
+    handleNewPrivateChatClose();
   };
 
   return (
@@ -123,7 +157,11 @@ function Userbar() {
 
       <Dialog open={isNewPrivateChatOpen} onClose={handleNewPrivateChatClose}>
         <DialogTitle>Find Users</DialogTitle>
-        <NewPrivateChatDialogContent onClose={handleNewPrivateChatClose} />
+        <UsersSearch
+          excUsers={[user]}
+          handleItemClick={handleItemClick}
+          onClose={handleNewPrivateChatClose}
+        />
       </Dialog>
 
       <Dialog open={isNewPublicChatOpen} onClose={handleNewPublicChatClose}>

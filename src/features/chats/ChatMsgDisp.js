@@ -13,6 +13,8 @@ import {
   onSnapshot,
   orderBy,
   query,
+  serverTimestamp,
+  setDoc,
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
@@ -40,12 +42,15 @@ import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import ForwardMsgDialogContent from "./ForwardMsgDialogContent";
 import LoaderDots from "../../common/components/LoaderDots";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
+import { selectChats } from "./chatsSlice";
+import { uuid } from "uuidv4";
+import UsersSearch from "./UsersSearch";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
+  const chats = useSelector(selectChats);
   const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
   const [anchorEl, setAnchorEl] = useState(null);
@@ -235,6 +240,57 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     };
     xhr.open("GET", url);
     xhr.send();
+  };
+
+  const handleForwardMsg = async (recipientUser) => {
+    handleMsgForwardClose();
+
+    const msg = chatMsg.find((msg) => msg.msgId === msgId);
+    const chatWithSelectedUser = chats.filter((chat) => {
+      return (
+        chat.members.filter(
+          (member) =>
+            member.uid === user.uid || member.uid === recipientUser.uid
+        ).length == 2
+      );
+    });
+
+    if (chatWithSelectedUser.length) {
+      const chatId = chatWithSelectedUser[0].chatId;
+      const msgId = uuid();
+      const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
+      const message = {
+        ...msg,
+        from: user,
+        msgId: msgId,
+        msgReply: null,
+        timestamp: serverTimestamp(),
+      };
+
+      await setDoc(msgRef, message);
+    } else {
+      const chatId = uuid();
+      const msgId = uuid();
+      const message = {
+        ...msg,
+        from: user,
+        msgId: msgId,
+        msgReply: null,
+        timestamp: serverTimestamp(),
+      };
+      let msgRef;
+
+      await setDoc(doc(db, "chats", `${chatId}`), {
+        chatId: `${chatId}`,
+        type: "private",
+        createdBy: user,
+        members: [user, recipientUser],
+      });
+
+      msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
+
+      await setDoc(msgRef, message);
+    }
   };
 
   const scrollToMsg = (id) => {
@@ -557,10 +613,10 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         </Dialog>
         <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
           <DialogTitle>Forward message</DialogTitle>
-          <ForwardMsgDialogContent
+          <UsersSearch
+            excUsers={chat.members}
+            handleItemClick={handleForwardMsg}
             onClose={handleMsgForwardClose}
-            chatId={chatId}
-            msg={chatMsg.find((msg) => msg.msgId === msgId)}
           />
         </Dialog>
 

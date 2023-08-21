@@ -17,20 +17,23 @@ import DialogTitle from "@mui/material/DialogTitle";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";
-import AddPublicChatMembersDialogContent from "./AddPublicChatMembersDialogContent";
 import RenamePublicChatDialogContent from "./RenamePublicChatDialogContent";
 import LeaveChatDialogContent from "./LeaveChatDialogContent";
 import {
   Timestamp,
+  arrayUnion,
   collection,
+  doc,
   limit,
   onSnapshot,
   orderBy,
   query,
+  updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import formatRelative from "date-fns/formatRelative";
 import { enUS } from "date-fns/esm/locale";
+import UsersSearch from "./UsersSearch";
 
 function ChatHeader({ chat }) {
   const user = useSelector(selectUser);
@@ -45,6 +48,7 @@ function ChatHeader({ chat }) {
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
   const [recentMsg, setRecentMsg] = useState(null);
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const publicChatMembers =
     chat.type === " private"
       ? null
@@ -200,6 +204,31 @@ function ChatHeader({ chat }) {
   //     unsub();
   //   };
   // }, []);
+  const handleItemClick = (user) => {
+    let selections;
+
+    if (!selectedMembers.length) {
+      selections = [user];
+    } else {
+      const i = selectedMembers.indexOf(user);
+
+      if (i !== -1) {
+        selections = selectedMembers.slice().splice(i + 1, 1);
+      } else selections = [...selectedMembers, user];
+    }
+
+    setSelectedMembers(selections);
+  };
+
+  const addMembers = async () => {
+    if (!selectedMembers.length) return;
+
+    handleAddPublicChatMembersClose();
+
+    await updateDoc(doc(db, "chats", `${chat.chatId}`), {
+      members: arrayUnion(...selectedMembers),
+    });
+  };
 
   return (
     <Box
@@ -277,9 +306,11 @@ function ChatHeader({ chat }) {
           onClose={handleAddPublicChatMembersClose}
         >
           <DialogTitle>Add members</DialogTitle>
-          <AddPublicChatMembersDialogContent
+          <UsersSearch
+            excUsers={chat.members}
+            handleItemClick={handleItemClick}
+            addMembers={addMembers}
             onClose={handleAddPublicChatMembersClose}
-            chat={chat}
           />
         </Dialog>
 
