@@ -53,6 +53,7 @@ function Userbar() {
   };
 
   const handleNewPrivateChatOpen = () => {
+    setIsDrawerOpen(false);
     setIsNewPrivateChatOpen(true);
   };
 
@@ -61,6 +62,7 @@ function Userbar() {
   };
 
   const handleNewPublicChatOpen = () => {
+    setIsDrawerOpen(false);
     setIsNewPublicChatOpen(true);
   };
 
