@@ -18,7 +18,7 @@ function NewPublicChatDialogContent({ onClose }) {
     await setDoc(doc(db, "chats", `${chatId}`), {
       chatId: `${chatId}`,
       displayName: chatName,
-      photoURL: user.photoURL,
+      avatarBgColor: generateRandomColor(),
       type: "public",
       createdBy: user,
       members: [user],
@@ -28,6 +28,13 @@ function NewPublicChatDialogContent({ onClose }) {
   const handleBtnClick = () => {
     createPublicChat();
     onClose();
+  };
+
+  const generateRandomColor = () => {
+    let hex = Math.floor(Math.random() * 0xffffff);
+    let color = "#" + hex.toString(16);
+
+    return color;
   };
 
   return (
