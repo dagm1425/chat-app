@@ -30,7 +30,7 @@ import { selectChats } from "./chatsSlice";
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc } from "firebase/firestore";
 
-function Userbar() {
+function Userbar({ setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = useId();
@@ -78,6 +78,7 @@ function Userbar() {
     );
 
     if (existingChat) {
+      setSelectedChatId(existingChat.chatId);
       navigate(`/${existingChat.chatId}`);
       return;
     }
@@ -89,6 +90,7 @@ function Userbar() {
       members: [user, otherChatMember],
     });
 
+    setSelectedChatId(chatId);
     navigate(`/${chatId}`);
   };
 
@@ -168,7 +170,10 @@ function Userbar() {
 
       <Dialog open={isNewPublicChatOpen} onClose={handleNewPublicChatClose}>
         <DialogTitle>Set group chat name</DialogTitle>
-        <NewPublicChatDialogContent onClose={handleNewPublicChatClose} />
+        <NewPublicChatDialogContent
+          setSelectedChatId={setSelectedChatId}
+          onClose={handleNewPublicChatClose}
+        />
       </Dialog>
     </>
   );

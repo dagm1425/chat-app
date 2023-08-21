@@ -7,6 +7,7 @@ import { Box } from "@mui/material";
 
 function Sidebar() {
   const [searchValue, setSearchValue] = useState("");
+  const [selectedChatId, setSelectedChatId] = useState("");
 
   return (
     <Box
@@ -26,14 +27,18 @@ function Sidebar() {
           gap: 1,
         }}
       >
-        <UserDrawer />
+        <UserDrawer setSelectedChatId={setSelectedChatId} />
         <ChatsSearchBar
           sx={{}}
           searchValue={searchValue}
           setSearchValue={setSearchValue}
         />
       </Box>
-      <ChatsList searchValue={searchValue} />
+      <ChatsList
+        searchValue={searchValue}
+        selectedChatId={selectedChatId}
+        setSelectedChatId={setSelectedChatId}
+      />
     </Box>
   );
 }

@@ -1,13 +1,12 @@
 /* eslint-disable react/prop-types */
-import React, { useState } from "react";
+import React from "react";
 import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
 import ChatLink from "./ChatLink";
 
-function ChatsList({ searchValue }) {
+function ChatsList({ searchValue, selectedChatId, setSelectedChatId }) {
   const chats = useSelector(selectChats);
-  const [selectedChatId, setSelectedChatId] = useState("");
 
   const filteredChats = () => {
     if (searchValue === "") return chats;

@@ -6,11 +6,13 @@ import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { useId } from "react";
 import { Box, Input, Button } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
-function NewPublicChatDialogContent({ onClose }) {
+function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
   const [chatName, setChatName] = useState("");
   const user = useSelector(selectUser);
   const chatId = useId();
+  const navigate = useNavigate();
 
   const createPublicChat = async () => {
     if (chatName === "") return;
@@ -23,6 +25,9 @@ function NewPublicChatDialogContent({ onClose }) {
       createdBy: user,
       members: [user],
     });
+
+    setSelectedChatId(chatId);
+    navigate(`/${chatId}`);
   };
 
   const handleBtnClick = () => {
