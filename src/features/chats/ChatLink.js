@@ -136,7 +136,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
             <Avatar src={otherMember.photoURL} />
           ) : (
             <Avatar sx={{ bgcolor: chat.avatarBgColor }}>
-              {chat.displayName.substring(0, 1)}
+              {chat.displayName.charAt(0).toUpperCase()}
             </Avatar>
           )}
         </ListItemAvatar>
