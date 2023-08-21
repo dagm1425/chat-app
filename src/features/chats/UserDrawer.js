@@ -26,6 +26,7 @@ import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";
 import NewPublicChatDialogContent from "./NewPublicChatDialogContent";
 import UsersSearch from "./UsersSearch";
+import SignOutDialogContent from "./SignOutDialogContent";
 import { selectChats } from "./chatsSlice";
 import { useNavigate } from "react-router-dom";
 import { doc, setDoc } from "firebase/firestore";
@@ -39,6 +40,7 @@ function Userbar({ setSelectedChatId }) {
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const [isSignOutOpen, setIsSignOutOpen] = useState(false);
 
   const signOutUser = async () => {
     signOut(auth);
@@ -68,6 +70,14 @@ function Userbar({ setSelectedChatId }) {
 
   const handleNewPublicChatClose = () => {
     setIsNewPublicChatOpen(false);
+  };
+
+  const handleSignOutClose = () => {
+    setIsSignOutOpen(false);
+  };
+
+  const handleSignOutOpen = () => {
+    setIsSignOutOpen(true);
   };
 
   const createNewPrivateChat = async (otherChatMember) => {
@@ -152,7 +162,7 @@ function Userbar({ setSelectedChatId }) {
             sx={{ p: "0.5rem 1.25rem", alignSelf: "center" }}
             startIcon={<LogoutIcon />}
             color="error"
-            onClick={signOutUser}
+            onClick={handleSignOutOpen}
           >
             Sign Out
           </Button>
@@ -173,6 +183,14 @@ function Userbar({ setSelectedChatId }) {
         <NewPublicChatDialogContent
           setSelectedChatId={setSelectedChatId}
           onClose={handleNewPublicChatClose}
+        />
+      </Dialog>
+
+      <Dialog open={isSignOutOpen} onClose={handleSignOutClose}>
+        <DialogTitle>Sign out?</DialogTitle>
+        <SignOutDialogContent
+          signOutUser={signOutUser}
+          onClose={handleSignOutClose}
         />
       </Dialog>
     </>
