@@ -144,7 +144,7 @@ function Userbar({ setSelectedChatId }) {
                 <ListItemIcon>
                   <PeopleIcon />
                 </ListItemIcon>
-                <ListItemText primary="New Public Chat" />
+                <ListItemText primary="New group chat" />
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
