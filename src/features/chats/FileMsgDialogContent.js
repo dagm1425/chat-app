@@ -154,9 +154,7 @@ function FileMsgDialogContent({
         }}
       >
         <Button onClick={onClose}>Cancel</Button>
-        <Button variant="contained" onClick={sendFileMsg}>
-          Send
-        </Button>
+        <Button onClick={sendFileMsg}>Send</Button>
       </Box>
     </Box>
   );
