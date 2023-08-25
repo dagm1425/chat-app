@@ -246,7 +246,8 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     handleMsgForwardClose();
 
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
-    const chatWithSelectedUser = chats.filter((chat) => {
+    const privateChats = chats.filter((chat) => chat.type === " private");
+    const chatWithSelectedUser = privateChats.filter((chat) => {
       return (
         chat.members.filter(
           (member) =>
@@ -614,7 +615,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
           <DialogTitle>Forward message</DialogTitle>
           <UsersSearch
-            excUsers={chat.members}
+            excUsers={chat.type === "private" ? chat.members : [{ user }]}
             handleItemClick={handleForwardMsg}
             onClose={handleMsgForwardClose}
           />
