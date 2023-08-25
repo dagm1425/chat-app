@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
-import React, { useId, useState } from "react";
+import React, { useState } from "react";
 import { auth, db } from "../../firebase";
+import { v4 as uuid } from "uuid";
 import Button from "@mui/material/Button";
 import Box from "@mui/material/Box";
 import {
@@ -34,7 +35,6 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 function Userbar({ setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
-  const chatId = useId();
   const navigate = useNavigate();
 
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
@@ -81,6 +81,8 @@ function Userbar({ setSelectedChatId }) {
   };
 
   const createNewPrivateChat = async (otherChatMember) => {
+    const chatId = uuid();
+
     const privateChats = chats.filter((chat) => chat.type === "private");
 
     const existingChat = privateChats.find((chat) =>
