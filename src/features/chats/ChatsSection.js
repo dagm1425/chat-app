@@ -8,7 +8,7 @@ import ChatHeader from "./ChatHeader";
 import ChatMsgDisp from "./ChatMsgDisp";
 import ChatMsgInput from "./ChatMsgInput";
 
-function ChatsSection() {
+function ChatsSection({ setSelectedChatId }) {
   const { id } = useParams();
   const chat = useSelector((state) => selectChatById(state, id));
   const [uploadTask, setUploadTask] = useState(null);
@@ -32,6 +32,7 @@ function ChatsSection() {
         msgReply={msgReply}
         setMsgReply={setMsgReply}
         scroll={scroll}
+        setSelectedChatId={setSelectedChatId}
       />
       <ChatMsgInput
         chat={chat}

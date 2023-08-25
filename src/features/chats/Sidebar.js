@@ -5,9 +5,8 @@ import ChatsList from "./ChatsList";
 import ChatsSearchBar from "./ChatsSearchBar";
 import { Box } from "@mui/material";
 
-function Sidebar() {
+function Sidebar({ selectedChatId, setSelectedChatId }) {
   const [searchValue, setSearchValue] = useState("");
-  const [selectedChatId, setSelectedChatId] = useState("");
 
   return (
     <Box

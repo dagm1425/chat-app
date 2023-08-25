@@ -47,8 +47,15 @@ import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
+import { useNavigate } from "react-router-dom";
 
-function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
+function ChatMsgDisp({
+  chat,
+  uploadTask,
+  setMsgReply,
+  scroll,
+  setSelectedChatId,
+}) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
@@ -61,6 +68,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
+  const navigate = useNavigate();
 
   msgDates.add("");
   const formatRelativeLocale = {
@@ -269,6 +277,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       };
 
       await setDoc(msgRef, message);
+
+      setSelectedChatId(chatId);
+      navigate(`/${chatId}`);
     } else {
       const chatId = uuid();
       const msgId = uuid();
@@ -292,6 +303,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
 
       await setDoc(msgRef, message);
+
+      setSelectedChatId(chatId);
+      navigate(`/${chatId}`);
     }
   };
 
