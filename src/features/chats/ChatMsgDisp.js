@@ -246,7 +246,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     handleMsgForwardClose();
 
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
-    const privateChats = chats.filter((chat) => chat.type === " private");
+    const privateChats = chats.filter((chat) => chat.type === "private");
     const chatWithSelectedUser = privateChats.filter((chat) => {
       return (
         chat.members.filter(
