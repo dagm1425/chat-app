@@ -85,14 +85,11 @@ function App() {
 
     return onSnapshot(q, (querySnapshot) => {
       const chats = [];
-      querySnapshot.forEach((doc) =>
-        chats.push({
-          ...doc.data(),
-          timestamp: doc.data().timestamp
-            ? doc.data().timestamp.toString()
-            : "",
-        })
-      );
+      querySnapshot.forEach((doc) => {
+        // eslint-disable-next-line no-unused-vars
+        const { timestamp, ...chat } = doc.data();
+        chats.push(chat);
+      });
 
       setFetchingChatsData(false);
       dispatch(setChats(chats));
