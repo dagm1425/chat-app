@@ -286,6 +286,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         type: "private",
         createdBy: user,
         members: [user, recipientUser],
+        timestamp: serverTimestamp(),
       });
 
       msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
