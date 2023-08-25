@@ -29,7 +29,7 @@ import UsersSearch from "./UsersSearch";
 import SignOutDialogContent from "./SignOutDialogContent";
 import { selectChats } from "./chatsSlice";
 import { useNavigate } from "react-router-dom";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 
 function Userbar({ setSelectedChatId }) {
   const user = useSelector(selectUser);
@@ -98,6 +98,7 @@ function Userbar({ setSelectedChatId }) {
       type: "private",
       createdBy: user,
       members: [user, otherChatMember],
+      timestamp: serverTimestamp(),
     });
 
     setSelectedChatId(chatId);

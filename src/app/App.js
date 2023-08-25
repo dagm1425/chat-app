@@ -9,6 +9,7 @@ import {
   query,
   where,
   onSnapshot,
+  orderBy,
   // Timestamp,
 } from "firebase/firestore";
 import { setUser } from "../features/user/userSlice";
@@ -78,34 +79,21 @@ function App() {
         uid: userData.uid,
         displayName: userData.displayName,
         photoURL: userData.photoURL,
-      })
+      }),
+      orderBy("timestamp", "asc")
     );
 
     return onSnapshot(q, (querySnapshot) => {
       const chats = [];
-      querySnapshot.forEach((doc) => {
-        // if (JSON.stringify(doc.data().recentMsg) !== "{}") {
-        //   const timestamp =
-        //     doc.data().recentMsg.timestamp == null
-        //       ? ""
-        //       : doc.data().recentMsg.timestamp.toDate();
+      querySnapshot.forEach((doc) =>
+        chats.push({
+          ...doc.data(),
+          timestamp: doc.data().timestamp
+            ? doc.data().timestamp.toString()
+            : "",
+        })
+      );
 
-        //   chats.push({
-        //     ...doc.data(),
-        //     recentMsg: {
-        //       ...doc.data().recentMsg,
-        //       timestamp:
-        //         timestamp === ""
-        //           ? ""
-        //           : formatRelative(timestamp, Timestamp.now().toDate(), {
-        //               locale,
-        //             }).toLowerCase(),
-        //     },
-        //   });
-        // } else {
-        chats.push(doc.data());
-        // }
-      });
       setFetchingChatsData(false);
       dispatch(setChats(chats));
     });

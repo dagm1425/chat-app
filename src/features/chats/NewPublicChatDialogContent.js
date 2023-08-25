@@ -1,6 +1,6 @@
 /* eslint-disable react/prop-types */
 import React, { useState } from "react";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -24,6 +24,7 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
       type: "public",
       createdBy: user,
       members: [user],
+      timestamp: serverTimestamp(),
     });
 
     setSelectedChatId(chatId);
