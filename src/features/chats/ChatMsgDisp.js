@@ -45,7 +45,7 @@ import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import LoaderDots from "../../common/components/LoaderDots";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
-import { uuid } from "uuidv4";
+import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
