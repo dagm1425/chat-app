@@ -615,7 +615,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
           <DialogTitle>Forward message</DialogTitle>
           <UsersSearch
-            excUsers={chat.type === "private" ? chat.members : [{ user }]}
+            excUsers={chat.type === "private" ? chat.members : [user]}
             handleItemClick={handleForwardMsg}
             onClose={handleMsgForwardClose}
           />
