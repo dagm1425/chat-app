@@ -121,9 +121,15 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     e.preventDefault();
 
     const file = e.target.files[0];
+    const maxFileSize = 5000000;
+
+    if (file.size > maxFileSize) {
+      alert("File size should not exceed 5 MB");
+      fileInput.current.value = "";
+      return;
+    }
 
     setFile(file);
-
     handleFileMsgDialogOpen();
   };
 
