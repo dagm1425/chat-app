@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { auth, db } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import {
   doc,
   getDoc,
@@ -17,13 +16,13 @@ import UserLogin from "../features/user/userLogin";
 import { setChats } from "../features/chats/chatsSlice";
 import Home from "../features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";
+import { useAuthState } from "react-firebase-hooks/auth";
 // import formatRelative from "date-fns/formatRelative";
 // import { enUS } from "date-fns/esm/locale";
 
 function App() {
   const dispatch = useDispatch();
-  const [isUserSignedIn, setIsUserSignedIn] = useState(false);
-  const [userData, setUserData] = useState(null);
+  const [user, loading] = useAuthState(auth);
   const [fetchingUserData, setFetchingUserData] = useState(true);
   const [fetchingChatsData, setFetchingChatsData] = useState(true);
   // const formatRelativeLocale = {
@@ -42,43 +41,34 @@ function App() {
   useEffect(() => {
     let unsubscribe;
 
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        setUserData(user);
-        setIsUserSignedIn(true);
-      } else {
-        setIsUserSignedIn(false);
-      }
-    });
-
     fetchUserData();
     unsubscribe = subscribeChats();
 
     return () => {
       unsubscribe();
     };
-  }, [isUserSignedIn]);
+  }, [user]);
 
   const fetchUserData = async () => {
-    if (!isUserSignedIn) return;
+    if (!user) return;
 
-    const userRef = doc(db, "users", `${userData.uid}`);
-    const user = await getDoc(userRef);
+    const userRef = doc(db, "users", `${user.uid}`);
+    const usern = await getDoc(userRef);
 
-    if (!user.exists()) return;
+    if (!usern.exists()) return;
     setFetchingUserData(false);
-    dispatch(setUser(user.data()));
+    dispatch(setUser(usern.data()));
   };
 
   const subscribeChats = () => {
-    if (!isUserSignedIn) return () => {};
+    if (!user) return () => {};
 
     const q = query(
       collection(db, "chats"),
       where("members", "array-contains", {
-        uid: userData.uid,
-        displayName: userData.displayName,
-        photoURL: userData.photoURL,
+        uid: user.uid,
+        displayName: user.displayName,
+        photoURL: user.photoURL,
       }),
       orderBy("timestamp", "asc")
     );
@@ -96,8 +86,8 @@ function App() {
     });
   };
 
-  if (!isUserSignedIn) return <UserLogin />;
-  if (isUserSignedIn && (fetchingUserData || fetchingChatsData))
+  if (!user) return <UserLogin />;
+  if (loading || (user && (fetchingUserData || fetchingChatsData)))
     return <CircularProgress />;
   return <Home />;
 }
