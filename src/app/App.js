@@ -70,7 +70,7 @@ function App() {
         displayName: user.displayName,
         photoURL: user.photoURL,
       }),
-      orderBy("timestamp", "asc")
+      orderBy("timestamp")
     );
 
     return onSnapshot(q, (querySnapshot) => {
