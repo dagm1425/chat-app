@@ -77,6 +77,7 @@ function Userbar({ setSelectedChatId }) {
   };
 
   const handleSignOutOpen = () => {
+    setIsDrawerOpen(false);
     setIsSignOutOpen(true);
   };
 
