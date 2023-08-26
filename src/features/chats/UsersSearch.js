@@ -14,6 +14,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
+import CircularProgress from "@mui/material/CircularProgress";
 
 function UsersSearch({ excUsers, handleItemClick, addMembers, onClose }) {
   const [search, setSearch] = useState("");
@@ -54,7 +55,7 @@ function UsersSearch({ excUsers, handleItemClick, addMembers, onClose }) {
 
   const usersList = filteredUsersBySearch(users).map((user) => {
     return (
-      <ListItem key={user.uid} disableGutters>
+      <ListItem key={user.uid} disablePadding>
         <ListItemButton autoFocus onClick={() => handleItemClick(user)}>
           <ListItemAvatar>
             <Avatar src={user.photoURL} />
@@ -86,7 +87,21 @@ function UsersSearch({ excUsers, handleItemClick, addMembers, onClose }) {
         }
         inputRef={(input) => input && input.focus()}
       />
-      <List>{usersList}</List>
+      <List
+        sx={{
+          display: "grid",
+          placeItems: "center",
+          height: 200,
+          overflowY: "auto",
+          pt: "1.25rem",
+        }}
+      >
+        {usersList.length ? (
+          <Box sx={{ width: "100%", height: "100%" }}>{usersList}</Box>
+        ) : (
+          <CircularProgress />
+        )}
+      </List>
       <Box
         sx={{
           display: "flex",
