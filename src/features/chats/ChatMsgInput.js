@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useEffect, useRef, useState } from "react";
+import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
@@ -289,3 +289,14 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 }
 
 export default ChatMsgInput;
+
+ChatMsgInput.propTypes = {
+  chat: PropTypes.object,
+  setUploadTask: PropTypes.func,
+  msgReply: PropTypes.object,
+  setMsgReply: PropTypes.func,
+  scroll: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+};

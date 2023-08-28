@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
@@ -33,3 +33,9 @@ function ChatsList({ searchValue, selectedChatId, setSelectedChatId }) {
 }
 
 export default ChatsList;
+
+ChatsList.propTypes = {
+  searchValue: PropTypes.string,
+  selectedChatId: PropTypes.string,
+  setSelectedChatId: PropTypes.func,
+};

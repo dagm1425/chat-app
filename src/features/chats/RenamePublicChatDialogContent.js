@@ -1,7 +1,7 @@
-/* eslint-disable react/prop-types */
+import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { Box, Button, Input } from "@mui/material";
 import { doc, updateDoc } from "firebase/firestore";
-import React, { useState } from "react";
 import { db } from "../../firebase";
 
 function RenamePublicChatDialogContent({ chatId, onClose }) {
@@ -52,3 +52,8 @@ function RenamePublicChatDialogContent({ chatId, onClose }) {
 }
 
 export default RenamePublicChatDialogContent;
+
+RenamePublicChatDialogContent.propTypes = {
+  chatId: PropTypes.string,
+  onClose: PropTypes.func,
+};

@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { db } from "../../firebase";
 import { doc, deleteDoc } from "firebase/firestore";
 import { Box, Button } from "@mui/material";
@@ -33,3 +33,9 @@ function DeleteMsgDialogContent({ chatId, msgId, onClose }) {
 }
 
 export default DeleteMsgDialogContent;
+
+DeleteMsgDialogContent.propTypes = {
+  chatId: PropTypes.string,
+  msgId: PropTypes.string,
+  onClose: PropTypes.func,
+};

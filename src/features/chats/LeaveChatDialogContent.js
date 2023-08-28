@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { db } from "../../firebase";
 import { arrayRemove, doc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
@@ -36,3 +36,13 @@ function LeaveChatDialogContent({ chatId, user, onClose }) {
 }
 
 export default LeaveChatDialogContent;
+
+LeaveChatDialogContent.propTypes = {
+  chatId: PropTypes.string,
+  user: PropTypes.shape({
+    uid: PropTypes.string,
+    displayName: PropTypes.string,
+    photoURL: PropTypes.string,
+  }),
+  onClose: PropTypes.func,
+};

@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useRef, useState } from "react";
+import PropTypes from "prop-types";
 import Box from "@mui/material/Box";
 import { useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
@@ -46,3 +46,7 @@ function ChatsSection({ setSelectedChatId }) {
 }
 
 export default ChatsSection;
+
+ChatsSection.propTypes = {
+  setSelectedChatId: PropTypes.func,
+};

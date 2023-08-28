@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
@@ -120,3 +120,16 @@ function UsersSearch({ excUsers, handleItemClick, addMembers, onClose }) {
 }
 
 export default UsersSearch;
+
+UsersSearch.propTypes = {
+  excUsers: PropTypes.arrayOf(
+    PropTypes.PropTypes.shape({
+      uid: PropTypes.string,
+      displayName: PropTypes.string,
+      photoURL: PropTypes.string,
+    })
+  ),
+  handleItemClick: PropTypes.func,
+  addMembers: PropTypes.func,
+  onClose: PropTypes.func,
+};

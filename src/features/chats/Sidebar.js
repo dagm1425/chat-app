@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
 import ChatsSearchBar from "./ChatsSearchBar";
@@ -43,3 +43,8 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
 }
 
 export default Sidebar;
+
+Sidebar.propTypes = {
+  selectedChatId: PropTypes.string,
+  setSelectedChatId: PropTypes.func,
+};

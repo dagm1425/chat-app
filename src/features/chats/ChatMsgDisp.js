@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
@@ -655,3 +655,14 @@ function ChatMsgDisp({
 }
 
 export default ChatMsgDisp;
+
+ChatMsgDisp.propTypes = {
+  chat: PropTypes.object,
+  uploadTask: PropTypes.object,
+  setMsgReply: PropTypes.func,
+  scroll: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+  setSelectedChatId: PropTypes.func,
+};

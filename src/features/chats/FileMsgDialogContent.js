@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "../../firebase";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
@@ -161,3 +161,17 @@ function FileMsgDialogContent({
 }
 
 export default FileMsgDialogContent;
+
+FileMsgDialogContent.propTypes = {
+  chat: PropTypes.object,
+  user: PropTypes.shape({
+    uid: PropTypes.string,
+    displayName: PropTypes.string,
+    photoURL: PropTypes.string,
+  }),
+  file: PropTypes.object,
+  setUploadTask: PropTypes.func,
+  onClose: PropTypes.func,
+  setMsgReply: PropTypes.func,
+  msgReply: PropTypes.object,
+};

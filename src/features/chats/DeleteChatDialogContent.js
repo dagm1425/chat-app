@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { db } from "../../firebase";
 import { useNavigate } from "react-router-dom";
 import { doc, deleteDoc } from "firebase/firestore";
@@ -36,3 +36,8 @@ function DeleteChatDialogContent({ onClose, chatId }) {
 }
 
 export default DeleteChatDialogContent;
+
+DeleteChatDialogContent.propTypes = {
+  onClose: PropTypes.func,
+  chatId: PropTypes.string,
+};

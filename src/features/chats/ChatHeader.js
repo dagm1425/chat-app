@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import {
   Box,
   Dialog,
@@ -345,3 +345,7 @@ function ChatHeader({ chat }) {
 }
 
 export default ChatHeader;
+
+ChatHeader.propTypes = {
+  chat: PropTypes.object,
+};

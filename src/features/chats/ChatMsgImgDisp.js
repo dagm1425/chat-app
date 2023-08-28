@@ -1,6 +1,6 @@
-/* eslint-disable react/prop-types */
-import { Box, IconButton } from "@mui/material";
 import React from "react";
+import PropTypes from "prop-types";
+import { Box, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
@@ -104,3 +104,12 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
 }
 
 export default ChatMsgImgDisp;
+
+ChatMsgImgDisp.propTypes = {
+  imgData: PropTypes.shape({
+    fileName: PropTypes.string,
+    url: PropTypes.string,
+  }),
+  downloadFile: PropTypes.func,
+  onClose: PropTypes.func,
+};

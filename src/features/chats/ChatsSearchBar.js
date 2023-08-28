@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 
 function ChatsSearchBar({ searchValue, setSearchValue }) {
   return (
@@ -23,3 +23,8 @@ function ChatsSearchBar({ searchValue, setSearchValue }) {
 }
 
 export default ChatsSearchBar;
+
+ChatsSearchBar.propTypes = {
+  searchValue: PropTypes.string,
+  setSearchValue: PropTypes.func,
+};

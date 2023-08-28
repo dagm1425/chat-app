@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSelector } from "react-redux";
@@ -81,3 +81,8 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
 }
 
 export default NewPublicChatDialogContent;
+
+NewPublicChatDialogContent.propTypes = {
+  setSelectedChatId: PropTypes.func,
+  onClose: PropTypes.func,
+};

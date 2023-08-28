@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { Box, Button } from "@mui/material";
 
 function SignOutDialogContent({ signOutUser, onClose }) {
@@ -25,3 +25,8 @@ function SignOutDialogContent({ signOutUser, onClose }) {
 }
 
 export default SignOutDialogContent;
+
+SignOutDialogContent.propTypes = {
+  signOutUser: PropTypes.func,
+  onClose: PropTypes.func,
+};

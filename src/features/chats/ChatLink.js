@@ -1,4 +1,5 @@
-/* eslint-disable react/prop-types */
+import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
@@ -15,7 +16,6 @@ import {
   orderBy,
   query,
 } from "firebase/firestore";
-import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { styled } from "styled-components";
 import { db } from "../../firebase";
@@ -243,3 +243,9 @@ const StyledLink = styled(Link)`
 `;
 
 export default ChatLink;
+
+ChatLink.propTypes = {
+  chat: PropTypes.object,
+  selectedChatId: PropTypes.string,
+  setSelectedChatId: PropTypes.func,
+};

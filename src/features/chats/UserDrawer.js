@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
+import PropTypes from "prop-types";
 import { auth, db } from "../../firebase";
 import { v4 as uuid } from "uuid";
 import {
@@ -202,3 +202,7 @@ function Userbar({ setSelectedChatId }) {
 }
 
 export default Userbar;
+
+Userbar.propTypes = {
+  setSelectedChatId: PropTypes.func,
+};
