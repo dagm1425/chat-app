@@ -24,6 +24,7 @@ import { selectUser } from "../user/userSlice";
 import formatRelative from "date-fns/formatRelative";
 import { enUS } from "date-fns/esm/locale";
 import PeopleIcon from "@mui/icons-material/People";
+import { formatFilename } from "../../common/utils";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
@@ -200,7 +201,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     ? recentMsg.msg
                     : recentMsg.caption
                     ? recentMsg.caption
-                    : recentMsg.fileMsg.fileName}
+                    : formatFilename(recentMsg.fileMsg.fileName)}
                 </Typography>
                 {unreadMsgCount > 0 && (
                   <Box

@@ -29,6 +29,7 @@ import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import FileMsgDialogContent from "./FileMsgDialogContent";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
+import { formatFilename } from "../../common/utils";
 
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -237,7 +238,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                     ? msgReply.msg
                     : msgReply.caption
                     ? msgReply.caption
-                    : msgReply.fileMsg.fileName}
+                    : formatFilename(msgReply.fileMsg.fileName)}
                 </Typography>
               </div>
               <IconButton onClick={() => setMsgReply(null)}>

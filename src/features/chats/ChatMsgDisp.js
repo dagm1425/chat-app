@@ -48,6 +48,7 @@ import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
 import { useNavigate } from "react-router-dom";
+import { formatFilename } from "../../common/utils";
 
 function ChatMsgDisp({
   chat,
@@ -407,7 +408,7 @@ function ChatMsgDisp({
                       ? message.msgReply.msg
                       : message.msgReply.caption
                       ? message.msgReply.caption
-                      : message.msgReply.fileMsg.fileName}
+                      : formatFilename(message.msgReply.fileMsg.fileName)}
                   </Typography>
                 </div>
               </Box>
@@ -525,7 +526,7 @@ function ChatMsgDisp({
                     </Box>
                     <div>
                       <Typography variant="subtitle1" fontWeight="bold">
-                        {message.fileMsg.fileName}
+                        {formatFilename(message.fileMsg.fileName)}
                       </Typography>
                       <Typography
                         variant="subtitle1"

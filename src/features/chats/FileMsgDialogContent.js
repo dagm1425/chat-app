@@ -6,6 +6,7 @@ import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import { Box, Button, Typography, TextField } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import { formatFilename } from "../../common/utils";
 
 function FileMsgDialogContent({
   chat,
@@ -17,17 +18,7 @@ function FileMsgDialogContent({
   setMsgReply,
 }) {
   const chatId = chat.chatId;
-  let fileName;
   const [caption, setCaption] = useState("");
-
-  if (file.name.length <= 20) {
-    fileName = file.name;
-  } else {
-    const begName = file.name.substring(0, 12);
-    const endName = file.name.substring(file.name.length - 8);
-    fileName = begName + "..." + endName;
-  }
-
   const sufixes = ["B", "kB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(file.size) / Math.log(1024));
   const fileSize = `${(file.size / Math.pow(1024, i)).toFixed(2)} ${
@@ -66,7 +57,7 @@ function FileMsgDialogContent({
       timestamp: serverTimestamp(),
       msgReply,
       fileMsg: {
-        fileName,
+        fileName: file.name,
         fileType,
         fileSize,
         fileUrl: "",
@@ -133,7 +124,9 @@ function FileMsgDialogContent({
       >
         <InsertDriveFileIcon fontSize="large" />
         <div>
-          <Typography variant="subtitle1">{fileName}</Typography>
+          <Typography variant="subtitle1">
+            {formatFilename(file.name)}
+          </Typography>
           <Typography variant="subtitle1" sx={{ color: "rgba(0, 0, 0, 0.45)" }}>
             {fileSize}
           </Typography>
