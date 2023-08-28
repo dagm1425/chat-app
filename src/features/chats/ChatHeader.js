@@ -1,19 +1,21 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
-import Box from "@mui/material/Box";
-import Typography from "@mui/material/Typography";
-import { IconButton } from "@mui/material";
+import {
+  Box,
+  Dialog,
+  DialogTitle,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Typography,
+} from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
-import Menu from "@mui/material/Menu";
-import MenuItem from "@mui/material/MenuItem";
-import ListItemIcon from "@mui/material/ListItemIcon";
-import ListItemText from "@mui/material/ListItemText";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import DeleteIcon from "@mui/icons-material/Delete";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";

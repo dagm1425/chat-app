@@ -2,26 +2,26 @@
 import React, { useState } from "react";
 import { auth, db } from "../../firebase";
 import { v4 as uuid } from "uuid";
-import Button from "@mui/material/Button";
-import Box from "@mui/material/Box";
 import {
+  Box,
+  Button,
   Divider,
   Drawer,
   IconButton,
   List,
   ListItem,
+  ListItemText,
   ListItemButton,
   Typography,
+  Avatar,
+  DialogTitle,
+  Dialog,
 } from "@mui/material";
-import Avatar from "@mui/material/Avatar";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
 import ContactsIcon from "@mui/icons-material/Contacts";
 import ListItemIcon from "@mui/material/ListItemIcon";
 import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
-import ListItemText from "@mui/material/ListItemText";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";

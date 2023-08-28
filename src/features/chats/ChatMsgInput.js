@@ -1,6 +1,5 @@
 /* eslint-disable react/prop-types */
 import React, { useEffect, useRef, useState } from "react";
-import Box from "@mui/material/Box";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
@@ -17,6 +16,7 @@ import {
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
 import {
+  Box,
   Dialog,
   DialogTitle,
   IconButton,
