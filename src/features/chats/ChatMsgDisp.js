@@ -329,12 +329,11 @@ function ChatMsgDisp({
   const msgList = chatMsg.map((message) => {
     const isSentFromUser = message.from.uid === user.uid;
     const timestamp =
-      message.timestamp == null ? "" : message.timestamp.toDate();
-    const msgTime = timestamp == "" ? "" : format(timestamp, "hh:mm a");
-    const msgDate =
-      timestamp == ""
-        ? ""
-        : formatRelative(timestamp, Timestamp.now().toDate(), { locale });
+      message.timestamp == null ? new Date() : message.timestamp.toDate();
+    const msgTime = format(timestamp, "hh:mm a");
+    const msgDate = formatRelative(timestamp, Timestamp.now().toDate(), {
+      locale,
+    });
     const isMsgFromOtherPublicChatMembers =
       chat.type === "public" && message.from.uid !== user.uid;
 

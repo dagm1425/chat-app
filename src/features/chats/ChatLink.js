@@ -50,7 +50,9 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const recentMsgTimestamp = !recentMsg
     ? null
     : recentMsg.timestamp == null
-    ? null
+    ? formatRelative(new Date(), Timestamp.now().toDate(), {
+        locale,
+      })
     : formatRelative(recentMsg.timestamp.toDate(), Timestamp.now().toDate(), {
         locale,
       });
