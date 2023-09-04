@@ -1,28 +1,34 @@
 import React from "react";
-import { Box } from "@mui/material";
+import { Box, Typography } from "@mui/material";
+import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
+
 function ChatsHome() {
   return (
     <Box
       sx={{
-        textAlign: "center",
-        ml: "22%",
-        width: "78%",
-        bgcolor: "header.main",
+        ml: "23%",
+        width: "77%",
+        bgcolor: " rgba(0,0,0,0.02)",
         height: "100vh",
+        textAlign: "center",
         display: "grid",
         placeItems: "center",
       }}
     >
-      <h4
-        style={{
-          padding: "0.75rem",
-          border: "1.25px solid grey",
-          borderRadius: "25px",
-          display: "inline-block",
-        }}
-      >
-        Select a chat to start messaging
-      </h4>
+      <div>
+        <QuestionAnswerIcon
+          sx={{ color: "text.secondary", fontSize: "4rem", opacity: "0.5" }}
+        />
+        <Typography
+          variant="subtitle1"
+          sx={{ fontSize: "1.25em", mt: "0.25rem" }}
+        >
+          ChatApp
+        </Typography>
+        <Typography variant="body2" sx={{ color: "text.secondary" }}>
+          Select a chat to start messaging.
+        </Typography>
+      </div>
     </Box>
   );
 }

@@ -29,7 +29,7 @@ function ChatsList({ searchValue, selectedChatId, setSelectedChatId }) {
     );
   });
 
-  return <>{chats ? <List>{list}</List> : null}</>;
+  return <>{chats ? <List disablePadding>{list}</List> : null}</>;
 }
 
 export default ChatsList;

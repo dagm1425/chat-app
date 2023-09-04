@@ -140,8 +140,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         flex: "0 1 auto",
         position: "sticky",
         bottom: "0",
-        bgcolor: "#eee",
-        py: "1.5rem",
+        py: "0.75rem",
+        borderTop: "2px solid",
+        borderColor: "background.paper",
       }}
     >
       <Box
@@ -152,10 +153,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           alignItems: "center",
           justifyContent: "center",
           gap: "0.5rem",
-
-          fontSize: "1.125rem",
-
-          // mt: "1rem",
         }}
       >
         <IconButton
@@ -187,7 +184,14 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           ref={fileInput}
         />
 
-        <IconButton onClick={handleFileSelectClick}>
+        <IconButton
+          onClick={handleFileSelectClick}
+          sx={{
+            "&.MuiButtonBase-root:hover": {
+              bgcolor: "transparent",
+            },
+          }}
+        >
           <AttachmentIcon />
         </IconButton>
 
@@ -220,29 +224,60 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 justifyContent: "flex-start",
                 alignItems: "center",
                 gap: "0.75rem",
-                background: "#fff",
                 p: "0.5rem 1.25rem",
                 boxSizing: "border-box",
                 boxShadow:
                   "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-                borderRadius: "30px 30px 0 0",
+                borderRadius: "20px 20px 0 0",
               }}
             >
-              {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
-              <div>
-                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                  {msgReply.from.displayName}
-                </Typography>
-                <Typography variant="subtitle1">
-                  {msgReply.msg
-                    ? msgReply.msg
-                    : msgReply.caption
-                    ? msgReply.caption
-                    : formatFilename(msgReply.fileMsg.fileName)}
-                </Typography>
-              </div>
-              <IconButton onClick={() => setMsgReply(null)}>
-                <CloseIcon />
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.5rem",
+                  fontSize: "0.9em",
+                  padding: "0 0.5rem",
+                  borderLeft: "4px solid",
+                  borderColor: "primary.main",
+                  borderTopLeftRadius: "0.25rem",
+                  borderBottomLeftRadius: "0.25rem",
+                }}
+              >
+                {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
+                <div>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: "inherit",
+                      fontWeight: "bold",
+                      lineHeight: "1.125rem",
+                    }}
+                  >
+                    {msgReply.from.displayName}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{ fontSize: "inherit", lineHeight: "1.125rem" }}
+                  >
+                    {msgReply.msg
+                      ? msgReply.msg
+                      : msgReply.caption
+                      ? msgReply.caption
+                      : formatFilename(msgReply.fileMsg.fileName)}
+                  </Typography>
+                </div>
+              </Box>
+              <IconButton
+                onClick={() => setMsgReply(null)}
+                sx={{
+                  marginLeft: "auto",
+                  "&.MuiButtonBase-root:hover": {
+                    bgcolor: "transparent",
+                  },
+                }}
+              >
+                <CloseIcon sx={{ marginLeft: "auto" }} />
               </IconButton>
             </Box>
           )}
@@ -258,14 +293,13 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
               onChange={(e) => setMsg(e.target.value)}
               style={{
                 font: "inherit",
-                padding: "1rem 1.25rem",
-                // margin: "0 auto",
+                padding: "0.925rem 1.25rem",
                 width: "100%",
                 border: "none",
                 outline: "none",
                 boxShadow:
-                  "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
-                borderRadius: msgReply ? "0 0 30px 30px" : "30px",
+                  "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px",
+                borderRadius: msgReply ? "0 0 20px 20px" : "30px",
                 boxSizing: "border-box",
               }}
               autoFocus

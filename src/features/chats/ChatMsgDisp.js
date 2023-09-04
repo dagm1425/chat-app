@@ -70,7 +70,8 @@ function ChatMsgDisp({
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
   const navigate = useNavigate();
-
+  const imgURL =
+    "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
   msgDates.add("");
   const formatRelativeLocale = {
     lastWeek: " EEEE",
@@ -205,14 +206,14 @@ function ChatMsgDisp({
     return (
       <Box
         sx={{
+          fontSize: 12,
           alignSelf: "center",
-          padding: "0.5rem 1rem",
+          padding: "0.5rem 0.75rem",
           margin: "1rem",
-          background: "#FFF",
-          borderRadius: "1.125rem 1.125rem 1.125rem 1.125rem",
+          bgcolor: "background.paper",
+          borderRadius: "1rem",
           width: "fit-content",
           maxWidth: "66%",
-          boxShadow: 1,
         }}
       >
         {msgDate}
@@ -310,19 +311,21 @@ function ChatMsgDisp({
     }
   };
 
-  const scrollToMsg = (id) => {
+  const scrollToMsg = (message) => {
+    const id = message.msgReply.msgId;
+    const from = message.msgReply.from;
     const msgList = scroll.current.children;
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
     const msg = scroll.current.children.item(i).lastElementChild;
 
     msg.style.scrollMarginTop = "7rem";
-    msg.style.background = "#eee";
+    msg.style.background = "#E8E8E8";
 
     msg.scrollIntoView({ behavior: "smooth" });
 
     setTimeout(() => {
       msg.style.scrollMarginTop = "";
-      msg.style.background = "#fff";
+      msg.style.background = from.uid === user.uid ? "#ccf7ff" : "#fff";
     }, 1000);
   };
 
@@ -359,22 +362,23 @@ function ChatMsgDisp({
             onClick={handleMsgClick}
             onContextMenu={handleMsgClick}
             sx={{
-              padding: "0.75rem 1rem 0.25rem",
-              margin: "1rem",
-              background: "#FFF",
+              padding: "0.5rem 0.5rem 0.25rem",
+              mb: "0.75rem",
+              bgcolor: isSentFromUser ? "primary.light" : "background.default",
               borderRadius: isSentFromUser
                 ? "1.125rem 1.125rem 0 1.125rem"
                 : "1.125rem 1.125rem 1.125rem 0",
+              boxSizing: "border-box",
               boxShadow: 2,
             }}
           >
             {isMsgFromOtherPublicChatMembers && (
               <Typography
-                variant="subtitle1"
+                variant="body2"
                 sx={{
-                  fontSize: 14,
                   fontWeight: "bold",
                   mb: "0.25rem",
+                  ml: "0.25rem",
                 }}
               >
                 {message.from.displayName}
@@ -388,21 +392,25 @@ function ChatMsgDisp({
                   gap: "0.5rem",
                   px: "0.5rem",
                   mb: "0.5rem",
-                  borderLeft: "4px solid #80b3ff",
+                  ml: "0.25rem",
+                  borderLeft: "4px solid",
+                  borderColor: "primary.main",
+                  borderTopLeftRadius: "0.25rem",
+                  borderBottomLeftRadius: "0.25rem",
                   cursor: "pointer",
                 }}
                 onClick={() => {
-                  scrollToMsg(message.msgReply.msgId);
+                  scrollToMsg(message);
                 }}
               >
                 {message.msgReply.fileMsg && (
                   <InsertDriveFileIcon fontSize="medium" />
                 )}
                 <div>
-                  <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                  <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                     {message.msgReply.from.displayName}
                   </Typography>
-                  <Typography variant="subtitle1">
+                  <Typography variant="body2">
                     {message.msgReply.msg
                       ? message.msgReply.msg
                       : message.msgReply.caption
@@ -413,7 +421,9 @@ function ChatMsgDisp({
               </Box>
             )}
             {message.msg ? (
-              <Typography variant="body1">{message.msg}</Typography>
+              <Typography variant="body2" sx={{ ml: "0.25rem" }}>
+                {message.msg}
+              </Typography>
             ) : (
               <>
                 {message.fileMsg.fileType.includes("image") ? (
@@ -422,10 +432,7 @@ function ChatMsgDisp({
                       sx={{
                         display: "grid",
                         placeItems: "center",
-                        height: 65,
-                        width: 65,
-                        bgcolor: "#eee",
-                        borderRadius: "50%",
+                        m: "0 auto 0.5rem",
                       }}
                     >
                       <Box sx={{ display: "grid" }}>
@@ -450,7 +457,8 @@ function ChatMsgDisp({
                         width: "100%",
                         height: "auto",
                         cursor: "pointer",
-                        marginBottom: "0.5rem",
+                        marginBottom:
+                          message.caption !== "" ? "0.5rem" : "0rem",
                       }}
                       onClick={() =>
                         openImgModal({
@@ -464,9 +472,9 @@ function ChatMsgDisp({
                   <Box
                     sx={{
                       display: "flex",
-                      justifyContent: "center",
                       alignItems: "center",
-                      gap: "1rem",
+                      pr: "0.5rem",
+                      gap: "0.5rem",
                       mb: message.caption !== "" ? "0.5rem" : "0rem",
                     }}
                   >
@@ -474,10 +482,6 @@ function ChatMsgDisp({
                       sx={{
                         display: "grid",
                         placeItems: "center",
-                        height: 65,
-                        width: 65,
-                        bgcolor: "#eee",
-                        borderRadius: "50%",
                       }}
                       onMouseOver={() => setFileMsgId(message.msgId)}
                       onMouseOut={() => setFileMsgId("")}
@@ -488,7 +492,13 @@ function ChatMsgDisp({
                             sx={{ gridColumn: 1, gridRow: 1 }}
                           />
                           <IconButton
-                            sx={{ gridColumn: 1, gridRow: 1 }}
+                            sx={{
+                              gridColumn: 1,
+                              gridRow: 1,
+                              "&.MuiButtonBase-root:hover": {
+                                bgcolor: "transparent",
+                              },
+                            }}
                             onClick={() =>
                               // const uploadObj = JSON.parse(
                               //   message.fileMsg.uploadTask
@@ -502,7 +512,8 @@ function ChatMsgDisp({
                       ) : message.msgId === fileMsgId ? (
                         <IconButton
                           sx={{
-                            size: "large",
+                            p: 0,
+                            size: "medium",
                             "&.MuiButtonBase-root:hover": {
                               bgcolor: "transparent",
                             },
@@ -515,23 +526,23 @@ function ChatMsgDisp({
                           }
                         >
                           <DownloadIcon
-                            fontSize="large"
-                            sx={{ color: "#000" }}
+                            fontSize="medium"
+                            sx={{ color: "text.primary" }}
                           />
                         </IconButton>
                       ) : (
-                        <InsertDriveFileIcon fontSize="large" />
+                        <InsertDriveFileIcon fontSize="medium" />
                       )}
                     </Box>
                     <div>
-                      <Typography variant="subtitle1" fontWeight="bold">
+                      <Typography variant="body2" fontWeight="bold">
                         {formatFilename(message.fileMsg.fileName)}
                       </Typography>
                       <Typography
-                        variant="subtitle1"
+                        variant="body2"
                         sx={{
                           display: "inline-block",
-                          color: "rgba(0, 0, 0, 0.45)",
+                          color: "text.secondary",
                           mr: "0.75rem",
                         }}
                       >
@@ -539,10 +550,10 @@ function ChatMsgDisp({
                       </Typography>
                       {message.fileMsg.progress != 100 && (
                         <Typography
-                          variant="subtitle1"
+                          variant="body2"
                           sx={{
                             display: "inline-block",
-                            color: "rgba(0, 0, 0, 0.45)",
+                            color: "text.secondary",
                           }}
                         >
                           {`${message.fileMsg.progress.toFixed(0)}% done`}
@@ -551,18 +562,20 @@ function ChatMsgDisp({
                     </div>
                   </Box>
                 )}
-                <Typography variant="subtitle1">{message.caption}</Typography>
+                <Typography variant="body2" sx={{ ml: "0.25rem" }}>
+                  {message.caption}
+                </Typography>
               </>
             )}
-            <Box sx={{ textAlign: "right", marginLeft: "0.5rem" }}>
+            <Box sx={{ textAlign: "right", marginLeft: "1.25rem" }}>
               {msgTime === "" ? (
                 <LoaderDots />
               ) : (
                 <Typography
-                  variant="subtitle1"
+                  variant="body2"
                   sx={{
-                    fontSize: 14,
-                    color: "rgba(0, 0, 0, 0.45)",
+                    fontSize: 10,
+                    color: "text.secondary",
                   }}
                 >
                   {msgTime}
@@ -580,7 +593,22 @@ function ChatMsgDisp({
       sx={{
         flex: "1 1 auto",
         p: "6rem 4rem",
-        bgcolor: "secondary.main",
+        overflowY: "auto",
+        background: `linear-gradient(0deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), fixed url(${imgURL})`,
+        backgroundPosition: "center",
+        backgroundSize: "contain",
+        boxShadow: "inset 0 0 0 2000px rgba(211, 211, 211, 0.15)",
+        "&::-webkit-scrollbar": {
+          width: "0.2em",
+        },
+        "&::-webkit-scrollbar-track": {
+          boxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
+          webkitBoxShadow: "inset 0 0 6px rgba(0,0,0,0.00)",
+        },
+        "&::-webkit-scrollbar-thumb": {
+          backgroundColor: "rgba(0,0,0,.1)",
+          outline: "1px solid slategrey",
+        },
       }}
     >
       <Box

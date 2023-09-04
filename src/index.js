@@ -5,20 +5,22 @@ import { store } from "./app/store";
 import App from "./app/App";
 import "./index.css";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
+import { ThemeProvider as SCThemeProvider } from "styled-components";
 
 const container = document.getElementById("root");
 const root = createRoot(container);
 
 let theme = createTheme({
   palette: {
-    // primary: {
-    //   main: "#f8ebd3",
-    // },
-    secondary: {
-      main: "#fcf7ed",
+    background: {
+      paper: "#E8E8E8",
     },
-    header: {
-      main: "#d1f5ea",
+    text: {
+      secondary: "#A9A9A9",
+    },
+    primary: {
+      main: "#1976d2",
+      light: "#ccf7ff",
     },
   },
 });
@@ -27,7 +29,9 @@ root.render(
   <React.StrictMode>
     <Provider store={store}>
       <ThemeProvider theme={theme}>
-        <App />
+        <SCThemeProvider theme={theme}>
+          <App />
+        </SCThemeProvider>
       </ThemeProvider>
     </Provider>
   </React.StrictMode>

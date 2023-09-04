@@ -18,8 +18,8 @@ function ChatsSection({ setSelectedChatId }) {
   return (
     <Box
       sx={{
-        ml: "22%",
-        width: "78%",
+        ml: "23%",
+        width: "77%",
         display: "flex",
         flexDirection: "column",
         height: "100vh",

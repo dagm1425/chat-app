@@ -241,9 +241,12 @@ function ChatHeader({ chat }) {
         position: "fixed",
         top: "0",
         width: "78%",
-        p: "1rem",
+        py: "0.75rem",
         zIndex: "1000",
-        bgcolor: "header.main",
+        bgcolor: "background.default",
+        borderBottom: "2px solid",
+        borderLeft: "2px solid",
+        borderColor: "background.paper",
       }}
     >
       <Box
@@ -256,14 +259,14 @@ function ChatHeader({ chat }) {
         }}
       >
         <div>
-          <Typography variant="h6">
+          <Typography variant="body1" sx={{ fontWeight: "bold" }}>
             {chat.type === "private"
               ? otherChatMember.displayName
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
             recentMsgTimestamp && (
-              <Typography variant="subtitle1">
+              <Typography variant="body2">
                 Last message was
                 {recentMsgTimestamp !== "Yesterday" &&
                   recentMsgTimestamp !== "Today" && <span> on</span>}
@@ -272,9 +275,10 @@ function ChatHeader({ chat }) {
             )
           ) : (
             <Typography
-              variant="subtitle1"
+              variant="body2"
               sx={{
                 display: "block",
+                width: "inherit",
                 whiteSpace: "nowrap" /* forces text to single line */,
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -298,7 +302,7 @@ function ChatHeader({ chat }) {
         </Menu>
 
         <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
-          <DialogTitle>
+          <DialogTitle sx={{ fontWeight: "normal" }}>
             {chat.type === "private"
               ? "Delete chat with " + otherChatMember.displayName + "?"
               : "Delete group chat?"}
@@ -313,7 +317,7 @@ function ChatHeader({ chat }) {
           open={isAddPublicChatMembersOpen}
           onClose={handleAddPublicChatMembersClose}
         >
-          <DialogTitle>Add members</DialogTitle>
+          <DialogTitle sx={{ fontWeight: "normal" }}>Add members</DialogTitle>
           <UsersSearch
             excUsers={chat.members}
             handleItemClick={handleItemClick}
@@ -326,7 +330,7 @@ function ChatHeader({ chat }) {
           open={isRenamePublicChatOpen}
           onClose={handleRenamePublicChatClose}
         >
-          <DialogTitle>Rename chat</DialogTitle>
+          <DialogTitle sx={{ fontWeight: "normal" }}>Rename chat</DialogTitle>
           <RenamePublicChatDialogContent
             onClose={handleRenamePublicChatClose}
             chatId={chat.chatId}
@@ -334,7 +338,7 @@ function ChatHeader({ chat }) {
         </Dialog>
 
         <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
-          <DialogTitle>Leave chat?</DialogTitle>
+          <DialogTitle sx={{ fontWeight: "normal" }}>Leave chat?</DialogTitle>
           <LeaveChatDialogContent
             chatId={chat.chatId}
             user={user}

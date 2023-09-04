@@ -22,6 +22,7 @@ import ListItemIcon from "@mui/material/ListItemIcon";
 import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
+import SettingsIcon from "@mui/icons-material/Settings";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";
@@ -115,14 +116,22 @@ function Userbar({ setSelectedChatId }) {
 
   return (
     <>
-      <IconButton size="large" onClick={handleDrawerOpen}>
-        <MenuIcon fontSize="large" />
+      <IconButton
+        size="medium"
+        sx={{
+          "&.MuiButtonBase-root:hover": {
+            bgcolor: "transparent",
+          },
+        }}
+        onClick={handleDrawerOpen}
+      >
+        <MenuIcon fontSize="medium" />
       </IconButton>
 
       <Drawer anchor="left" open={isDrawerOpen} onClose={handleDrawerClose}>
         <Box
           sx={{
-            width: 340,
+            width: 290,
             role: "presentation",
             display: "flex",
             flexDirection: "column",
@@ -144,6 +153,14 @@ function Userbar({ setSelectedChatId }) {
 
           <List sx={{ mb: "1rem" }}>
             <ListItem disablePadding>
+              <ListItemButton onClick={handleNewPrivateChatOpen}>
+                <ListItemIcon>
+                  <ContactsIcon />
+                </ListItemIcon>
+                <ListItemText primary="Contacts" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
               <ListItemButton onClick={handleNewPublicChatOpen}>
                 <ListItemIcon>
                   <PeopleIcon />
@@ -151,12 +168,12 @@ function Userbar({ setSelectedChatId }) {
                 <ListItemText primary="New group chat" />
               </ListItemButton>
             </ListItem>
-            <ListItem disablePadding>
-              <ListItemButton onClick={handleNewPrivateChatOpen}>
+            <ListItem disablePadding disabled>
+              <ListItemButton>
                 <ListItemIcon>
-                  <ContactsIcon />
+                  <SettingsIcon />
                 </ListItemIcon>
-                <ListItemText primary="Contacts" />
+                <ListItemText primary="Settings" />
               </ListItemButton>
             </ListItem>
           </List>
@@ -174,7 +191,7 @@ function Userbar({ setSelectedChatId }) {
       </Drawer>
 
       <Dialog open={isNewPrivateChatOpen} onClose={handleNewPrivateChatClose}>
-        <DialogTitle>Find users</DialogTitle>
+        <DialogTitle sx={{ fontWeight: "normal" }}>Find users</DialogTitle>
         <UsersSearch
           excUsers={[user]}
           handleItemClick={handleItemClick}
@@ -183,7 +200,9 @@ function Userbar({ setSelectedChatId }) {
       </Dialog>
 
       <Dialog open={isNewPublicChatOpen} onClose={handleNewPublicChatClose}>
-        <DialogTitle>Set group chat name</DialogTitle>
+        <DialogTitle sx={{ fontWeight: "normal" }}>
+          Set group chat name
+        </DialogTitle>
         <NewPublicChatDialogContent
           setSelectedChatId={setSelectedChatId}
           onClose={handleNewPublicChatClose}
@@ -191,7 +210,7 @@ function Userbar({ setSelectedChatId }) {
       </Dialog>
 
       <Dialog open={isSignOutOpen} onClose={handleSignOutClose}>
-        <DialogTitle>Sign out?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: "normal" }}>Sign out?</DialogTitle>
         <SignOutDialogContent
           signOutUser={signOutUser}
           onClose={handleSignOutClose}

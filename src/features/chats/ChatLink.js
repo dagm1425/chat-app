@@ -130,8 +130,10 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       onClick={() => setSelectedChatId(chatId)}
     >
       <ListItem
+        dense
         sx={{
           cursor: "pointer",
+          color: "text.primary",
         }}
       >
         <ListItemAvatar>
@@ -148,11 +150,12 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
           primary={
             <React.Fragment>
               <Typography
-                variant="h6"
+                variant="body2"
                 sx={{
                   display: "inline-block",
                   width: "70%",
                   verticalAlign: "middle",
+                  fontWeight: "bold",
                 }}
               >
                 {chat.type === "private"
@@ -167,13 +170,12 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               </Typography>
               {recentMsgTimestamp && (
                 <Typography
-                  variant="subtitle1"
+                  variant="body2"
                   sx={{
+                    color: "text.secondary",
                     display: "inline-block",
                     width: "20%",
                     verticalAlign: "middle",
-                    color: "rgba(0, 0, 0, 0.45)",
-                    fontWeight: unreadMsgCount ? "bold" : "normal",
                   }}
                 >
                   {recentMsgTimestamp}
@@ -183,11 +185,14 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
           }
           secondary={
             !recentMsg ? (
-              <Typography>{chatCreator} created this chat</Typography>
+              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+                {chatCreator} created this chat
+              </Typography>
             ) : (
               <React.Fragment>
                 <Typography
                   sx={{
+                    color: "text.secondary",
                     display: "inline-block",
                     width: "70%",
                     pr: "0.5rem",
@@ -195,9 +200,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     whiteSpace: "nowrap",
                     overflow: "hidden",
                     textOverflow: "ellipsis",
-                    fontWeight: unreadMsgCount ? "bold" : "normal",
                   }}
-                  variant="subtitle1"
+                  variant="body2"
                 >
                   {recentMsg.msg
                     ? recentMsg.msg
@@ -211,16 +215,17 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                       display: "inline-block",
                       fontWeight: "bold",
                       color: "white",
-                      bgcolor: "#001e80",
+                      bgcolor: "primary.main",
                       borderRadius: "50%",
                       lineHeight: "0px",
 
                       "& span": {
+                        fontSize: "12px",
                         display: "inline-block",
                         paddingTop: "50%",
                         paddingBottom: "50%",
-                        marginLeft: "8px",
-                        marginRight: "8px",
+                        marginLeft: "6px",
+                        marginRight: "6px",
                       },
                     }}
                   >
@@ -238,7 +243,10 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
 const StyledLink = styled(Link)`
   display: block;
-  background-color: ${(props) => (props.$selectedchat ? "gray" : "lightgray")};
+  background-color: ${(props) =>
+    props.$selectedchat
+      ? props.theme.palette.background.paper
+      : props.theme.palette.background.default};
   text-decoration: none;
   &:hover {
     filter: brightness(0.8);

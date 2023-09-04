@@ -21,7 +21,7 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
           >
             <IconButton
               sx={{
-                size: "large",
+                size: "medium",
                 opacity: "0.5",
                 transition: "opacity 100ms ease-in",
 
@@ -34,11 +34,11 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
               }}
               onClick={() => zoomIn()}
             >
-              <ZoomInIcon fontSize="large" sx={{ color: "#eee" }} />
+              <ZoomInIcon fontSize="medium" sx={{ color: "#eee" }} />
             </IconButton>
             <IconButton
               sx={{
-                size: "large",
+                size: "medium",
                 opacity: "0.5",
                 transition: "opacity 100ms ease-in",
 
@@ -51,11 +51,11 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
               }}
               onClick={() => zoomOut()}
             >
-              <ZoomOutIcon fontSize="large" sx={{ color: "#eee" }} />
+              <ZoomOutIcon fontSize="medium" sx={{ color: "#eee" }} />
             </IconButton>
             <IconButton
               sx={{
-                size: "large",
+                size: "medium",
                 opacity: "0.5",
                 transition: "opacity 100ms ease-in",
 
@@ -68,11 +68,11 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
               }}
               onClick={(imgData) => downloadFile(imgData.url)}
             >
-              <DownloadIcon fontSize="large" sx={{ color: "#eee" }} />
+              <DownloadIcon fontSize="medium" sx={{ color: "#eee" }} />
             </IconButton>
             <IconButton
               sx={{
-                size: "large",
+                size: "medium",
                 opacity: "0.5",
                 transition: "opacity 100ms ease-in",
 
@@ -85,15 +85,16 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
               }}
               onClick={onClose}
             >
-              <CloseIcon fontSize="large" sx={{ color: "#eee" }} />
+              <CloseIcon fontSize="medium" sx={{ color: "#eee" }} />
             </IconButton>
           </Box>
           <TransformComponent>
             <img
               src={imgData.url}
               style={{
-                width: "100%",
+                maxWidth: "80%",
                 height: "auto",
+                margin: "0 auto",
               }}
             />
           </TransformComponent>
