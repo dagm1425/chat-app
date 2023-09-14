@@ -197,7 +197,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         </IconButton>
 
         <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
-          <DialogTitle>Send as a file</DialogTitle>
+          <DialogTitle>Send a file</DialogTitle>
           <FileMsgDialogContent
             chat={chat}
             user={user}
