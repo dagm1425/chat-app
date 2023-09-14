@@ -363,42 +363,43 @@ function ChatMsgDisp({
                 {message.from.displayName}
               </Typography>
             )}
-            {message.msgReply && (
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  px: "0.5rem",
-                  mb: "0.5rem",
-                  ml: "0.25rem",
-                  borderLeft: "4px solid",
-                  borderColor: "primary.main",
-                  borderTopLeftRadius: "0.25rem",
-                  borderBottomLeftRadius: "0.25rem",
-                  cursor: "pointer",
-                }}
-                onClick={() => {
-                  scrollToMsg(message);
-                }}
-              >
-                {message.msgReply.fileMsg && (
-                  <InsertDriveFileIcon fontSize="medium" />
-                )}
-                <div>
-                  <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                    {message.msgReply.from.displayName}
-                  </Typography>
-                  <Typography variant="body2">
-                    {message.msgReply.msg
-                      ? message.msgReply.msg
-                      : message.msgReply.caption
-                      ? message.msgReply.caption
-                      : formatFilename(message.msgReply.fileMsg.fileName)}
-                  </Typography>
-                </div>
-              </Box>
-            )}
+            {message.msgReply &&
+              chatMsg.find((msg) => msg.msgId === message.msgReply.msgId) && (
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    px: "0.5rem",
+                    mb: "0.5rem",
+                    ml: "0.25rem",
+                    borderLeft: "4px solid",
+                    borderColor: "primary.main",
+                    borderTopLeftRadius: "0.25rem",
+                    borderBottomLeftRadius: "0.25rem",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => {
+                    scrollToMsg(message);
+                  }}
+                >
+                  {message.msgReply.fileMsg && (
+                    <InsertDriveFileIcon fontSize="medium" />
+                  )}
+                  <div>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                      {message.msgReply.from.displayName}
+                    </Typography>
+                    <Typography variant="body2">
+                      {message.msgReply.msg
+                        ? message.msgReply.msg
+                        : message.msgReply.caption
+                        ? message.msgReply.caption
+                        : formatFilename(message.msgReply.fileMsg.fileName)}
+                    </Typography>
+                  </div>
+                </Box>
+              )}
             {message.msg ? (
               <Typography variant="body2" sx={{ ml: "0.25rem" }}>
                 {message.msg}
