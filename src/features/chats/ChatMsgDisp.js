@@ -38,7 +38,6 @@ import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
-import LoaderDots from "../../common/components/LoaderDots";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
@@ -547,20 +546,16 @@ function ChatMsgDisp({
                 </Typography>
               </>
             )}
-            <Box sx={{ textAlign: "right", marginLeft: "1.25rem" }}>
-              {msgTime === "" ? (
-                <LoaderDots />
-              ) : (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    fontSize: 10,
-                    color: "text.secondary",
-                  }}
-                >
-                  {msgTime}
-                </Typography>
-              )}
+            <Box sx={{ textAlign: "right", pr: "0.25rem", ml: "1rem" }}>
+              <Typography
+                variant="body2"
+                sx={{
+                  fontSize: 10,
+                  color: "text.secondary",
+                }}
+              >
+                {msgTime}
+              </Typography>
             </Box>
           </Box>
         </Box>
