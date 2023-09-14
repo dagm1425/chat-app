@@ -9,13 +9,12 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  Timestamp,
   collection,
+  doc,
   limit,
   onSnapshot,
   orderBy,
   query,
-  doc,
   updateDoc,
 } from "firebase/firestore";
 import { Link } from "react-router-dom";
@@ -23,8 +22,6 @@ import { styled } from "styled-components";
 import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
-import formatRelative from "date-fns/formatRelative";
-import { enUS } from "date-fns/esm/locale";
 import PeopleIcon from "@mui/icons-material/People";
 import { formatFilename } from "../../common/utils";
 
@@ -37,27 +34,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
     chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;
-  const formatRelativeLocale = {
-    lastWeek: "EEEE",
-    yesterday: "'Yesterday'",
-    today: "'Today'",
-    tomorrow: "EEEE",
-    nextWeek: "EEEE",
-    other: "dd/MM/yy",
-  };
-  const locale = {
-    ...enUS,
-    formatRelative: (token) => formatRelativeLocale[token],
-  };
-  const recentMsgTimestamp = !recentMsg
-    ? null
-    : recentMsg.timestamp == null
-    ? formatRelative(new Date(), Timestamp.now().toDate(), {
-        locale,
-      })
-    : formatRelative(recentMsg.timestamp.toDate(), Timestamp.now().toDate(), {
-        locale,
-      });
+
+  const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
 
   useEffect(() => {
     const unsub = subscribeChatMsg();

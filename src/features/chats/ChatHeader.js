@@ -22,10 +22,8 @@ import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";
 import RenamePublicChatDialogContent from "./RenamePublicChatDialogContent";
 import LeaveChatDialogContent from "./LeaveChatDialogContent";
-import { Timestamp, arrayUnion, doc, updateDoc } from "firebase/firestore";
+import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
-import formatRelative from "date-fns/formatRelative";
-import { enUS } from "date-fns/esm/locale";
 import UsersSearch from "./UsersSearch";
 
 function ChatHeader({ chat }) {
@@ -46,27 +44,8 @@ function ChatHeader({ chat }) {
     chat.type === " private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
-  const formatRelativeLocale = {
-    lastWeek: "EEEE",
-    yesterday: "'Yesterday'",
-    today: "'Today'",
-    tomorrow: "EEEE",
-    nextWeek: "EEEE",
-    other: "dd/MM/yy",
-  };
-  const locale = {
-    ...enUS,
-    formatRelative: (token) => formatRelativeLocale[token],
-  };
-  const recentMsgTimestamp = !recentMsg
-    ? null
-    : recentMsg.timestamp == null
-    ? formatRelative(new Date(), Timestamp.now().toDate(), {
-        locale,
-      })
-    : formatRelative(recentMsg.timestamp.toDate(), Timestamp.now().toDate(), {
-        locale,
-      });
+
+  const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
 
   // useEffect(() => {
   //   const unsub = subscribeRecentMsg();

@@ -4,9 +4,21 @@ import { useSelector } from "react-redux";
 import { selectChats } from "./chatsSlice";
 import List from "@mui/material/List";
 import ChatLink from "./ChatLink";
+import { selectUser } from "../user/userSlice";
 
 function ChatsList({ searchValue, selectedChatId, setSelectedChatId }) {
-  const chats = useSelector(selectChats);
+  const user = useSelector(selectUser);
+  const chatsState = useSelector(selectChats);
+
+  const chats = chatsState.map((chat) => {
+    if (chat.type === "private") {
+      const displayName = chat.members.find(
+        (member) => member.uid !== user.uid
+      ).displayName;
+      return { ...chat, displayName };
+    }
+    return chat;
+  });
 
   const filteredChats = () => {
     if (searchValue === "") return chats;

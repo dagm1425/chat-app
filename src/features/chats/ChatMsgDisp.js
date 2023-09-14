@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
-  Timestamp,
   arrayUnion,
   collection,
   deleteDoc,
@@ -18,9 +17,6 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
-import { format } from "date-fns";
-import formatRelative from "date-fns/formatRelative";
-import { enUS } from "date-fns/esm/locale";
 import {
   Box,
   Menu,
@@ -48,7 +44,7 @@ import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
 import { useNavigate } from "react-router-dom";
-import { formatFilename } from "../../common/utils";
+import { formatDate, formatTime, formatFilename } from "../../common/utils";
 
 function ChatMsgDisp({
   chat,
@@ -73,18 +69,6 @@ function ChatMsgDisp({
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
   msgDates.add("");
-  const formatRelativeLocale = {
-    lastWeek: " EEEE",
-    yesterday: "'Yesterday'",
-    today: "'Today'",
-    tomorrow: " EEEE",
-    nextWeek: " EEEE",
-    other: " MMMM dd, yyy",
-  };
-  const locale = {
-    ...enUS,
-    formatRelative: (token) => formatRelativeLocale[token],
-  };
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
@@ -331,12 +315,8 @@ function ChatMsgDisp({
 
   const msgList = chatMsg.map((message) => {
     const isSentFromUser = message.from.uid === user.uid;
-    const timestamp =
-      message.timestamp == null ? new Date() : message.timestamp.toDate();
-    const msgTime = format(timestamp, "hh:mm a");
-    const msgDate = formatRelative(timestamp, Timestamp.now().toDate(), {
-      locale,
-    });
+    const msgTime = formatTime(message.timestamp);
+    const msgDate = formatDate(message.timestamp);
     const isMsgFromOtherPublicChatMembers =
       chat.type === "public" && message.from.uid !== user.uid;
 
