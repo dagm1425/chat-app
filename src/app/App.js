@@ -17,6 +17,7 @@ import { setChats } from "../features/chats/chatsSlice";
 import Home from "../features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { formatDate } from "../common/utils";
 // import formatRelative from "date-fns/formatRelative";
 // import { enUS } from "date-fns/esm/locale";
 
@@ -87,7 +88,7 @@ function App() {
           ...chat,
           recentMsg: {
             ...chat.recentMsg,
-            timestamp: chat.recentMsg.timestamp.toString(),
+            timestamp: formatDate(chat.recentMsg.timestamp),
           },
         };
       });
