@@ -46,8 +46,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     const listener = (e) => {
       if (
         (e.code === "Enter" || e.code === "NumpadEnter") &&
-        e.target.nodeName == "INPUT" &&
-        e.target.type == "text"
+        e.ctrlKey &&
+        e.target.nodeName == "TEXTAREA"
       ) {
         e.preventDefault();
         msgInputForm.current.requestSubmit();
