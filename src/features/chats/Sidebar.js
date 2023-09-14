@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
 // import ChatsSearchBar from "./ChatsSearchBar";
-import { Box } from "@mui/material";
+import { Box, Input } from "@mui/material";
 
 function Sidebar({ selectedChatId, setSelectedChatId }) {
   const [searchValue, setSearchValue] = useState("");
@@ -30,14 +30,17 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
         }}
       >
         <UserDrawer setSelectedChatId={setSelectedChatId} />
-        <input
-          type="text"
+        <Input
           value={searchValue}
           placeholder="Search chat"
-          style={{
-            padding: "0.5rem 1rem",
+          disableUnderline
+          sx={{
+            fontSize: 14,
+            bgcolor: "background.paper",
+            p: "0.125rem 0.75rem",
             width: "65%",
-            border: "2px solid #eee",
+            border: "2px solid",
+            borderColor: "background.paper",
             outline: "none",
             borderRadius: "30px",
             transition: "all 150ms ease-in",

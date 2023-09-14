@@ -20,6 +20,7 @@ import {
   Dialog,
   DialogTitle,
   IconButton,
+  Input,
   Popover,
   Typography,
 } from "@mui/material";
@@ -286,23 +287,24 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             onSubmit={handleSendMsg}
             ref={msgInputForm}
           >
-            <input
-              type="text"
-              placeholder="Message"
+            <Input
               value={msg}
               onChange={(e) => setMsg(e.target.value)}
-              style={{
-                font: "inherit",
-                padding: "0.925rem 1.25rem",
+              placeholder="Message"
+              maxRows={3}
+              disableUnderline
+              sx={{
+                bgcolor: "background.paper",
+                p: "0.5rem 1.25rem",
                 width: "100%",
                 border: "none",
                 outline: "none",
-                boxShadow:
-                  "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px",
+                resize: "none",
+                // boxShadow:
+                // "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px",
                 borderRadius: msgReply ? "0 0 20px 20px" : "30px",
                 boxSizing: "border-box",
               }}
-              autoFocus
             />
           </form>
         </Box>
