@@ -16,6 +16,7 @@ function FileMsgDialogContent({
   onClose,
   msgReply,
   setMsgReply,
+  scroll,
 }) {
   const chatId = chat.chatId;
   const [caption, setCaption] = useState("");
@@ -47,6 +48,8 @@ function FileMsgDialogContent({
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
+    const lastMmsg = scroll.current.lastElementChild;
+
     // const chatRef = doc(db, "chats", `${chatId}`);
 
     const message = {
@@ -67,6 +70,8 @@ function FileMsgDialogContent({
     };
 
     await setDoc(msgRef, message);
+
+    lastMmsg.scrollIntoView({ behavior: "smooth" });
 
     // await updateDoc(chatRef, {
     //   recentMsg: {
@@ -167,4 +172,8 @@ FileMsgDialogContent.propTypes = {
   onClose: PropTypes.func,
   setMsgReply: PropTypes.func,
   msgReply: PropTypes.object,
+  scroll: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
 };

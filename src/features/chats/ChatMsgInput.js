@@ -206,6 +206,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             onClose={handleFileMsgDialogClose}
             msgReply={msgReply}
             setMsgReply={setMsgReply}
+            scroll={scroll}
           ></FileMsgDialogContent>
         </Dialog>
 
