@@ -34,6 +34,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
@@ -56,9 +57,21 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const [imgData, setImgData] = useState(null);
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
+  const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
+    useState(false);
+  const [scrollTop, setScrollTop] = useState(0);
+
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
+
+  const showScrollToBottomBtn = () => {
+    setIsScrollToBottomBtnActive(true);
+  };
+
+  const hideScrollToBottomBtn = () => {
+    setIsScrollToBottomBtnActive(false);
+  };
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
@@ -71,6 +84,20 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   useEffect(() => {
     updateUnreadMsg();
   }, [chatMsg]);
+
+  useEffect(() => {
+    if (!scrollTop) return;
+
+    const observer = new IntersectionObserver(callback);
+    const list = scroll.current.children;
+    const target = list.item(list.length - 2);
+
+    setTimeout(() => {
+      observer.observe(target);
+    }, 1000);
+
+    return () => observer.disconnect();
+  }, [scrollTop]);
 
   const subscribeChatMsg = () => {
     const q = query(
@@ -127,6 +154,17 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   //     unreadMsg: 0,
   //   });
   // };
+
+  // eslint-disable-next-line no-unused-vars
+  const callback = (entries, observer) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        hideScrollToBottomBtn();
+      } else {
+        showScrollToBottomBtn();
+      }
+    });
+  };
 
   const handleMsgOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
@@ -298,6 +336,18 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       msg.style.scrollMarginTop = "";
       msg.style.background = from.uid === user.uid ? "#ccf7ff" : "#fff";
     }, 1000);
+  };
+
+  const scrollToBottom = () => {
+    const list = scroll.current.children;
+    const lastMmsg = list.item(list.length - 2);
+
+    lastMmsg.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const updateScrollTop = () => {
+    if (scrollTop) return;
+    setScrollTop(scroll.current.scrollTop);
   };
 
   const msgList = chatMsg.map((message) => {
@@ -555,7 +605,11 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
 
   return (
     <Box
+      ref={scroll}
       sx={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
         flex: "1 1 auto",
         p: "6rem 4rem",
         overflowY: "auto",
@@ -575,74 +629,94 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           outline: "1px solid slategrey",
         },
       }}
+      onScroll={updateScrollTop}
     >
-      <Box
-        ref={scroll}
+      {msgList.length > 0 ? msgList : null}
+      <span></span>
+      <IconButton
         sx={{
-          display: "flex",
-          flexDirection: "column",
-          height: "100%",
+          fontSize: "2.5rem",
+          color: "text.secondary",
+          position: "fixed",
+          bottom: "6rem",
+          right: "0.75rem",
+          padding: "0",
+          bgcolor: "white",
+          border: "none",
+          borderRadius: "50%",
+          boxShadow:
+            "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px",
+          zIndex: 100,
+          transform: isScrollToBottomBtnActive
+            ? "translateY(0)"
+            : "translateY(100px)",
+          opacity: isScrollToBottomBtnActive ? 1 : 0,
+          transition: "all 0.5s ease",
         }}
+        onClick={scrollToBottom}
       >
-        {msgList.length > 0 ? msgList : null}
-        <span></span>
-        <Menu
-          anchorEl={anchorEl}
-          keepMounted
-          open={Boolean(anchorEl)}
-          onClose={handleMsgOptionsClose}
-        >
-          <MenuItem onClick={handleDeleteMsgOpen}>
-            <ListItemIcon>
-              <DeleteIcon />
-            </ListItemIcon>
-            <ListItemText primary="Delete" />
-          </MenuItem>
-          <MenuItem onClick={handleMsgReply}>
-            <ListItemIcon>
-              <ReplyIcon />
-            </ListItemIcon>
-            <ListItemText primary="Reply" />
-          </MenuItem>
-          <MenuItem onClick={handleMsgForwardOpen}>
-            <ListItemIcon>
-              <ArrowForwardIcon />
-            </ListItemIcon>
-            <ListItemText primary="Forward" />
-          </MenuItem>
-        </Menu>
-        <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
-          <DialogTitle>Delete message?</DialogTitle>
-          <DeleteMsgDialogContent
-            onClose={handleDeleteMsgClose}
-            chatId={chatId}
-            msgId={msgId}
-            chatMsg={chatMsg}
-          />
-        </Dialog>
-        <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
-          <DialogTitle>Forward message</DialogTitle>
-          <UsersSearch
-            excUsers={chat.type === "private" ? chat.members : [user]}
-            handleItemClick={handleForwardMsg}
-            onClose={handleMsgForwardClose}
-          />
-        </Dialog>
+        <KeyboardArrowDownIcon
+          sx={{
+            fontSize: "2.5rem",
+          }}
+        />
+      </IconButton>
+      <Menu
+        anchorEl={anchorEl}
+        keepMounted
+        open={Boolean(anchorEl)}
+        onClose={handleMsgOptionsClose}
+      >
+        <MenuItem onClick={handleDeleteMsgOpen}>
+          <ListItemIcon>
+            <DeleteIcon />
+          </ListItemIcon>
+          <ListItemText primary="Delete" />
+        </MenuItem>
+        <MenuItem onClick={handleMsgReply}>
+          <ListItemIcon>
+            <ReplyIcon />
+          </ListItemIcon>
+          <ListItemText primary="Reply" />
+        </MenuItem>
+        <MenuItem onClick={handleMsgForwardOpen}>
+          <ListItemIcon>
+            <ArrowForwardIcon />
+          </ListItemIcon>
+          <ListItemText primary="Forward" />
+        </MenuItem>
+      </Menu>
+      <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
+        <DialogTitle>Delete message?</DialogTitle>
+        <DeleteMsgDialogContent
+          onClose={handleDeleteMsgClose}
+          chatId={chatId}
+          msgId={msgId}
+          chatMsg={chatMsg}
+        />
+      </Dialog>
+      <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
+        <DialogTitle>Forward message</DialogTitle>
+        <UsersSearch
+          excUsers={chat.type === "private" ? chat.members : [user]}
+          handleItemClick={handleForwardMsg}
+          onClose={handleMsgForwardClose}
+        />
+      </Dialog>
 
-        <Modal
-          open={isImgModalOpen}
-          onClose={closeImgModal}
-          sx={{ display: "grid", placeItems: "center" }}
-        >
-          <div>
-            <ChatMsgImgDisp
-              imgData={imgData}
-              downloadFile={downloadFile}
-              onClose={closeImgModal}
-            />
-          </div>
-        </Modal>
-      </Box>
+      <Modal
+        open={isImgModalOpen}
+        onClose={closeImgModal}
+        sx={{ display: "grid", placeItems: "center" }}
+      >
+        <div>
+          <ChatMsgImgDisp
+            imgData={imgData}
+            downloadFile={downloadFile}
+            onClose={closeImgModal}
+          />
+        </div>
+      </Modal>
     </Box>
   );
 }
