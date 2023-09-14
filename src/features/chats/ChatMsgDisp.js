@@ -181,8 +181,11 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     return (
       <Box
         sx={{
+          position: "sticky",
           fontSize: 12,
+          top: 0,
           alignSelf: "center",
+          justifySelf: "flex-start",
           padding: "0.5rem 0.75rem",
           margin: "1rem",
           bgcolor: "background.paper",
@@ -312,6 +315,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           id={message.msgId}
           sx={{
             display: isMsgFromOtherPublicChatMembers ? "flex" : "block",
+            gap: isMsgFromOtherPublicChatMembers ? "0.5rem" : "block",
             alignSelf: isSentFromUser ? "flex-end" : "flex-start",
             width: "fit-content",
             maxWidth: "45%",
@@ -320,7 +324,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           {isMsgFromOtherPublicChatMembers && (
             <Avatar
               src={message.from.photoURL}
-              sx={{ alignSelf: "flex-end" }}
+              sx={{ width: 28, height: 28, alignSelf: "flex-end" }}
             />
           )}
           <Box
