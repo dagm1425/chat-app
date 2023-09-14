@@ -28,6 +28,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
+  // const [recentMsg, setRecentMsg] = useState(null);
   const recentMsg = chat.recentMsg;
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
@@ -58,8 +59,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     return onSnapshot(q, (querySnap) => {
       const messages = [];
       querySnap.forEach((doc) => messages.push(doc.data()));
-      const sortedMessages = messages.sort((a, b) => a.timestamp - b.timestamp);
-      setChatMsg(sortedMessages);
+      setChatMsg(messages);
     });
   };
 
