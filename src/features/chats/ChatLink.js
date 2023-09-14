@@ -15,6 +15,8 @@ import {
   onSnapshot,
   orderBy,
   query,
+  doc,
+  updateDoc,
 } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { styled } from "styled-components";
@@ -30,7 +32,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
   const [chatMsg, setChatMsg] = useState([]);
-  const [recentMsg, setRecentMsg] = useState(null);
+  const recentMsg = chat.recentMsg;
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
@@ -85,16 +87,23 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     });
   };
 
-  const updateRecentMsg = () => {
+  const updateRecentMsg = async () => {
     if (!chatMsg.length) {
       if (recentMsg) {
-        setRecentMsg(null);
+        // review this line
+        // setRecentMsg(null);
+        await updateDoc(doc(db, "chats", `${chatId}`), {
+          recentMsg: null,
+        });
         return;
       }
       return;
     }
 
-    setRecentMsg(chatMsg[chatMsg.length - 1]);
+    await updateDoc(doc(db, "chats", `${chatId}`), {
+      recentMsg: chatMsg[0],
+    });
+    // setRecentMsg(chatMsg[0]);
   };
 
   const updateUnreadMsgCount = () => {
