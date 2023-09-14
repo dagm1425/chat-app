@@ -42,8 +42,7 @@ import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
-
-import { formatDate, formatTime, formatFilename } from "../../common/utils";
+import { formatDate, formatFilename, formatTime } from "../../common/utils";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -60,7 +59,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
-  msgDates.add("");
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
