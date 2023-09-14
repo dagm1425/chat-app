@@ -11,7 +11,6 @@ import {
 import {
   collection,
   doc,
-  limit,
   onSnapshot,
   orderBy,
   query,
@@ -53,8 +52,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const subscribeChatMsg = () => {
     const q = query(
       collection(db, "chats", `${chatId}`, "chatMessages"),
-      orderBy("timestamp", "desc"),
-      limit(30)
+      orderBy("timestamp", "desc")
     );
 
     return onSnapshot(q, (querySnap) => {
