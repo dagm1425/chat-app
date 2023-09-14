@@ -105,9 +105,6 @@ function Userbar({ setSelectedChatId }) {
       timestamp: serverTimestamp(),
       recentMsg: null,
     });
-
-    setSelectedChatId(chatId);
-    navigate(`/${chatId}`);
   };
 
   const handleItemClick = (otherChatMember) => {
