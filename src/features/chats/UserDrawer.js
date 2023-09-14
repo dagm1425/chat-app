@@ -103,6 +103,7 @@ function Userbar({ setSelectedChatId }) {
       createdBy: user,
       members: [user, otherChatMember],
       timestamp: serverTimestamp(),
+      recentMsg: null,
     });
 
     setSelectedChatId(chatId);

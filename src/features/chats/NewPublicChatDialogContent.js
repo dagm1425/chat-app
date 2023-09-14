@@ -25,6 +25,7 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
       createdBy: user,
       members: [user],
       timestamp: serverTimestamp(),
+      recentMsg: null,
     });
 
     setSelectedChatId(chatId);

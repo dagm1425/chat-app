@@ -21,6 +21,7 @@ import { useAuthState } from "react-firebase-hooks/auth";
 // import { enUS } from "date-fns/esm/locale";
 
 function App() {
+  // const chats = useSelector(selectChats);
   const dispatch = useDispatch();
   const [user, loading] = useAuthState(auth);
   const [fetchingUserData, setFetchingUserData] = useState(true);
@@ -74,11 +75,21 @@ function App() {
     );
 
     return onSnapshot(q, (querySnapshot) => {
-      const chats = [];
+      let chats = [];
       querySnapshot.forEach((doc) => {
         // eslint-disable-next-line no-unused-vars
         const { timestamp, ...chat } = doc.data();
         chats.push(chat);
+      });
+      chats = chats.map((chat) => {
+        if (chat.recentMsg === null) return chat;
+        return {
+          ...chat,
+          recentMsg: {
+            ...chat.recentMsg,
+            timestamp: chat.recentMsg.timestamp.toString(),
+          },
+        };
       });
 
       setFetchingChatsData(false);

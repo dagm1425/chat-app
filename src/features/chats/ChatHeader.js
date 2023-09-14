@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+/* eslint-disable react/prop-types */
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import {
   Box,
@@ -21,17 +22,7 @@ import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";
 import RenamePublicChatDialogContent from "./RenamePublicChatDialogContent";
 import LeaveChatDialogContent from "./LeaveChatDialogContent";
-import {
-  Timestamp,
-  arrayUnion,
-  collection,
-  doc,
-  limit,
-  onSnapshot,
-  orderBy,
-  query,
-  updateDoc,
-} from "firebase/firestore";
+import { Timestamp, arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import formatRelative from "date-fns/formatRelative";
 import { enUS } from "date-fns/esm/locale";
@@ -39,7 +30,6 @@ import UsersSearch from "./UsersSearch";
 
 function ChatHeader({ chat }) {
   const user = useSelector(selectUser);
-  const chatId = chat.chatId;
   const otherChatMember = chat.members.find(
     (member) => member.uid !== user.uid
   );
@@ -49,7 +39,8 @@ function ChatHeader({ chat }) {
     useState(false);
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
-  const [recentMsg, setRecentMsg] = useState(null);
+  // const [recentMsg, setRecentMsg] = useState(null);
+  const recentMsg = chat.recentMsg;
   const [selectedMembers, setSelectedMembers] = useState([]);
   const publicChatMembers =
     chat.type === " private"
@@ -77,27 +68,27 @@ function ChatHeader({ chat }) {
         locale,
       });
 
-  useEffect(() => {
-    const unsub = subscribeRecentMsg();
+  // useEffect(() => {
+  //   const unsub = subscribeRecentMsg();
 
-    return () => {
-      unsub();
-    };
-  }, [chatId]);
+  //   return () => {
+  //     unsub();
+  //   };
+  // }, [chatId]);
 
-  const subscribeRecentMsg = () => {
-    const q = query(
-      collection(db, "chats", `${chatId}`, "chatMessages"),
-      orderBy("timestamp", "desc"),
-      limit(1)
-    );
+  // const subscribeRecentMsg = () => {
+  //   const q = query(
+  //     collection(db, "chats", `${chatId}`, "chatMessages"),
+  //     orderBy("timestamp", "desc"),
+  //     limit(1)
+  //   );
 
-    return onSnapshot(q, (querySnap) => {
-      let recentMsg = [];
-      querySnap.forEach((doc) => recentMsg.push(doc.data()));
-      setRecentMsg(recentMsg[0]);
-    });
-  };
+  //   return onSnapshot(q, (querySnap) => {
+  //     let recentMsg = [];
+  //     querySnap.forEach((doc) => recentMsg.push(doc.data()));
+  //     setRecentMsg(recentMsg[0]);
+  //   });
+  // };
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
@@ -245,7 +236,7 @@ function ChatHeader({ chat }) {
         zIndex: "1000",
         bgcolor: "background.default",
         borderBottom: "2px solid",
-        borderLeft: "2px solid",
+        // borderLeft: "2px solid",
         borderColor: "background.paper",
       }}
     >
@@ -265,13 +256,15 @@ function ChatHeader({ chat }) {
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
-            recentMsgTimestamp && (
+            recentMsgTimestamp ? (
               <Typography variant="body2">
                 Last message was
                 {recentMsgTimestamp !== "Yesterday" &&
                   recentMsgTimestamp !== "Today" && <span> on</span>}
                 {" " + recentMsgTimestamp}
               </Typography>
+            ) : (
+              <Typography variant="body2">No messages yet</Typography>
             )
           ) : (
             <Typography
