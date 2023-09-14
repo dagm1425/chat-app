@@ -16,6 +16,7 @@ import {
   Avatar,
   DialogTitle,
   Dialog,
+  Switch,
 } from "@mui/material";
 import ContactsIcon from "@mui/icons-material/Contacts";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -23,6 +24,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsIcon from "@mui/icons-material/Settings";
+import Brightness4Icon from "@mui/icons-material/Brightness4";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";
@@ -32,16 +34,19 @@ import SignOutDialogContent from "./SignOutDialogContent";
 import { selectChats } from "./chatsSlice";
 import { useNavigate } from "react-router-dom";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
+import { ColorModeContext } from "../..";
+import { useTheme } from "@emotion/react";
 
 function Userbar({ setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const navigate = useNavigate();
-
+  const theme = useTheme();
   const [isNewPrivateChatOpen, setIsNewPrivateChatOpen] = useState(false);
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
+  const colorMode = React.useContext(ColorModeContext);
 
   const signOutUser = async () => {
     signOut(auth);
@@ -166,6 +171,15 @@ function Userbar({ setSelectedChatId }) {
                 <ListItemText primary="New group chat" />
               </ListItemButton>
             </ListItem>
+            <ListItem disablePadding>
+              <ListItemButton onClick={colorMode.toggleColorMode}>
+                <ListItemIcon>
+                  <Brightness4Icon />
+                </ListItemIcon>
+                <ListItemText primary="Dark mode" />
+                <Switch checked={theme.palette.mode === "dark"} size="small" />
+              </ListItemButton>
+            </ListItem>
             <ListItem disablePadding disabled>
               <ListItemButton>
                 <ListItemIcon>
@@ -175,7 +189,6 @@ function Userbar({ setSelectedChatId }) {
               </ListItemButton>
             </ListItem>
           </List>
-
           <Button
             variant="outlined"
             sx={{ p: "0.5rem 1.25rem", alignSelf: "center" }}
