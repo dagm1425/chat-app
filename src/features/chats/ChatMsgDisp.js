@@ -64,16 +64,15 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
 
   useEffect(() => {
     const unsub = subscribeChatMsg();
-    updateUnreadMsg();
 
     return () => {
       unsub();
     };
   }, [chatId]);
 
-  // useEffect(() => {
-  //   if (chatMsg.length) resetUnreadMsg();
-  // }, [chatMsg]);
+  useEffect(() => {
+    updateUnreadMsg();
+  }, [chatMsg]);
 
   const subscribeChatMsg = () => {
     const q = query(
