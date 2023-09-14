@@ -42,16 +42,10 @@ import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
-import { useNavigate } from "react-router-dom";
+
 import { formatDate, formatTime, formatFilename } from "../../common/utils";
 
-function ChatMsgDisp({
-  chat,
-  uploadTask,
-  setMsgReply,
-  scroll,
-  setSelectedChatId,
-}) {
+function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
@@ -64,7 +58,6 @@ function ChatMsgDisp({
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const msgDates = new Set();
-  const navigate = useNavigate();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
   msgDates.add("");
@@ -262,9 +255,6 @@ function ChatMsgDisp({
       };
 
       await setDoc(msgRef, message);
-
-      setSelectedChatId(chatId);
-      navigate(`/${chatId}`);
     } else {
       const chatId = uuid();
       const msgId = uuid();
@@ -288,9 +278,6 @@ function ChatMsgDisp({
       msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
 
       await setDoc(msgRef, message);
-
-      setSelectedChatId(chatId);
-      navigate(`/${chatId}`);
     }
   };
 
