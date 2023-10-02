@@ -46,7 +46,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   }, []);
 
   useEffect(() => {
-    updateRecentMsg();
+    updateChat();
     updateUnreadMsgCount();
   }, [chatMsg]);
 
@@ -63,7 +63,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     });
   };
 
-  const updateRecentMsg = async () => {
+  const updateChat = async () => {
     if (!chatMsg.length) {
       if (recentMsg) {
         // review this line
@@ -78,6 +78,10 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
     await updateDoc(doc(db, "chats", `${chatId}`), {
       recentMsg: chatMsg[0],
+    });
+
+    await updateDoc(doc(db, "chats", `${chatId}`), {
+      timestamp: chatMsg[0].timestamp,
     });
     // setRecentMsg(chatMsg[0]);
   };
