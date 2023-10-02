@@ -64,20 +64,24 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   };
 
   const updateChat = async () => {
+    let newMsg;
+
     if (!chatMsg.length) {
       if (recentMsg) {
-        // review this line
-        // setRecentMsg(null);
+        newMsg = null;
         await updateDoc(doc(db, "chats", `${chatId}`), {
-          recentMsg: null,
+          recentMsg: newMsg,
         });
         return;
       }
       return;
     }
 
+    newMsg = chatMsg[0];
+    delete newMsg.msgReply;
+
     await updateDoc(doc(db, "chats", `${chatId}`), {
-      recentMsg: chatMsg[0],
+      recentMsg: newMsg,
     });
 
     await updateDoc(doc(db, "chats", `${chatId}`), {
