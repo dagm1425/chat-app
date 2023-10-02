@@ -175,7 +175,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
             </React.Fragment>
           }
           secondary={
-            !recentMsg ? (
+            !recentMsg && !chat.draft ? (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {chatCreator} created this chat
               </Typography>
@@ -194,11 +194,23 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   }}
                   variant="body2"
                 >
-                  {recentMsg.msg
-                    ? recentMsg.msg
-                    : recentMsg.caption
-                    ? recentMsg.caption
-                    : formatFilename(recentMsg.fileMsg.fileName)}
+                  {chat.draft ? (
+                    <>
+                      <Typography
+                        component="span"
+                        sx={{ color: "primary.main", fontWeight: "bold" }}
+                      >
+                        Draft:{" "}
+                      </Typography>
+                      {chat.draft}
+                    </>
+                  ) : recentMsg.msg ? (
+                    recentMsg.msg
+                  ) : recentMsg.caption ? (
+                    recentMsg.caption
+                  ) : (
+                    formatFilename(recentMsg.fileMsg.fileName)
+                  )}
                 </Typography>
                 {unreadMsgCount > 0 && (
                   <Box
