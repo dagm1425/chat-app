@@ -322,19 +322,18 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
 
   const scrollToMsg = (message) => {
     const id = message.msgReply.msgId;
-    const from = message.msgReply.from;
     const msgList = scroll.current.children;
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
     const msg = scroll.current.children.item(i).lastElementChild;
 
     msg.style.scrollMarginTop = "7rem";
-    msg.style.background = "#E8E8E8";
+    msg.style.filter = "brightness(0.7)";
 
     msg.scrollIntoView({ behavior: "smooth" });
 
     setTimeout(() => {
       msg.style.scrollMarginTop = "";
-      msg.style.background = from.uid === user.uid ? "#ccf7ff" : "#fff";
+      msg.style.filter = "brightness(1)";
     }, 1000);
   };
 
