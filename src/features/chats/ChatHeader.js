@@ -93,6 +93,7 @@ function ChatHeader({ chat }) {
 
   const handleAddPublicChatMembersClose = () => {
     setIsAddPublicChatMembersOpen(false);
+    setSelectedMembers([]);
   };
 
   const handleRenamePublicChatOpen = () => {
@@ -187,7 +188,8 @@ function ChatHeader({ chat }) {
       const i = selectedMembers.indexOf(user);
 
       if (i !== -1) {
-        selections = selectedMembers.slice().splice(i + 1, 1);
+        selections = selectedMembers.slice();
+        selections.splice(i, 1);
       } else selections = [...selectedMembers, user];
     }
 
@@ -293,6 +295,7 @@ function ChatHeader({ chat }) {
           <UsersSearch
             excUsers={chat.members}
             handleItemClick={handleItemClick}
+            selectedMembers={selectedMembers}
             addMembers={addMembers}
             onClose={handleAddPublicChatMembersClose}
           />
