@@ -81,7 +81,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     });
 
     await updateDoc(doc(db, "chats", `${chatId}`), {
-      timestamp: chatMsg[0].timestamp,
+      timestamp: chatMsg[0].timestamp ? chatMsg[0].timestamp : new Date(),
     });
     // setRecentMsg(chatMsg[0]);
   };
