@@ -25,6 +25,7 @@ function UsersSearch({
   onClose,
 }) {
   const [search, setSearch] = useState("");
+  const [isUsersLoading, setIsUsersLoading] = useState(true);
   const [users, setUsers] = useState([]);
 
   useEffect(() => {
@@ -42,6 +43,7 @@ function UsersSearch({
         users.push(doc.data());
       });
       setUsers(users);
+      setIsUsersLoading(false);
     });
   };
 
@@ -200,8 +202,14 @@ function UsersSearch({
           overflowY: "auto",
         }}
       >
-        {usersList.length ? (
-          <Box sx={{ width: "100%", height: "100%" }}>{usersList}</Box>
+        {!isUsersLoading ? (
+          <Box sx={{ width: "100%", height: "100%" }}>
+            {usersList.length ? (
+              usersList
+            ) : (
+              <Typography variant="body1">No users found.</Typography>
+            )}
+          </Box>
         ) : (
           <CircularProgress />
         )}
