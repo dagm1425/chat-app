@@ -324,7 +324,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     const id = message.msgReply.msgId;
     const msgList = scroll.current.children;
     const i = Array.from(msgList).findIndex((msg) => msg.id === id);
-    const msg = scroll.current.children.item(i).lastElementChild;
+    const msg = msgList.item(i).lastElementChild;
 
     msg.style.scrollMarginTop = "7rem";
     msg.style.filter = "brightness(0.7)";
