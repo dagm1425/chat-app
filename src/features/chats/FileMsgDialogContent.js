@@ -48,7 +48,8 @@ function FileMsgDialogContent({
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-    const lastMmsg = scroll.current.lastElementChild;
+    const msgList = scroll.current.children;
+    const lastMmsg = msgList.item(msgList.length - 2);
 
     // const chatRef = doc(db, "chats", `${chatId}`);
 
