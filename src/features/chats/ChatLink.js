@@ -198,6 +198,17 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   }}
                   variant="body2"
                 >
+                  {chat.type === "public" && (
+                    <Typography
+                      component="span"
+                      sx={{ font: "inherit", color: "primary.main" }}
+                    >
+                      {recentMsg.from.uid === user.uid
+                        ? "You"
+                        : recentMsg.from.displayName}
+                      {": "}
+                    </Typography>
+                  )}
                   {chat.draft ? (
                     <>
                       <Typography
