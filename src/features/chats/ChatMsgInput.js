@@ -21,7 +21,7 @@ import {
   Dialog,
   DialogTitle,
   IconButton,
-  Input,
+  TextareaAutosize,
   Popover,
   Typography,
 } from "@mui/material";
@@ -32,6 +32,7 @@ import FileMsgDialogContent from "./FileMsgDialogContent";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
+import styled from "styled-components";
 
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -325,24 +326,12 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             onSubmit={handleSendMsg}
             ref={msgInputForm}
           >
-            <Input
+            <StyledTextarea
               value={message.msg}
               onChange={(e) => setMessage({ ...message, msg: e.target.value })}
               placeholder="Message"
+              $msgreply={msgReply}
               maxRows={3}
-              disableUnderline
-              sx={{
-                bgcolor: "background.paper",
-                p: "0.5rem 1.25rem",
-                width: "100%",
-                border: "none",
-                outline: "none",
-                resize: "none",
-                // boxShadow:
-                // "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 1px 3px 1px",
-                borderRadius: msgReply ? "0 0 20px 20px" : "30px",
-                boxSizing: "border-box",
-              }}
             />
           </form>
         </Box>
@@ -364,6 +353,19 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 }
 
 export default ChatMsgInput;
+
+const StyledTextarea = styled(TextareaAutosize)`
+  font: inherit;
+  background-color: ${({ theme }) => theme.palette.background.paper};
+  padding: 0.625rem 1.25rem;
+  margin-bottom: -8px;
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  border-radius: ${(props) => (props.$msgreply ? "0 0 20px 20px" : "30px")};
+  box-sizing: border-box;
+`;
 
 ChatMsgInput.propTypes = {
   chat: PropTypes.object,
