@@ -218,10 +218,7 @@ function Userbar({ setSelectedChatId }) {
         <DialogTitle sx={{ fontWeight: "normal" }}>
           Set group chat name
         </DialogTitle>
-        <NewPublicChatDialogContent
-          setSelectedChatId={setSelectedChatId}
-          onClose={handleNewPublicChatClose}
-        />
+        <NewPublicChatDialogContent onClose={handleNewPublicChatClose} />
       </Dialog>
 
       <Dialog open={isSignOutOpen} onClose={handleSignOutClose}>
