@@ -46,6 +46,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const msgInputForm = useRef(null);
   const [file, setFile] = useState(null);
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     const listener = (e) => {
@@ -69,6 +70,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   useEffect(() => {
     updateDraft();
     setMessage({ msg: chat.draft ? chat.draft : "", chat });
+    inputRef.current.focus();
 
     return () => {
       updateDraft();
@@ -235,7 +237,11 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           <AttachmentIcon />
         </IconButton>
 
-        <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
+        <Dialog
+          open={isFileMsgDialogOpen}
+          onClose={handleFileMsgDialogClose}
+          disableRestoreFocus
+        >
           <DialogTitle sx={{ fontWeight: "normal" }}>Send a file</DialogTitle>
           <FileMsgDialogContent
             chat={chat}
@@ -328,6 +334,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             ref={msgInputForm}
           >
             <StyledTextarea
+              ref={inputRef}
               value={message.msg}
               onChange={(e) => setMessage({ ...message, msg: e.target.value })}
               placeholder="Message"

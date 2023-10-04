@@ -30,7 +30,7 @@ function RenamePublicChatDialogContent({ chatId, onClose }) {
           px: "6px",
         }}
         onChange={(e) => setChatName(e.target.value)}
-        inputRef={(input) => input && input.focus()}
+        autoFocus
       />
 
       <Box

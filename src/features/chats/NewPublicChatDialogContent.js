@@ -51,7 +51,6 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
       }}
     >
       <Input
-        type="text"
         value={chatName}
         sx={{
           display: "block",
@@ -61,7 +60,7 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
           px: "6px",
         }}
         onChange={(e) => setChatName(e.target.value)}
-        inputRef={(input) => input && input.focus()}
+        autoFocus
       />
       <Box
         sx={{

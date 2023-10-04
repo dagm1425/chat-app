@@ -304,6 +304,7 @@ function ChatHeader({ chat }) {
         <Dialog
           open={isRenamePublicChatOpen}
           onClose={handleRenamePublicChatClose}
+          disableRestoreFocus
         >
           <DialogTitle sx={{ fontWeight: "normal" }}>Rename chat</DialogTitle>
           <RenamePublicChatDialogContent

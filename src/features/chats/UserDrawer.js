@@ -210,7 +210,11 @@ function Userbar({ setSelectedChatId }) {
         />
       </Dialog>
 
-      <Dialog open={isNewPublicChatOpen} onClose={handleNewPublicChatClose}>
+      <Dialog
+        open={isNewPublicChatOpen}
+        onClose={handleNewPublicChatClose}
+        disableRestoreFocus
+      >
         <DialogTitle sx={{ fontWeight: "normal" }}>
           Set group chat name
         </DialogTitle>

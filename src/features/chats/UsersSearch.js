@@ -151,7 +151,6 @@ function UsersSearch({
             <SearchIcon />
           </Box>
         }
-        inputRef={(input) => input && input.focus()}
       />
       {selectedMembers && (
         <Box
