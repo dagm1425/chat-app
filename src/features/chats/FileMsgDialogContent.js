@@ -122,10 +122,12 @@ function FileMsgDialogContent({
     <Box sx={{ textAlign: "center", width: 280, padding: "1rem" }}>
       <Box
         sx={{
+          width: "85%",
+          mx: "auto",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          gap: "1.5rem",
+          gap: "0.625rem",
         }}
       >
         <InsertDriveFileIcon fontSize="large" />
@@ -141,7 +143,7 @@ function FileMsgDialogContent({
       <TextField
         label="Add caption"
         variant="standard"
-        sx={{ width: "75%", mt: "1.25rem", mb: "1.75rem" }}
+        sx={{ width: "85%", mt: "1.25rem", mb: "1.75rem" }}
         onChange={(e) => setCaption(e.target.value)}
         autoFocus
       />
