@@ -236,7 +236,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         </IconButton>
 
         <Dialog open={isFileMsgDialogOpen} onClose={handleFileMsgDialogClose}>
-          <DialogTitle>Send a file</DialogTitle>
+          <DialogTitle sx={{ fontWeight: "normal" }}>Send a file</DialogTitle>
           <FileMsgDialogContent
             chat={chat}
             user={user}
@@ -261,14 +261,14 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             <Box
               sx={{
                 width: "100%",
+                bgcolor: "background.paper",
                 display: "flex",
                 justifyContent: "flex-start",
                 alignItems: "center",
                 gap: "0.75rem",
-                p: "0.5rem 1.25rem",
+                px: "1.25rem",
+                pt: "0.5rem",
                 boxSizing: "border-box",
-                boxShadow:
-                  "rgba(50, 50, 93, 0.25) 0px 2px 5px -1px, rgba(0, 0, 0, 0.3) 0px 1px 3px -1px",
                 borderRadius: "20px 20px 0 0",
               }}
             >
@@ -278,14 +278,14 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                   alignItems: "center",
                   gap: "0.5rem",
                   fontSize: "0.9em",
-                  padding: "0 0.5rem",
+                  px: "0.5rem",
                   borderLeft: "4px solid",
                   borderColor: "primary.main",
                   borderTopLeftRadius: "0.25rem",
                   borderBottomLeftRadius: "0.25rem",
                 }}
               >
-                {msgReply.fileMsg && <InsertDriveFileIcon fontSize="medium" />}
+                {msgReply.fileMsg && <InsertDriveFileIcon fontSize="small" />}
                 <div>
                   <Typography
                     variant="body1"
@@ -357,8 +357,9 @@ export default ChatMsgInput;
 
 const StyledTextarea = styled(TextareaAutosize)`
   font: inherit;
+  color: ${({ theme }) => theme.palette.text.primary};
   background-color: ${({ theme }) => theme.palette.background.paper};
-  padding: 0.625rem 1.25rem;
+  padding: 0.725rem 1.25rem;
   margin-bottom: -8px;
   width: 100%;
   border: none;

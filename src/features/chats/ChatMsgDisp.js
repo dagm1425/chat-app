@@ -222,9 +222,12 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           top: 0,
           alignSelf: "center",
           justifySelf: "flex-start",
-          padding: "0.5rem 0.75rem",
+          padding: "0.375rem 0.625rem",
           margin: "1rem",
-          bgcolor: "background.paper",
+          bgcolor: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.grey[200]
+              : theme.palette.grey[800],
           borderRadius: "1rem",
           width: "fit-content",
           maxWidth: "66%",
@@ -393,8 +396,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
               <Typography
                 variant="body2"
                 sx={{
+                  fontSize: "0.825rem",
                   fontWeight: "bold",
-                  mb: "0.25rem",
+                  mb: message.msgReply || message.fileMsg ? "0.25rem" : "0rem",
                   ml: "0.25rem",
                 }}
               >
@@ -409,7 +413,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                     alignItems: "center",
                     gap: "0.5rem",
                     px: "0.5rem",
-                    mb: "0.5rem",
+                    mb: "0.25rem",
                     ml: "0.25rem",
                     borderLeft: "4px solid",
                     borderColor: "primary.main",
@@ -422,20 +426,27 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                   }}
                 >
                   {message.msgReply.fileMsg && (
-                    <InsertDriveFileIcon fontSize="medium" />
+                    <InsertDriveFileIcon fontSize="small" />
                   )}
-                  <div>
-                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                  <Box sx={{ fontSize: "0.825rem" }}>
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        fontSize: "inherit",
+                        fontWeight: "bold",
+                        lineHeight: "1.25em",
+                      }}
+                    >
                       {message.msgReply.from.displayName}
                     </Typography>
-                    <Typography variant="body2">
+                    <Typography variant="body2" sx={{ fontSize: "inherit" }}>
                       {message.msgReply.msg
                         ? message.msgReply.msg
                         : message.msgReply.caption
                         ? message.msgReply.caption
                         : formatFilename(message.msgReply.fileMsg.fileName)}
                     </Typography>
-                  </div>
+                  </Box>
                 </Box>
               )}
             {message.msg ? (
@@ -450,7 +461,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       sx={{
                         display: "grid",
                         placeItems: "center",
-                        m: "0 auto 0.5rem",
+                        m: "0 auto 0.25rem",
                       }}
                     >
                       <Box sx={{ display: "grid" }}>
@@ -476,7 +487,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                         height: "auto",
                         cursor: "pointer",
                         marginBottom:
-                          message.caption !== "" ? "0.5rem" : "0rem",
+                          message.caption !== "" ? "0.125rem" : "0rem",
                       }}
                       onClick={() =>
                         openImgModal({
@@ -492,14 +503,23 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       display: "flex",
                       alignItems: "center",
                       pr: "0.5rem",
-                      gap: "0.5rem",
-                      mb: message.caption !== "" ? "0.5rem" : "0rem",
+                      ml: "0.25rem",
+                      gap: "0.625rem",
+                      mb: message.caption !== "" ? "0.125rem" : "0rem",
                     }}
                   >
                     <Box
                       sx={{
                         display: "grid",
                         placeItems: "center",
+                        width: 34,
+                        height: 34,
+                        bgcolor: isSentFromUser
+                          ? "primary.light"
+                          : "background.default",
+                        filter: "brightness(0.875)",
+                        border: "none",
+                        borderRadius: "50%",
                       }}
                       onMouseOver={() => setFileMsgId(message.msgId)}
                       onMouseOut={() => setFileMsgId("")}
@@ -531,7 +551,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                         <IconButton
                           sx={{
                             p: 0,
-                            size: "medium",
+                            size: "medismallum",
                             "&.MuiButtonBase-root:hover": {
                               bgcolor: "transparent",
                             },
@@ -544,16 +564,23 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                           }
                         >
                           <DownloadIcon
-                            fontSize="medium"
+                            fontSize="small"
                             sx={{ color: "text.primary" }}
                           />
                         </IconButton>
                       ) : (
-                        <InsertDriveFileIcon fontSize="medium" />
+                        <InsertDriveFileIcon fontSize="small" />
                       )}
                     </Box>
-                    <div>
-                      <Typography variant="body2" fontWeight="bold">
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        gap: "0.125rem",
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                         {formatFilename(message.fileMsg.fileName)}
                       </Typography>
                       <Typography
@@ -577,7 +604,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                           {`${message.fileMsg.progress.toFixed(0)}% done`}
                         </Typography>
                       )}
-                    </div>
+                    </Box>
                   </Box>
                 )}
                 <Typography variant="body2" sx={{ ml: "0.25rem" }}>
@@ -612,7 +639,10 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         flex: "1 1 auto",
         p: "6rem 4rem",
         overflowY: "auto",
-        background: `linear-gradient(0deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), fixed url(${imgURL})`,
+        background: (theme) =>
+          theme.palette.mode === "light"
+            ? `linear-gradient(0deg, rgba(255, 255, 255, 0.93), rgba(255, 255, 255, 0.93)), fixed url(${imgURL})`
+            : `linear-gradient(0deg, rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), fixed url(${imgURL})`,
         backgroundPosition: "center",
         backgroundSize: "contain",
         boxShadow: "inset 0 0 0 2000px rgba(211, 211, 211, 0.15)",
@@ -640,11 +670,10 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           bottom: "6rem",
           right: "0.75rem",
           padding: "0",
-          bgcolor: "white",
+          bgcolor: "background.default",
           border: "none",
           borderRadius: "50%",
-          boxShadow:
-            "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px",
+          boxShadow: 2,
           zIndex: 100,
           transform: isScrollToBottomBtnActive
             ? "translateY(0)"
@@ -686,7 +715,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         </MenuItem>
       </Menu>
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
-        <DialogTitle>Delete message?</DialogTitle>
+        <DialogTitle sx={{ fontWeight: "normal" }}>Delete message?</DialogTitle>
         <DeleteMsgDialogContent
           onClose={handleDeleteMsgClose}
           chatId={chatId}
@@ -695,7 +724,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         />
       </Dialog>
       <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>
-        <DialogTitle>Forward message</DialogTitle>
+        <DialogTitle sx={{ fontWeight: "normal" }}>Forward message</DialogTitle>
         <UsersSearch
           excUsers={chat.type === "private" ? chat.members : [user]}
           handleItemClick={handleForwardMsg}

@@ -32,7 +32,7 @@ const CustomThemeProvider = () => {
       ...(mode === "light"
         ? {
             background: {
-              paper: "#e6e6e6",
+              paper: "#f2f2f2",
             },
             primary: {
               main: "#1976d2",
@@ -41,12 +41,12 @@ const CustomThemeProvider = () => {
           }
         : {
             background: {
-              paper: "#4d4d4d",
+              paper: "#262626",
               default: "#333333",
             },
             primary: {
               main: "#1976d2",
-              light: "#1976d2",
+              light: "#115293",
             },
           }),
     },

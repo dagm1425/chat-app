@@ -3,7 +3,8 @@ import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
 // import ChatsSearchBar from "./ChatsSearchBar";
-import { Box, Input } from "@mui/material";
+import { Box, TextareaAutosize } from "@mui/material";
+import styled from "styled-components";
 
 function Sidebar({ selectedChatId, setSelectedChatId }) {
   const [searchValue, setSearchValue] = useState("");
@@ -16,7 +17,7 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
         left: 0,
         width: "23%",
         height: "100vh",
-        borderRight: "2px solid",
+        borderRight: "1.5px solid",
         borderColor: "background.paper",
       }}
     >
@@ -30,21 +31,10 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
         }}
       >
         <UserDrawer setSelectedChatId={setSelectedChatId} />
-        <Input
+        <StyledTextarea
           value={searchValue}
           placeholder="Search chat"
-          disableUnderline
-          sx={{
-            fontSize: 14,
-            bgcolor: "background.paper",
-            p: "0.125rem 0.75rem",
-            width: "65%",
-            border: "2px solid",
-            borderColor: "background.paper",
-            outline: "none",
-            borderRadius: "30px",
-            transition: "all 150ms ease-in",
-          }}
+          maxRows={1}
           onChange={(e) => setSearchValue(e.target.value)}
           autoFocus
         />
@@ -59,6 +49,19 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
 }
 
 export default Sidebar;
+
+const StyledTextarea = styled(TextareaAutosize)`
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: ${({ theme }) => theme.palette.text.primary};
+  background-color: ${({ theme }) => theme.palette.background.paper};
+  padding: 0.625rem 1rem;
+  width: 75%;
+  border-radius: 30px;
+  border: none;
+  outline: none;
+  resize: none;
+`;
 
 Sidebar.propTypes = {
   selectedChatId: PropTypes.string,
