@@ -98,7 +98,7 @@ function App() {
     });
   };
 
-  if (!user) return <UserLogin />;
+  if (!user && !localStorage.getItem("auth")) return <UserLogin />;
   if (loading || (user && (fetchingUserData || fetchingChatsData)))
     return <CircularProgress />;
   return <Home />;

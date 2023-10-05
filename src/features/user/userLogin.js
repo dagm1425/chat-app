@@ -14,6 +14,7 @@ function userLogin() {
   async function signIn() {
     await signInWithPopup(auth, provider);
     addUser(auth.currentUser);
+    localStorage.setItem("auth", "true");
   }
 
   const addUser = async (user) => {

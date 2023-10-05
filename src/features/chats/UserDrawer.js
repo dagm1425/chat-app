@@ -50,6 +50,7 @@ function Userbar({ setSelectedChatId }) {
 
   const signOutUser = async () => {
     signOut(auth);
+    localStorage.removeItem("auth");
   };
 
   const handleDrawerOpen = () => {
