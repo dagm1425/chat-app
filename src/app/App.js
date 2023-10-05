@@ -18,6 +18,7 @@ import Home from "../features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { formatDate } from "../common/utils";
+import { Box } from "@mui/material";
 // import formatRelative from "date-fns/formatRelative";
 // import { enUS } from "date-fns/esm/locale";
 
@@ -100,7 +101,11 @@ function App() {
 
   if (!user && !localStorage.getItem("auth")) return <UserLogin />;
   if (loading || (user && (fetchingUserData || fetchingChatsData)))
-    return <CircularProgress />;
+    return (
+      <Box sx={{ height: "100vh", display: "grid", placeItems: "center" }}>
+        <CircularProgress />
+      </Box>
+    );
   return <Home />;
 }
 
