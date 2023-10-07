@@ -213,7 +213,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     <>
                       <Typography
                         component="span"
-                        sx={{ color: "primary.main", fontWeight: "bold" }}
+                        sx={{ color: "primary.main" }}
                       >
                         Draft:{" "}
                       </Typography>
