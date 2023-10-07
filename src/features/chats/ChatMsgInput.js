@@ -37,10 +37,7 @@ import styled from "styled-components";
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
-  const [message, setMessage] = useState({
-    msg: "",
-    chat,
-  });
+  const [prevChat, setPrevChat] = useState(chat);
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInput = useRef(null);
   const msgInputForm = useRef(null);
@@ -69,18 +66,18 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
   useEffect(() => {
     updateDraft();
-    setMessage({ msg: chat.draft ? chat.draft : "", chat });
     inputRef.current.focus();
-
-    return () => {
-      updateDraft();
-    };
+    setPrevChat(chat);
   }, [chatId]);
+
+  useEffect(() => {
+    inputRef.current.value = prevChat.draft ? prevChat.draft : "";
+  }, [prevChat]);
 
   const handleSendMsg = async (e) => {
     e.preventDefault();
 
-    if (!message.msg) return;
+    if (!inputRef.current.value) return;
 
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
@@ -90,7 +87,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     const newMsg = {
       msgId,
       from: user,
-      msg: message.msg,
+      msg: inputRef.current.value,
       msgReply,
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
@@ -107,7 +104,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
     lastMmsg.scrollIntoView({ behavior: "smooth" });
     resetDraft();
-    setMessage({ ...message, msg: "" });
+    inputRef.current.value = "";
   };
 
   const openEmojiPicker = (e) => {
@@ -119,7 +116,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const addEmoji = (emojiData) => {
-    setMessage({ ...message, msg: message.msg.concat(emojiData.emoji) });
+    inputRef.current.value = inputRef.current.value.concat(emojiData.emoji);
     closeEmojiPicker();
   };
 
@@ -153,25 +150,25 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const updateDraft = async () => {
-    if (!message.msg && message.chat.draft) {
+    if (!inputRef.current.value && prevChat.draft) {
       resetDraft();
       return;
     } else if (
-      message.msg &&
-      (!message.chat.draft ||
-        (message.chat.draft && message.chat.draft !== message.msg))
+      inputRef.current.value &&
+      (!prevChat.draft ||
+        (prevChat.draft && prevChat.draft !== inputRef.current.value))
     ) {
-      await updateDoc(doc(db, "chats", `${message.chat.chatId}`), {
-        draft: message.msg,
+      await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
+        draft: inputRef.current.value,
       });
       return;
     } else return;
   };
 
   const resetDraft = async () => {
-    if (!message.chat.draft) return;
+    if (!prevChat.draft) return;
 
-    await updateDoc(doc(db, "chats", `${message.chat.chatId}`), {
+    await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
       draft: "",
     });
   };
@@ -335,8 +332,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           >
             <StyledTextarea
               ref={inputRef}
-              value={message.msg}
-              onChange={(e) => setMessage({ ...message, msg: e.target.value })}
               placeholder="Message"
               $msgreply={msgReply}
               maxRows={3}
