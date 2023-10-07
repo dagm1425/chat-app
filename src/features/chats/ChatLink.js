@@ -198,7 +198,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   }}
                   variant="body2"
                 >
-                  {chat.type === "public" && (
+                  {recentMsg && chat.type === "public" && (
                     <Typography
                       component="span"
                       sx={{ font: "inherit", color: "primary.main" }}
