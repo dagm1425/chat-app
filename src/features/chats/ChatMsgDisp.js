@@ -40,6 +40,7 @@ import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import CircularProgress from "@mui/material/CircularProgress";
 import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
@@ -353,6 +354,19 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     setScrollTop(scroll.current.scrollTop);
   };
 
+  const renderReadSign = (message) => {
+    if (
+      (chat.type === "private" &&
+        message.from.uid === user.uid &&
+        message.isMsgRead) ||
+      (chat.type === "public" &&
+        message.from.uid === user.uid &&
+        message.isMsgRead.length)
+    ) {
+      return <DoneAllIcon sx={{ fontSize: "0.875rem", opacity: 0.9 }} />;
+    } else return "";
+  };
+
   const msgList = chatMsg.map((message) => {
     const isSentFromUser = message.from.uid === user.uid;
     const msgTime = formatTime(message.timestamp);
@@ -638,16 +652,22 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                 </Typography>
               </>
             )}
-            <Box sx={{ textAlign: "right", pr: "0.25rem", ml: "1rem" }}>
-              <Typography
-                variant="body2"
-                sx={{
-                  fontSize: 10,
-                  color: "text.secondary",
-                }}
-              >
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "0.375rem",
+                fontSize: 10,
+                color: "text.secondary",
+                ml: "1rem",
+                pr: renderReadSign(message) ? "0rem" : "0.25rem",
+              }}
+            >
+              <Typography variant="body2" sx={{ font: "inherit" }}>
                 {msgTime}
               </Typography>
+              {renderReadSign(message)}
             </Box>
           </Box>
         </Box>
