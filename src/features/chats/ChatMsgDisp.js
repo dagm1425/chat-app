@@ -29,6 +29,7 @@ import {
   IconButton,
   Modal,
   Avatar,
+  Fade,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
@@ -547,29 +548,54 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                             <CloseIcon />
                           </IconButton>
                         </Box>
-                      ) : message.msgId === fileMsgId ? (
-                        <IconButton
-                          sx={{
-                            p: 0,
-                            size: "medismallum",
-                            "&.MuiButtonBase-root:hover": {
-                              bgcolor: "transparent",
-                            },
-                          }}
-                          onClick={() =>
-                            downloadFile(
-                              message.fileMsg.fileUrl,
-                              message.fileMsg.fileName
-                            )
-                          }
-                        >
-                          <DownloadIcon
-                            fontSize="small"
-                            sx={{ color: "text.primary" }}
-                          />
-                        </IconButton>
                       ) : (
-                        <InsertDriveFileIcon fontSize="small" />
+                        <Box sx={{ display: "grid" }}>
+                          <Fade in={message.msgId === fileMsgId}>
+                            <IconButton
+                              sx={{
+                                p: 0,
+                                gridColumn: 1,
+                                gridRow: 1,
+                                width: 34,
+                                height: 34,
+                                "&.MuiButtonBase-root:hover": {
+                                  bgcolor: "transparent",
+                                },
+                              }}
+                              onClick={() =>
+                                downloadFile(
+                                  message.fileMsg.fileUrl,
+                                  message.fileMsg.fileName
+                                )
+                              }
+                            >
+                              <DownloadIcon
+                                sx={{
+                                  fontSize: "20px",
+                                  color: "text.primary",
+                                }}
+                              />
+                            </IconButton>
+                          </Fade>
+                          <Fade in={message.msgId !== fileMsgId}>
+                            <IconButton
+                              sx={{
+                                p: 0,
+                                gridColumn: 1,
+                                gridRow: 1,
+                                width: 34,
+                                height: 34,
+                              }}
+                            >
+                              <InsertDriveFileIcon
+                                sx={{
+                                  fontSize: "20px",
+                                  color: "text.primary",
+                                }}
+                              />
+                            </IconButton>
+                          </Fade>
+                        </Box>
                       )}
                     </Box>
                     <Box
