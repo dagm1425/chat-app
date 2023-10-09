@@ -71,7 +71,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
   useEffect(() => {
     updateDraft();
-    inputRef.current.focus();
+    if (document.activeElement !== inputRef.current) inputRef.current.focus();
     setChatDrafts({
       chatId,
       userDraft,
