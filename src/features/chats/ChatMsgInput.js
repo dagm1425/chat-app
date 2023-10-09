@@ -37,7 +37,12 @@ import styled from "styled-components";
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
-  const [prevChat, setPrevChat] = useState(chat);
+  const userDraft = chat.drafts.find((draft) => draft.from.uid === user.uid);
+  const [chatDrafts, setChatDrafts] = useState({
+    chatId,
+    userDraft,
+    drafts: chat.drafts,
+  });
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInput = useRef(null);
   const msgInputForm = useRef(null);
@@ -67,15 +72,18 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   useEffect(() => {
     updateDraft();
     inputRef.current.focus();
-    setPrevChat(chat);
+    setChatDrafts({
+      chatId,
+      userDraft,
+      drafts: chat.drafts,
+    });
   }, [chatId]);
 
   useEffect(() => {
-    inputRef.current.value =
-      prevChat.draft && prevChat.draft.from.uid === user.uid
-        ? prevChat.draft.msg
-        : "";
-  }, [prevChat]);
+    inputRef.current.value = chatDrafts.userDraft
+      ? chatDrafts.userDraft.msg
+      : "";
+  }, [chatDrafts]);
 
   const handleSendMsg = async (e) => {
     e.preventDefault();
@@ -153,30 +161,46 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const updateDraft = async () => {
-    if (!inputRef.current.value && prevChat.draft) {
+    if (!inputRef.current.value) {
       resetDraft();
       return;
-    } else if (
-      inputRef.current.value &&
-      (!prevChat.draft ||
-        (prevChat.draft &&
-          prevChat.draft.from.uid === user.uid &&
-          prevChat.draft !== inputRef.current.value))
-    ) {
-      await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
-        draft: { from: user, msg: inputRef.current.value },
-      });
+    } else if (inputRef.current.value) {
+      let draftsUpdate;
+
+      if (!chatDrafts.userDraft) {
+        draftsUpdate = [
+          ...chatDrafts.drafts,
+          { from: user, msg: inputRef.current.value },
+        ];
+      } else if (
+        chatDrafts.userDraft &&
+        chatDrafts.userDraft.msg !== inputRef.current.value
+      ) {
+        draftsUpdate = chatDrafts.drafts.map((draft) => {
+          if (draft.from.uid === user.uid) {
+            return { ...draft, msg: inputRef.current.value };
+          } else return draft;
+        });
+      }
+
+      if (draftsUpdate)
+        await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
+          drafts: draftsUpdate,
+        });
       return;
     } else return;
   };
 
   const resetDraft = async () => {
-    // if (!prevChat.draft) return;
-
-    if (prevChat.draft && prevChat.draft.from.uid === user.uid)
-      await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
-        draft: null,
+    if (chatDrafts.userDraft) {
+      const draftsUpdate = chatDrafts.drafts.filter(
+        (draft) => draft.from.uid !== user.uid
+      );
+      await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
+        drafts: draftsUpdate,
       });
+      return;
+    } else return;
   };
 
   return (

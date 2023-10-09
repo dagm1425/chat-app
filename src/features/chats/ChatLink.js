@@ -30,6 +30,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const [chatMsg, setChatMsg] = useState([]);
   // const [recentMsg, setRecentMsg] = useState(null);
   const recentMsg = chat.recentMsg;
+  const draft = chat.drafts.find((draft) => draft.from.uid === user.uid);
   const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
@@ -163,27 +164,23 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   />
                 )}
               </Typography>
-              {recentMsgTimestamp &&
-                (!chat.draft ||
-                  (chat.draft && chat.draft.from.uid !== user.uid)) && (
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      color: "text.secondary",
-                      display: "inline-block",
-                      width: "20%",
-                      verticalAlign: "middle",
-                    }}
-                  >
-                    {recentMsgTimestamp}
-                  </Typography>
-                )}
+              {recentMsgTimestamp && !draft && (
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: "text.secondary",
+                    display: "inline-block",
+                    width: "20%",
+                    verticalAlign: "middle",
+                  }}
+                >
+                  {recentMsgTimestamp}
+                </Typography>
+              )}
             </React.Fragment>
           }
           secondary={
-            !recentMsg &&
-            (!chat.draft ||
-              (chat.draft && chat.draft.from.uid !== user.uid)) ? (
+            !recentMsg && !draft ? (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {chatCreator} created this chat
               </Typography>
@@ -202,21 +199,18 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   }}
                   variant="body2"
                 >
-                  {recentMsg &&
-                    chat.type === "public" &&
-                    (!chat.draft ||
-                      (chat.draft && chat.draft.from.uid !== user.uid)) && (
-                      <Typography
-                        component="span"
-                        sx={{ font: "inherit", color: "primary.main" }}
-                      >
-                        {recentMsg.from.uid === user.uid
-                          ? "You"
-                          : recentMsg.from.displayName}
-                        {": "}
-                      </Typography>
-                    )}
-                  {chat.draft && chat.draft.from.uid === user.uid ? (
+                  {recentMsg && chat.type === "public" && !draft && (
+                    <Typography
+                      component="span"
+                      sx={{ font: "inherit", color: "primary.main" }}
+                    >
+                      {recentMsg.from.uid === user.uid
+                        ? "You"
+                        : recentMsg.from.displayName}
+                      {": "}
+                    </Typography>
+                  )}
+                  {draft ? (
                     <>
                       <Typography
                         component="span"
@@ -224,7 +218,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                       >
                         Draft:{" "}
                       </Typography>
-                      {chat.draft.msg}
+                      {draft.msg}
                     </>
                   ) : recentMsg.msg ? (
                     recentMsg.msg

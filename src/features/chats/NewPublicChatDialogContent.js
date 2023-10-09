@@ -24,7 +24,7 @@ function NewPublicChatDialogContent({ onClose }) {
       members: [user],
       timestamp: serverTimestamp(),
       recentMsg: null,
-      draft: null,
+      drafts: [],
     });
   };
 

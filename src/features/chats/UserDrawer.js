@@ -110,7 +110,7 @@ function Userbar({ setSelectedChatId }) {
       members: [user, otherChatMember],
       timestamp: serverTimestamp(),
       recentMsg: null,
-      draft: null,
+      drafts: [],
     });
   };
 
