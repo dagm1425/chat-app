@@ -163,23 +163,27 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   />
                 )}
               </Typography>
-              {recentMsgTimestamp && (
-                <Typography
-                  variant="body2"
-                  sx={{
-                    color: "text.secondary",
-                    display: "inline-block",
-                    width: "20%",
-                    verticalAlign: "middle",
-                  }}
-                >
-                  {recentMsgTimestamp}
-                </Typography>
-              )}
+              {recentMsgTimestamp &&
+                (!chat.draft ||
+                  (chat.draft && chat.draft.from.uid !== user.uid)) && (
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      color: "text.secondary",
+                      display: "inline-block",
+                      width: "20%",
+                      verticalAlign: "middle",
+                    }}
+                  >
+                    {recentMsgTimestamp}
+                  </Typography>
+                )}
             </React.Fragment>
           }
           secondary={
-            !recentMsg && !chat.draft ? (
+            !recentMsg &&
+            (!chat.draft ||
+              (chat.draft && chat.draft.from.uid !== user.uid)) ? (
               <Typography variant="body2" sx={{ color: "text.secondary" }}>
                 {chatCreator} created this chat
               </Typography>
@@ -198,26 +202,29 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   }}
                   variant="body2"
                 >
-                  {recentMsg && chat.type === "public" && (
-                    <Typography
-                      component="span"
-                      sx={{ font: "inherit", color: "primary.main" }}
-                    >
-                      {recentMsg.from.uid === user.uid
-                        ? "You"
-                        : recentMsg.from.displayName}
-                      {": "}
-                    </Typography>
-                  )}
-                  {chat.draft ? (
+                  {recentMsg &&
+                    chat.type === "public" &&
+                    (!chat.draft ||
+                      (chat.draft && chat.draft.from.uid !== user.uid)) && (
+                      <Typography
+                        component="span"
+                        sx={{ font: "inherit", color: "primary.main" }}
+                      >
+                        {recentMsg.from.uid === user.uid
+                          ? "You"
+                          : recentMsg.from.displayName}
+                        {": "}
+                      </Typography>
+                    )}
+                  {chat.draft && chat.draft.from.uid === user.uid ? (
                     <>
                       <Typography
                         component="span"
-                        sx={{ color: "primary.main" }}
+                        sx={{ font: "inherit", color: "primary.main" }}
                       >
                         Draft:{" "}
                       </Typography>
-                      {chat.draft}
+                      {chat.draft.msg}
                     </>
                   ) : recentMsg.msg ? (
                     recentMsg.msg

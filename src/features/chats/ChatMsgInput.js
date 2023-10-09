@@ -71,7 +71,10 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   }, [chatId]);
 
   useEffect(() => {
-    inputRef.current.value = prevChat.draft ? prevChat.draft : "";
+    inputRef.current.value =
+      prevChat.draft && prevChat.draft.from.uid === user.uid
+        ? prevChat.draft.msg
+        : "";
   }, [prevChat]);
 
   const handleSendMsg = async (e) => {
@@ -156,21 +159,24 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     } else if (
       inputRef.current.value &&
       (!prevChat.draft ||
-        (prevChat.draft && prevChat.draft !== inputRef.current.value))
+        (prevChat.draft &&
+          prevChat.draft.from.uid === user.uid &&
+          prevChat.draft !== inputRef.current.value))
     ) {
       await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
-        draft: inputRef.current.value,
+        draft: { from: user, msg: inputRef.current.value },
       });
       return;
     } else return;
   };
 
   const resetDraft = async () => {
-    if (!prevChat.draft) return;
+    // if (!prevChat.draft) return;
 
-    await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
-      draft: "",
-    });
+    if (prevChat.draft && prevChat.draft.from.uid === user.uid)
+      await updateDoc(doc(db, "chats", `${prevChat.chatId}`), {
+        draft: null,
+      });
   };
 
   return (
