@@ -26,7 +26,7 @@ function ChatsHome() {
           ChatApp
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
-          Select a chat to start messaging.
+          Create or select a chat to start messaging.
         </Typography>
       </div>
     </Box>
