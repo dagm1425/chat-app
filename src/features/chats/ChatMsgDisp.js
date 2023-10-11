@@ -587,6 +587,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                                 sx={{
                                   fontSize: "20px",
                                   color: "text.primary",
+                                  "&.MuiButtonBase-root:hover": {
+                                    bgcolor: "transparent",
+                                  },
                                 }}
                               />
                             </IconButton>
@@ -599,12 +602,18 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                                 gridRow: 1,
                                 width: 34,
                                 height: 34,
+                                "&.MuiButtonBase-root:hover": {
+                                  bgcolor: "transparent",
+                                },
                               }}
                             >
                               <InsertDriveFileIcon
                                 sx={{
                                   fontSize: "20px",
                                   color: "text.primary",
+                                  "&.MuiButtonBase-root:hover": {
+                                    bgcolor: "transparent",
+                                  },
                                 }}
                               />
                             </IconButton>
