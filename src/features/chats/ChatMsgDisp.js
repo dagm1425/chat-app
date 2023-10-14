@@ -15,6 +15,7 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
+  writeBatch,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import {
@@ -128,26 +129,25 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     const querySnapshot = await getDocs(
       collection(db, "chats", `${chatId}`, "chatMessages")
     );
-    if (chat.type === "private") {
-      querySnapshot.forEach(async (doc) => {
-        if (doc.data().from.uid === user.uid || doc.data().isMsgRead == true)
-          return;
-        await updateDoc(doc.ref, {
-          isMsgRead: true,
-        });
-      });
-    } else {
-      querySnapshot.forEach(async (doc) => {
-        if (
-          doc.data().from.uid === user.uid ||
-          doc.data().isMsgRead.includes(user.uid)
-        )
-          return;
-        await updateDoc(doc.ref, {
-          isMsgRead: arrayUnion(user.uid),
-        });
-      });
-    }
+    const batch = writeBatch(db);
+
+    querySnapshot.forEach((doc) => {
+      const msgData = doc.data();
+      const isUserMessage = msgData.from.uid === user.uid;
+      const isMsgRead = msgData.isMsgRead;
+
+      if (chat.type === "private") {
+        if (!isUserMessage && !isMsgRead) {
+          batch.update(doc.ref, { isMsgRead: true });
+        }
+      } else {
+        if (!isUserMessage && !isMsgRead.includes(user.uid)) {
+          batch.update(doc.ref, { isMsgRead: arrayUnion(user.uid) });
+        }
+      }
+    });
+
+    await batch.commit();
   };
   // const resetUnreadMsg = async () => {
   //   if (chatMsg[chatMsg.length - 1].from.uid === user.uid) return;
