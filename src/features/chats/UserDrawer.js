@@ -111,6 +111,7 @@ function Userbar({ setSelectedChatId }) {
       timestamp: serverTimestamp(),
       recentMsg: null,
       drafts: [],
+      unreadCounts: { [user.uid]: 0, [otherChatMember.uid]: 0 },
     });
   };
 

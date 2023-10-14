@@ -271,6 +271,29 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
     xhr.send();
   };
 
+  const deleteMsg = async () => {
+    const msg = chatMsg.find((msg) => msg.msgId === msgId);
+    const unreadCounts = { ...chat.unreadCounts };
+    const readBy = msg.isMsgRead;
+    const isUserMsg = msg.from.uid === user.uid;
+
+    for (const uid in unreadCounts) {
+      if (
+        ((isUserMsg && uid !== user.uid) ||
+          (!isUserMsg && uid !== msg.from.uid)) &&
+        (typeof readBy === "boolean" ? !msg.isMsgRead : !readBy.includes(uid))
+      ) {
+        unreadCounts[uid]--;
+      }
+    }
+
+    const chatRef = doc(db, "chats", `${chatId}`);
+    const messageRef = doc(chatRef, "chatMessages", `${msgId}`);
+
+    await updateDoc(chatRef, { unreadCounts });
+    await deleteDoc(messageRef);
+  };
+
   const handleForwardMsg = async (recipientUser) => {
     handleMsgForwardClose();
 
@@ -287,9 +310,11 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
 
     if (chatWithSelectedUser.length) {
       const chatId = chatWithSelectedUser[0].chatId;
+      const unreadCounts = { ...chatWithSelectedUser[0].unreadCounts };
       const msgId = uuid();
       const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
-      const message = {
+      const chatRef = doc(db, "chats", `${chatId}`);
+      const newMsg = {
         ...msg,
         from: user,
         msgId: msgId,
@@ -297,31 +322,46 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
         timestamp: serverTimestamp(),
       };
 
-      await setDoc(msgRef, message);
+      for (const uid in unreadCounts) {
+        if (uid !== user.uid) {
+          unreadCounts[uid]++;
+        }
+      }
+
+      await setDoc(msgRef, newMsg);
+      delete newMsg.msgReply;
+      await updateDoc(chatRef, { recentMsg: newMsg });
+      await updateDoc(chatRef, { unreadCounts });
     } else {
       const chatId = uuid();
+      const chatRef = doc(db, "chats", `${chatId}`);
       const msgId = uuid();
-      const message = {
+      const newMsg = {
         ...msg,
         from: user,
         msgId: msgId,
         msgReply: null,
         timestamp: serverTimestamp(),
       };
-      let msgRef;
-
-      await setDoc(doc(db, "chats", `${chatId}`), {
+      const newChat = {
         chatId: `${chatId}`,
         type: "private",
         createdBy: user,
         members: [user, recipientUser],
         timestamp: serverTimestamp(),
         recentMsg: null,
-      });
+        drafts: [],
+        unreadCounts: { [user.uid]: 0, [recipientUser.uid]: 1 },
+      };
+      let msgRef;
+
+      await setDoc(chatRef, newChat);
 
       msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
 
-      await setDoc(msgRef, message);
+      await setDoc(msgRef, newMsg);
+      delete newMsg.msgReply;
+      await updateDoc(chatRef, { recentMsg: newMsg });
     }
   };
 
@@ -772,10 +812,8 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
         <DialogTitle sx={{ fontWeight: "normal" }}>Delete message?</DialogTitle>
         <DeleteMsgDialogContent
+          deleteMsg={deleteMsg}
           onClose={handleDeleteMsgClose}
-          chatId={chatId}
-          msgId={msgId}
-          chatMsg={chatMsg}
         />
       </Dialog>
       <Dialog open={isForwardMsgOpen} onClose={handleMsgForwardClose}>

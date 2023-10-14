@@ -25,6 +25,7 @@ function NewPublicChatDialogContent({ onClose }) {
       timestamp: serverTimestamp(),
       recentMsg: null,
       drafts: [],
+      unreadCounts: { [user.uid]: 0 },
     });
   };
 

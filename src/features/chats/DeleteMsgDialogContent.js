@@ -1,16 +1,8 @@
 import React from "react";
 import PropTypes from "prop-types";
-import { db } from "../../firebase";
-import { doc, deleteDoc } from "firebase/firestore";
 import { Box, Button } from "@mui/material";
 
-function DeleteMsgDialogContent({ chatId, msgId, onClose }) {
-  const deleteMsg = async () => {
-    onClose();
-
-    await deleteDoc(doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`));
-  };
-
+function DeleteMsgDialogContent({ deleteMsg, onClose }) {
   return (
     <Box
       sx={{
@@ -35,7 +27,6 @@ function DeleteMsgDialogContent({ chatId, msgId, onClose }) {
 export default DeleteMsgDialogContent;
 
 DeleteMsgDialogContent.propTypes = {
-  chatId: PropTypes.string,
-  msgId: PropTypes.string,
+  deleteMsg: PropTypes.func,
   onClose: PropTypes.func,
 };

@@ -199,10 +199,16 @@ function ChatHeader({ chat }) {
   const addMembers = async () => {
     if (!selectedMembers.length) return;
 
+    const unreadCounts = chat.unreadCounts;
+
     handleAddPublicChatMembersClose();
+    selectedMembers.forEach((member) => {
+      unreadCounts[member.uid] = 0;
+    });
 
     await updateDoc(doc(db, "chats", `${chat.chatId}`), {
       members: arrayUnion(...selectedMembers),
+      unreadCounts,
     });
   };
 

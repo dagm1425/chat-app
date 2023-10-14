@@ -94,7 +94,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const msgList = scroll.current.children;
     const lastMmsg = msgList.item(msgList.length - 2);
-    // const chatRef = doc(db, "chats", `${chatId}`);
+    const chatRef = doc(db, "chats", `${chatId}`);
+    let unreadCounts = { ...chat.unreadCounts };
+
     const newMsg = {
       msgId,
       from: user,
@@ -104,12 +106,16 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       timestamp: serverTimestamp(),
     };
 
-    await setDoc(msgRef, newMsg);
+    for (const uid in unreadCounts) {
+      if (uid !== user.uid) {
+        unreadCounts[uid]++;
+      }
+    }
 
-    // await updateDoc(chatRef, {
-    //   recentMsg: { ...message, msgReply: null },
-    //   unreadMsg: increment(1),
-    // });
+    await setDoc(msgRef, newMsg);
+    await updateDoc(chatRef, { unreadCounts });
+    delete newMsg.msgReply;
+    await updateDoc(chatRef, { recentMsg: newMsg });
 
     if (msgReply) setMsgReply(null);
 

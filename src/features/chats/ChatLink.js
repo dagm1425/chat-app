@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import PropTypes from "prop-types";
 import {
   Avatar,
@@ -9,29 +9,31 @@ import {
   Typography,
 } from "@mui/material";
 import {
-  collection,
+  // collection,
   doc,
-  onSnapshot,
-  orderBy,
-  query,
+  // onSnapshot,
+  // orderBy,
+  // query,
   updateDoc,
 } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import { styled } from "styled-components";
-import { db } from "../../firebase";
+// import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
 import { formatFilename } from "../../common/utils";
+import { db } from "../../firebase";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
-  const [chatMsg, setChatMsg] = useState([]);
+  // const [chatMsg, setChatMsg] = useState([]);
   // const [recentMsg, setRecentMsg] = useState(null);
   const recentMsg = chat.recentMsg;
+  const unreadMsgCount = chat.unreadCounts[user.uid];
   const draft = chat.drafts.find((draft) => draft.from.uid === user.uid);
-  const [unreadMsgCount, setUnreadMsgCount] = useState(0);
+  // const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
     chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;
@@ -39,82 +41,22 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
 
   useEffect(() => {
-    const unsub = subscribeChatMsg();
+    if (selectedChatId === chatId && unreadMsgCount > 0) resetUnreadCount();
+  }, [unreadMsgCount]);
 
-    return () => {
-      unsub();
-    };
-  }, []);
-
-  useEffect(() => {
-    updateChat();
-    updateUnreadMsgCount();
-  }, [chatMsg]);
-
-  const subscribeChatMsg = () => {
-    const q = query(
-      collection(db, "chats", `${chatId}`, "chatMessages"),
-      orderBy("timestamp", "desc")
-    );
-
-    return onSnapshot(q, (querySnap) => {
-      const messages = [];
-      querySnap.forEach((doc) => messages.push(doc.data()));
-      setChatMsg(messages);
-    });
+  const handleLinkClick = () => {
+    setSelectedChatId(chatId);
+    resetUnreadCount();
   };
 
-  const updateChat = async () => {
-    let newMsg;
+  const resetUnreadCount = async () => {
+    const unreadCounts = chat.unreadCounts;
 
-    if (!chatMsg.length) {
-      if (recentMsg) {
-        newMsg = null;
-        await updateDoc(doc(db, "chats", `${chatId}`), {
-          recentMsg: newMsg,
-        });
-        return;
-      }
-      return;
-    }
-
-    newMsg = chatMsg[0];
-    delete newMsg.msgReply;
+    if (unreadCounts[user.uid] === 0) return;
 
     await updateDoc(doc(db, "chats", `${chatId}`), {
-      recentMsg: newMsg,
+      unreadCounts: { ...unreadCounts, [user.uid]: 0 },
     });
-
-    await updateDoc(doc(db, "chats", `${chatId}`), {
-      timestamp: chatMsg[0].timestamp ? chatMsg[0].timestamp : new Date(),
-    });
-    // setRecentMsg(chatMsg[0]);
-  };
-
-  const updateUnreadMsgCount = () => {
-    let count;
-
-    if (selectedChatId === chatId && unreadMsgCount == 0) return;
-
-    if (!chatMsg.length) {
-      if (unreadMsgCount != 0) {
-        setUnreadMsgCount(0);
-        return;
-      }
-      return;
-    }
-
-    if (chat.type === "private") {
-      count = chatMsg.filter(
-        (msg) => msg.from.uid !== user.uid && msg.isMsgRead == false
-      ).length;
-    } else {
-      count = chatMsg.filter(
-        (msg) => msg.from.uid !== user.uid && !msg.isMsgRead.includes(user.uid)
-      ).length;
-    }
-
-    setUnreadMsgCount(count);
   };
 
   return (
@@ -123,7 +65,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       key={chatId}
       to={`/${chatId}`}
       $selectedchat={chatId === selectedChatId}
-      onClick={() => setSelectedChatId(chatId)}
+      onClick={handleLinkClick}
     >
       <ListItem
         dense
@@ -228,7 +170,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     formatFilename(recentMsg.fileMsg.fileName)
                   )}
                 </Typography>
-                {unreadMsgCount > 0 && (
+                {unreadMsgCount > 0 && selectedChatId !== chatId && (
                   <Box
                     sx={{
                       display: "inline-block",
