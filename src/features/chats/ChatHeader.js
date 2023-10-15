@@ -25,6 +25,7 @@ import LeaveChatDialogContent from "./LeaveChatDialogContent";
 import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import UsersSearch from "./UsersSearch";
+import UserStatus from "../user/UserStatus";
 
 function ChatHeader({ chat }) {
   const user = useSelector(selectUser);
@@ -38,14 +39,11 @@ function ChatHeader({ chat }) {
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
   // const [recentMsg, setRecentMsg] = useState(null);
-  const recentMsg = chat.recentMsg;
   const [selectedMembers, setSelectedMembers] = useState([]);
   const publicChatMembers =
     chat.type === " private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
-
-  const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
 
   // useEffect(() => {
   //   const unsub = subscribeRecentMsg();
@@ -243,16 +241,7 @@ function ChatHeader({ chat }) {
               : chat.displayName}
           </Typography>
           {chat.type === "private" ? (
-            recentMsgTimestamp ? (
-              <Typography variant="body2">
-                Last message was
-                {recentMsgTimestamp !== "Yesterday" &&
-                  recentMsgTimestamp !== "Today" && <span> on</span>}
-                {" " + recentMsgTimestamp}
-              </Typography>
-            ) : (
-              <Typography variant="body2">No messages yet</Typography>
-            )
+            <UserStatus userId={otherChatMember.uid} />
           ) : (
             <Typography
               variant="body2"

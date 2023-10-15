@@ -16,6 +16,7 @@ import SearchIcon from "@mui/icons-material/Search";
 import { collection, onSnapshot } from "firebase/firestore";
 import { db } from "../../firebase";
 import CircularProgress from "@mui/material/CircularProgress";
+import UserStatus from "../user/UserStatus";
 
 function UsersSearch({
   excUsers,
@@ -126,7 +127,22 @@ function UsersSearch({
               ></Box>
             )}
           </ListItemAvatar>
-          <ListItemText primary={user.displayName} />
+          <ListItemText
+            disableTypography
+            primary={
+              <Typography
+                variant="body2"
+                sx={{
+                  display: "inline-block",
+                  width: "20%",
+                  verticalAlign: "middle",
+                }}
+              >
+                {user.displayName}
+              </Typography>
+            }
+            secondary={<UserStatus userId={user.uid} />}
+          />
         </ListItemButton>
       </ListItem>
     );

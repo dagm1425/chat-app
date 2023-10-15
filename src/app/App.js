@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
-import { auth, db } from "../firebase";
+import { auth, db, rtDb } from "../firebase";
 import {
   doc,
   getDoc,
@@ -19,6 +19,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { formatDate } from "../common/utils";
 import { Box } from "@mui/material";
+import { ref, set, serverTimestamp, onDisconnect } from "firebase/database";
 // import formatRelative from "date-fns/formatRelative";
 // import { enUS } from "date-fns/esm/locale";
 
@@ -99,14 +100,25 @@ function App() {
     });
   };
 
-  if (!user && !localStorage.getItem("auth")) return <UserLogin />;
+  const setUserStatus = (userId, isOnline) => {
+    const status = isOnline ? "online" : serverTimestamp();
+    const userStatusRef = ref(rtDb, "status/" + userId);
+    set(userStatusRef, status);
+
+    if (isOnline) {
+      onDisconnect(userStatusRef).set(serverTimestamp());
+    }
+  };
+
+  if (!user && !localStorage.getItem("auth"))
+    return <UserLogin setUserStatus={setUserStatus} />;
   if (loading || (user && (fetchingUserData || fetchingChatsData)))
     return (
       <Box sx={{ height: "100vh", display: "grid", placeItems: "center" }}>
         <CircularProgress />
       </Box>
     );
-  return <Home />;
+  return <Home setUserStatus={setUserStatus} />;
 }
 
 export default App;

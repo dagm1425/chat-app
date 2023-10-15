@@ -6,7 +6,7 @@ import ChatsList from "./ChatsList";
 import { Box, TextareaAutosize } from "@mui/material";
 import styled from "styled-components";
 
-function Sidebar({ selectedChatId, setSelectedChatId }) {
+function Sidebar({ selectedChatId, setSelectedChatId, setUserStatus }) {
   const [searchValue, setSearchValue] = useState("");
 
   return (
@@ -30,7 +30,10 @@ function Sidebar({ selectedChatId, setSelectedChatId }) {
           width: "100%",
         }}
       >
-        <UserDrawer setSelectedChatId={setSelectedChatId} />
+        <UserDrawer
+          setSelectedChatId={setSelectedChatId}
+          setUserStatus={setUserStatus}
+        />
         <StyledTextarea
           value={searchValue}
           placeholder="Search chat"
@@ -66,4 +69,5 @@ const StyledTextarea = styled(TextareaAutosize)`
 Sidebar.propTypes = {
   selectedChatId: PropTypes.string,
   setSelectedChatId: PropTypes.func,
+  setUserStatus: PropTypes.func,
 };
