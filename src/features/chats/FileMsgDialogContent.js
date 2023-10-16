@@ -127,18 +127,28 @@ function FileMsgDialogContent({
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          gap: "0.625rem",
+          gap: "0.825rem",
         }}
       >
-        <InsertDriveFileIcon fontSize="large" />
-        <div>
-          <Typography variant="subtitle1">
-            {formatFilename(file.name)}
-          </Typography>
-          <Typography variant="subtitle1" sx={{ color: "rgba(0, 0, 0, 0.45)" }}>
+        <Box
+          sx={{
+            display: "grid",
+            placeItems: "center",
+            bgcolor: "background.default",
+            width: 40,
+            height: 40,
+            filter: "brightness(0.875)",
+            borderRadius: "50%",
+          }}
+        >
+          <InsertDriveFileIcon fontSize="medium" />
+        </Box>
+        <Box sx={{ textAlign: "center" }}>
+          <Typography variant="body1">{formatFilename(file.name)}</Typography>
+          <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {fileSize}
           </Typography>
-        </div>
+        </Box>
       </Box>
       <TextField
         label="Add caption"
