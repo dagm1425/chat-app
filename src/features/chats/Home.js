@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React, { useEffect, useState } from "react";
+import PropTypes from "prop-types";
 import Sidebar from "./Sidebar";
 import ChatsSection from "./ChatsSection";
 import ChatsHome from "./ChatsHome";
@@ -35,3 +35,7 @@ function Home({ setUserStatus }) {
 }
 
 export default Home;
+
+Home.propTypes = {
+  setUserStatus: PropTypes.func,
+};

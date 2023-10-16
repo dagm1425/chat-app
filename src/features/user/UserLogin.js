@@ -1,5 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
+import PropTypes from "prop-types";
 import { provider, auth, db } from "../../firebase";
 import { signInWithPopup } from "firebase/auth";
 import { doc, setDoc } from "firebase/firestore";
@@ -81,3 +81,7 @@ function UserLogin({ setUserStatus }) {
 }
 
 export default UserLogin;
+
+UserLogin.propTypes = {
+  setUserStatus: PropTypes.func,
+};
