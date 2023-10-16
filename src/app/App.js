@@ -12,7 +12,7 @@ import {
   // Timestamp,
 } from "firebase/firestore";
 import { setUser } from "../features/user/userSlice";
-import UserLogin from "../features/user/userLogin";
+import UserLogin from "../features/user/UserLogin";
 import { setChats } from "../features/chats/chatsSlice";
 import Home from "../features/chats/Home";
 import CircularProgress from "@mui/material/CircularProgress";

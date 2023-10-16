@@ -13,7 +13,7 @@ const UserStatus = ({ userId }) => {
     onValue(userStatusRef, (snapshot) => {
       const value = snapshot.val();
       if (value === "online") {
-        setStatus("Online");
+        setStatus("online");
       } else {
         const lastSeen = formatDistance(new Date(value), new Date(), {
           addSuffix: true,

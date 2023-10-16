@@ -7,7 +7,7 @@ import { Box, Button, Typography } from "@mui/material";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import GoogleIcon from "@mui/icons-material/Google";
 
-function userLogin({ setUserStatus }) {
+function UserLogin({ setUserStatus }) {
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
 
@@ -80,4 +80,4 @@ function userLogin({ setUserStatus }) {
   );
 }
 
-export default userLogin;
+export default UserLogin;
