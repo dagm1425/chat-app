@@ -37,7 +37,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { ColorModeContext } from "../..";
 import { useTheme } from "@emotion/react";
 
-function Userbar({ setSelectedChatId, setUserStatus }) {
+function UserDrawer({ setSelectedChatId, setUserStatus }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const navigate = useNavigate();
@@ -236,9 +236,9 @@ function Userbar({ setSelectedChatId, setUserStatus }) {
   );
 }
 
-export default Userbar;
+export default UserDrawer;
 
-Userbar.propTypes = {
+UserDrawer.propTypes = {
   setSelectedChatId: PropTypes.func,
   setUserStatus: PropTypes.func,
 };
