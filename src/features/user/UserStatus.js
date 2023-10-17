@@ -30,7 +30,7 @@ const UserStatus = ({ userId }) => {
   return (
     <Typography
       variant="body2"
-      sx={{ color: status === "Online" ? "primary.main" : "text.secondary" }}
+      sx={{ color: status === "online" ? "primary.main" : "text.secondary" }}
     >
       {status}
     </Typography>
