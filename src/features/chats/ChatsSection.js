@@ -8,7 +8,7 @@ import ChatHeader from "./ChatHeader";
 import ChatMsgDisp from "./ChatMsgDisp";
 import ChatMsgInput from "./ChatMsgInput";
 
-function ChatsSection({ setSelectedChatId }) {
+function ChatsSection({ setSelectedChatId, userStatuses }) {
   const { id } = useParams();
   const chat = useSelector((state) => selectChatById(state, id));
   const [uploadTask, setUploadTask] = useState(null);
@@ -31,7 +31,7 @@ function ChatsSection({ setSelectedChatId }) {
         },
       }}
     >
-      <ChatHeader chat={chat} />
+      <ChatHeader chat={chat} userStatuses={userStatuses} />
       <ChatMsgDisp
         chat={chat}
         uploadTask={uploadTask}
@@ -55,4 +55,5 @@ export default ChatsSection;
 
 ChatsSection.propTypes = {
   setSelectedChatId: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
 };

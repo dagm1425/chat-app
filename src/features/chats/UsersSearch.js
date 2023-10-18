@@ -24,6 +24,7 @@ function UsersSearch({
   selectedMembers,
   addMembers,
   onClose,
+  userStatuses,
 }) {
   const [search, setSearch] = useState("");
   const [isUsersLoading, setIsUsersLoading] = useState(true);
@@ -141,7 +142,7 @@ function UsersSearch({
                 {user.displayName}
               </Typography>
             }
-            secondary={<UserStatus userId={user.uid} />}
+            secondary={<UserStatus status={userStatuses[user.uid]} />}
           />
         </ListItemButton>
       </ListItem>
@@ -266,4 +267,5 @@ UsersSearch.propTypes = {
   ),
   addMembers: PropTypes.func,
   onClose: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
 };

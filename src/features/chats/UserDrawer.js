@@ -37,7 +37,7 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { ColorModeContext } from "../..";
 import { useTheme } from "@emotion/react";
 
-function UserDrawer({ setSelectedChatId, setUserStatus }) {
+function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const navigate = useNavigate();
@@ -211,6 +211,7 @@ function UserDrawer({ setSelectedChatId, setUserStatus }) {
           excUsers={[user]}
           handleItemClick={handleItemClick}
           onClose={handleNewPrivateChatClose}
+          userStatuses={userStatuses}
         />
       </Dialog>
 
@@ -240,5 +241,6 @@ export default UserDrawer;
 
 UserDrawer.propTypes = {
   setSelectedChatId: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
   setUserStatus: PropTypes.func,
 };

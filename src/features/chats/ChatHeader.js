@@ -30,7 +30,7 @@ import UsersSearch from "./UsersSearch";
 import UserStatus from "../user/UserStatus";
 import { useNavigate } from "react-router-dom";
 
-function ChatHeader({ chat }) {
+function ChatHeader({ chat, userStatuses }) {
   const user = useSelector(selectUser);
   const navigate = useNavigate();
   const otherChatMember = chat.members.find(
@@ -286,7 +286,7 @@ function ChatHeader({ chat }) {
                 : chat.displayName}
             </Typography>
             {chat.type === "private" ? (
-              <UserStatus userId={otherChatMember.uid} />
+              <UserStatus status={userStatuses[otherChatMember.uid]} />
             ) : (
               <Typography
                 variant="body2"
@@ -371,4 +371,5 @@ export default ChatHeader;
 
 ChatHeader.propTypes = {
   chat: PropTypes.object,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
 };

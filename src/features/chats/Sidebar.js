@@ -7,7 +7,12 @@ import { Box, TextareaAutosize } from "@mui/material";
 import styled from "styled-components";
 import { useLocation } from "react-router-dom";
 
-function Sidebar({ selectedChatId, setSelectedChatId, setUserStatus }) {
+function Sidebar({
+  selectedChatId,
+  setSelectedChatId,
+  userStatuses,
+  setUserStatus,
+}) {
   const [searchValue, setSearchValue] = useState("");
   const location = useLocation();
 
@@ -39,6 +44,7 @@ function Sidebar({ selectedChatId, setSelectedChatId, setUserStatus }) {
         <UserDrawer
           setSelectedChatId={setSelectedChatId}
           setUserStatus={setUserStatus}
+          userStatuses={userStatuses}
         />
         <StyledTextarea
           value={searchValue}
@@ -75,5 +81,6 @@ const StyledTextarea = styled(TextareaAutosize)`
 Sidebar.propTypes = {
   selectedChatId: PropTypes.string,
   setSelectedChatId: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
   setUserStatus: PropTypes.func,
 };
