@@ -48,9 +48,20 @@ function Home({ setUserStatus }) {
             [userId]: "online",
           }));
         } else {
-          const lastSeen = formatDistance(new Date(value), new Date(), {
-            addSuffix: true,
-          });
+          const now = new Date();
+          const lastSeenDate = new Date(value);
+          const timeDifferenceInMilliseconds = now - lastSeenDate;
+          const hoursDifference =
+            timeDifferenceInMilliseconds / (1000 * 60 * 60);
+
+          let lastSeen;
+
+          if (hoursDifference > 6 && hoursDifference <= 24 * 7) {
+            lastSeen = "recently";
+          } else {
+            lastSeen = formatDistance(lastSeenDate, now, { addSuffix: true });
+          }
+
           setUserStatuses((prevStatuses) => ({
             ...prevStatuses,
             [userId]: `last seen ${lastSeen}`,
