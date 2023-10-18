@@ -228,18 +228,20 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           alignItems: "center",
           justifyContent: "center",
           gap: "0.5rem",
+          "@media (max-width: 480px)": {
+            gap: "0rem",
+          },
         }}
       >
         <IconButton
           sx={{
-            size: "large",
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
             },
           }}
           onClick={openEmojiPicker}
         >
-          <EmojiEmotionsIcon sx={{ fontSize: "inherit" }} />
+          <EmojiEmotionsIcon />
         </IconButton>
 
         <Popover
@@ -264,6 +266,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           sx={{
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
+            },
+            "@media (max-width: 480px)": {
+              pr: "0.75rem",
             },
           }}
         >
@@ -376,15 +381,17 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         </Box>
 
         <IconButton
-          size="large"
           sx={{
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
             },
+            "@media (max-width: 480px)": {
+              pl: "0.75rem",
+            },
           }}
           onClick={() => msgInputForm.current.requestSubmit()}
         >
-          <SendIcon fontSize="inherit" />
+          <SendIcon />
         </IconButton>
       </Box>
     </Box>

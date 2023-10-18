@@ -2,6 +2,7 @@
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import {
+  Avatar,
   Box,
   Dialog,
   DialogTitle,
@@ -17,6 +18,7 @@ import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutli
 import DeleteIcon from "@mui/icons-material/Delete";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";
@@ -26,9 +28,11 @@ import { arrayUnion, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import UsersSearch from "./UsersSearch";
 import UserStatus from "../user/UserStatus";
+import { useNavigate } from "react-router-dom";
 
 function ChatHeader({ chat }) {
   const user = useSelector(selectUser);
+  const navigate = useNavigate();
   const otherChatMember = chat.members.find(
     (member) => member.uid !== user.uid
   );
@@ -210,6 +214,10 @@ function ChatHeader({ chat }) {
     });
   };
 
+  const handleBack = () => {
+    navigate("/");
+  };
+
   return (
     <Box
       sx={{
@@ -223,6 +231,9 @@ function ChatHeader({ chat }) {
         borderBottom: "2px solid",
         // borderLeft: "2px solid",
         borderColor: "background.paper",
+        "@media (max-width: 480px)": {
+          width: "100%",
+        },
       }}
     >
       <Box
@@ -232,91 +243,126 @@ function ChatHeader({ chat }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          "@media (max-width: 480px)": {
+            gap: "0.75rem",
+          },
         }}
       >
-        <div>
-          <Typography variant="body1" sx={{ fontWeight: "bold" }}>
-            {chat.type === "private"
-              ? otherChatMember.displayName
-              : chat.displayName}
-          </Typography>
-          {chat.type === "private" ? (
-            <UserStatus userId={otherChatMember.uid} />
-          ) : (
-            <Typography
-              variant="body2"
-              sx={{
+        <IconButton
+          onClick={handleBack}
+          sx={{
+            display: "none",
+            mb: "-6px",
+            "@media (max-width: 480px)": {
+              display: "block",
+            },
+          }}
+        >
+          <ArrowBackIcon />
+        </IconButton>
+        <Box
+          sx={{
+            "@media (max-width: 480px)": {
+              display: "flex",
+              alignItems: "center",
+              gap: "0.75rem",
+              mr: "auto",
+            },
+          }}
+        >
+          <Avatar
+            src={otherChatMember.photoURL}
+            sx={{
+              display: "none",
+              "@media (max-width: 480px)": {
                 display: "block",
-                width: "inherit",
-                whiteSpace: "nowrap" /* forces text to single line */,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              }}
-            >
-              {publicChatMembers}
+              },
+            }}
+          />
+          <div>
+            <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+              {chat.type === "private"
+                ? otherChatMember.displayName
+                : chat.displayName}
             </Typography>
-          )}
-        </div>
+            {chat.type === "private" ? (
+              <UserStatus userId={otherChatMember.uid} />
+            ) : (
+              <Typography
+                variant="body2"
+                sx={{
+                  display: "block",
+                  width: "inherit",
+                  whiteSpace: "nowrap" /* forces text to single line */,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+              >
+                {publicChatMembers}
+              </Typography>
+            )}
+          </div>
+        </Box>
         <IconButton onClick={handleChatOptionsOpen}>
           <MoreVertIcon />
         </IconButton>
-
-        <Menu
-          anchorEl={anchorEl}
-          keepMounted
-          open={Boolean(anchorEl)}
-          onClose={handleChatOptionsClose}
-        >
-          {MenuItems}
-        </Menu>
-
-        <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
-          <DialogTitle sx={{ fontWeight: "normal" }}>
-            {chat.type === "private"
-              ? "Delete chat with " + otherChatMember.displayName + "?"
-              : "Delete group chat?"}
-          </DialogTitle>
-          <DeleteChatDialogContent
-            onClose={handleDeleteChatClose}
-            chatId={chat.chatId}
-          />
-        </Dialog>
-
-        <Dialog
-          open={isAddPublicChatMembersOpen}
-          onClose={handleAddPublicChatMembersClose}
-        >
-          <DialogTitle sx={{ fontWeight: "normal" }}>Add members</DialogTitle>
-          <UsersSearch
-            excUsers={chat.members}
-            handleItemClick={handleItemClick}
-            selectedMembers={selectedMembers}
-            addMembers={addMembers}
-            onClose={handleAddPublicChatMembersClose}
-          />
-        </Dialog>
-
-        <Dialog
-          open={isRenamePublicChatOpen}
-          onClose={handleRenamePublicChatClose}
-          disableRestoreFocus
-        >
-          <DialogTitle sx={{ fontWeight: "normal" }}>Rename chat</DialogTitle>
-          <RenamePublicChatDialogContent
-            onClose={handleRenamePublicChatClose}
-            chatId={chat.chatId}
-          />
-        </Dialog>
-
-        <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
-          <DialogTitle sx={{ fontWeight: "normal" }}>Leave chat?</DialogTitle>
-          <LeaveChatDialogContent
-            chatId={chat.chatId}
-            user={user}
-            onClose={handleLeaveChatClose}
-          />
-        </Dialog>
       </Box>
+
+      <Menu
+        anchorEl={anchorEl}
+        keepMounted
+        open={Boolean(anchorEl)}
+        onClose={handleChatOptionsClose}
+      >
+        {MenuItems}
+      </Menu>
+
+      <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
+        <DialogTitle sx={{ fontWeight: "normal" }}>
+          {chat.type === "private"
+            ? "Delete chat with " + otherChatMember.displayName + "?"
+            : "Delete group chat?"}
+        </DialogTitle>
+        <DeleteChatDialogContent
+          onClose={handleDeleteChatClose}
+          chatId={chat.chatId}
+        />
+      </Dialog>
+
+      <Dialog
+        open={isAddPublicChatMembersOpen}
+        onClose={handleAddPublicChatMembersClose}
+      >
+        <DialogTitle sx={{ fontWeight: "normal" }}>Add members</DialogTitle>
+        <UsersSearch
+          excUsers={chat.members}
+          handleItemClick={handleItemClick}
+          selectedMembers={selectedMembers}
+          addMembers={addMembers}
+          onClose={handleAddPublicChatMembersClose}
+        />
+      </Dialog>
+
+      <Dialog
+        open={isRenamePublicChatOpen}
+        onClose={handleRenamePublicChatClose}
+        disableRestoreFocus
+      >
+        <DialogTitle sx={{ fontWeight: "normal" }}>Rename chat</DialogTitle>
+        <RenamePublicChatDialogContent
+          onClose={handleRenamePublicChatClose}
+          chatId={chat.chatId}
+        />
+      </Dialog>
+
+      <Dialog open={isLeaveChatOpen} onClose={handleLeaveChatClose}>
+        <DialogTitle sx={{ fontWeight: "normal" }}>Leave chat?</DialogTitle>
+        <LeaveChatDialogContent
+          chatId={chat.chatId}
+          user={user}
+          onClose={handleLeaveChatClose}
+        />
+      </Dialog>
     </Box>
   );
 }

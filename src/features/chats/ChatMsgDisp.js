@@ -752,6 +752,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           backgroundColor: "rgba(0,0,0,.1)",
           outline: "1px solid slategrey",
         },
+        "@media (max-width: 480px)": {
+          p: "2rem 2rem",
+        },
       }}
       onScroll={updateScrollTop}
     >

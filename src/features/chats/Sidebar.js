@@ -5,9 +5,11 @@ import ChatsList from "./ChatsList";
 // import ChatsSearchBar from "./ChatsSearchBar";
 import { Box, TextareaAutosize } from "@mui/material";
 import styled from "styled-components";
+import { useLocation } from "react-router-dom";
 
 function Sidebar({ selectedChatId, setSelectedChatId, setUserStatus }) {
   const [searchValue, setSearchValue] = useState("");
+  const location = useLocation();
 
   return (
     <Box
@@ -19,6 +21,10 @@ function Sidebar({ selectedChatId, setSelectedChatId, setUserStatus }) {
         height: "100vh",
         borderRight: "1.5px solid",
         borderColor: "background.paper",
+        "@media (max-width: 480px)": {
+          width: location.pathname === "/" ? "100%" : "0",
+          overflow: location.pathname === "/" ? "auto" : "hidden",
+        },
       }}
     >
       <Box

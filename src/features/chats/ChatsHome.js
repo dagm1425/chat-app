@@ -13,6 +13,9 @@ function ChatsHome() {
         textAlign: "center",
         display: "grid",
         placeItems: "center",
+        "@media (max-width: 480px)": {
+          display: "none",
+        },
       }}
     >
       <div>

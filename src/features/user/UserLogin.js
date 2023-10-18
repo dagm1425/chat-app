@@ -40,11 +40,9 @@ function UserLogin({ setUserStatus }) {
     >
       <Box
         sx={{
-          // display: "grid",
-          // placeItems: "center",
           textAlign: "center",
-          width: "25%",
-          height: "55%",
+          maxWidth: "340px",
+          width: "100%",
           bgcolor: "background.default",
           boxShadow:
             "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px",
@@ -68,7 +66,7 @@ function UserLogin({ setUserStatus }) {
           </Typography>
           <Button
             variant="contained"
-            sx={{ bgcolor: "background.light" }}
+            sx={{ bgcolor: "background.light", mb: "5rem" }}
             startIcon={<GoogleIcon />}
             onClick={signIn}
           >

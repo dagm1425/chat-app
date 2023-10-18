@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import PropTypes from "prop-types";
 import Box from "@mui/material/Box";
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectChatById } from "./chatsSlice";
 import ChatHeader from "./ChatHeader";
@@ -14,6 +14,7 @@ function ChatsSection({ setSelectedChatId }) {
   const [uploadTask, setUploadTask] = useState(null);
   const [msgReply, setMsgReply] = useState(null);
   const scroll = useRef();
+  const location = useLocation();
 
   return (
     <Box
@@ -23,6 +24,11 @@ function ChatsSection({ setSelectedChatId }) {
         display: "flex",
         flexDirection: "column",
         height: "100vh",
+
+        "@media (max-width: 480px)": {
+          ml: "0",
+          width: location.pathname !== "/" ? "100%" : "0",
+        },
       }}
     >
       <ChatHeader chat={chat} />
