@@ -270,15 +270,29 @@ function ChatHeader({ chat, userStatuses }) {
             },
           }}
         >
-          <Avatar
-            src={otherChatMember.photoURL}
-            sx={{
-              display: "none",
-              "@media (max-width: 480px)": {
-                display: "block",
-              },
-            }}
-          />
+          {chat.type === "private" ? (
+            <Avatar
+              src={otherChatMember.photoURL}
+              sx={{
+                display: "none",
+                "@media (max-width: 480px)": {
+                  display: "block",
+                },
+              }}
+            />
+          ) : (
+            <Avatar
+              sx={{
+                display: "none",
+                bgcolor: chat.avatarBgColor,
+                "@media (max-width: 480px)": {
+                  display: "block",
+                },
+              }}
+            >
+              {chat.displayName.charAt(0).toUpperCase()}
+            </Avatar>
+          )}
           <div>
             <Typography variant="body1" sx={{ fontWeight: "bold" }}>
               {chat.type === "private"
