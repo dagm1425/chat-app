@@ -47,12 +47,11 @@ function FileMsgDialogContent({
     if (msgReply) setMsgReply(null);
 
     const msgId = uuid();
+    const chatRef = doc(db, "chats", `${chatId}`);
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const msgList = scroll.current.children;
     const lastMmsg = msgList.item(msgList.length - 2);
-
-    // const chatRef = doc(db, "chats", `${chatId}`);
-
+    let unreadCounts = { ...chat.unreadCounts };
     const message = {
       msgId,
       from: user,
@@ -116,6 +115,17 @@ function FileMsgDialogContent({
         });
       }
     );
+
+    await updateDoc(chatRef, { timestamp: message.timestamp });
+    await updateDoc(chatRef, { recentMsg: message });
+
+    for (const uid in unreadCounts) {
+      if (uid !== user.uid) {
+        unreadCounts[uid]++;
+      }
+    }
+
+    await updateDoc(chatRef, { unreadCounts });
   };
 
   return (

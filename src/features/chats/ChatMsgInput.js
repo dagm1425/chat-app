@@ -90,21 +90,30 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
     if (!inputRef.current.value) return;
 
+    const msg = inputRef.current.value;
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const msgList = scroll.current.children;
     const lastMmsg = msgList.item(msgList.length - 2);
     const chatRef = doc(db, "chats", `${chatId}`);
     let unreadCounts = { ...chat.unreadCounts };
-
     const newMsg = {
       msgId,
       from: user,
-      msg: inputRef.current.value,
+      msg,
       msgReply,
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
     };
+
+    inputRef.current.value = "";
+    if (msgReply) setMsgReply(null);
+    lastMmsg.scrollIntoView({ behavior: "smooth" });
+
+    await setDoc(msgRef, newMsg);
+    delete newMsg.msgReply;
+    await updateDoc(chatRef, { recentMsg: newMsg });
+    await updateDoc(chatRef, { timestamp: newMsg.timestamp });
 
     for (const uid in unreadCounts) {
       if (uid !== user.uid) {
@@ -112,16 +121,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       }
     }
 
-    await setDoc(msgRef, newMsg);
     await updateDoc(chatRef, { unreadCounts });
-    delete newMsg.msgReply;
-    await updateDoc(chatRef, { recentMsg: newMsg });
-
-    if (msgReply) setMsgReply(null);
-
-    lastMmsg.scrollIntoView({ behavior: "smooth" });
     resetDraft();
-    inputRef.current.value = "";
   };
 
   const openEmojiPicker = (e) => {

@@ -272,10 +272,25 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   };
 
   const deleteMsg = async () => {
+    handleDeleteMsgClose();
+
+    const chatRef = doc(db, "chats", `${chatId}`);
+    const messageRef = doc(chatRef, "chatMessages", `${msgId}`);
+    const isMsgRecent = chat.recentMsg && chat.recentMsg.msgId === msgId;
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
     const unreadCounts = { ...chat.unreadCounts };
     const readBy = msg.isMsgRead;
     const isUserMsg = msg.from.uid === user.uid;
+
+    await deleteDoc(messageRef);
+
+    if (isMsgRecent) {
+      const secondLastMsg = chatMsg[chatMsg.length - 2];
+
+      delete secondLastMsg.msgReply;
+      await updateDoc(chatRef, { recentMsg: secondLastMsg });
+      await updateDoc(chatRef, { timestamp: secondLastMsg.timestamp });
+    }
 
     for (const uid in unreadCounts) {
       if (
@@ -287,11 +302,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       }
     }
 
-    const chatRef = doc(db, "chats", `${chatId}`);
-    const messageRef = doc(chatRef, "chatMessages", `${msgId}`);
-
     await updateDoc(chatRef, { unreadCounts });
-    await deleteDoc(messageRef);
   };
 
   const handleForwardMsg = async (recipientUser) => {
@@ -331,6 +342,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       await setDoc(msgRef, newMsg);
       delete newMsg.msgReply;
       await updateDoc(chatRef, { recentMsg: newMsg });
+      await updateDoc(chatRef, { timestamp: newMsg.timestamp });
       await updateDoc(chatRef, { unreadCounts });
     } else {
       const chatId = uuid();
@@ -362,6 +374,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
       await setDoc(msgRef, newMsg);
       delete newMsg.msgReply;
       await updateDoc(chatRef, { recentMsg: newMsg });
+      await updateDoc(chatRef, { timestamp: newMsg.timestamp });
     }
   };
 
