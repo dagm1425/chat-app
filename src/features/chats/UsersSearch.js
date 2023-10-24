@@ -135,7 +135,6 @@ function UsersSearch({
                 variant="body2"
                 sx={{
                   display: "inline-block",
-                  width: "20%",
                   verticalAlign: "middle",
                 }}
               >

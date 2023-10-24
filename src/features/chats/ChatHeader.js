@@ -334,7 +334,9 @@ function ChatHeader({ chat, userStatuses }) {
       <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
         <DialogTitle sx={{ fontWeight: "normal" }}>
           {chat.type === "private"
-            ? "Delete chat with " + otherChatMember.displayName + "?"
+            ? "Delete chat with " +
+              otherChatMember.displayName.replace(/ .*/, "") +
+              "?"
             : "Delete group chat?"}
         </DialogTitle>
         <DeleteChatDialogContent
