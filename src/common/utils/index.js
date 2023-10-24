@@ -18,11 +18,11 @@ const locale = {
 };
 
 export function formatFilename(filename) {
-  if (filename.length <= 20) {
+  if (filename.length <= 15) {
     return filename;
   } else {
-    const begName = filename.substring(0, 12);
-    const endName = filename.substring(filename.length - 8);
+    const begName = filename.substring(0, 8);
+    const endName = filename.substring(filename.length - 6);
     return begName + "..." + endName;
   }
 }
