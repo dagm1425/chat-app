@@ -684,28 +684,30 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       <Typography variant="body2" sx={{ fontWeight: "bold" }}>
                         {formatFilename(message.fileMsg.fileName)}
                       </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          display: "inline-block",
-                          color: "text.secondary",
-                          fontSize: "0.825rem",
-                          mr: "0.75rem",
-                        }}
-                      >
-                        {message.fileMsg.fileSize}
-                      </Typography>
-                      {message.fileMsg.progress != 100 && (
+                      <div>
                         <Typography
                           variant="body2"
                           sx={{
-                            display: "inline-block",
                             color: "text.secondary",
+                            fontSize: "0.825rem",
                           }}
                         >
-                          {`${message.fileMsg.progress.toFixed(0)}% done`}
+                          {message.fileMsg.fileSize}
+                          {message.fileMsg.progress != 100 && (
+                            <Typography
+                              component="span"
+                              variant="body2"
+                              sx={{
+                                fontSize: "0.825rem",
+                                color: "text.secondary",
+                                ml: "0.5rem",
+                              }}
+                            >
+                              {`${message.fileMsg.progress.toFixed(0)}% done`}
+                            </Typography>
+                          )}
                         </Typography>
-                      )}
+                      </div>
                     </Box>
                   </Box>
                 )}
