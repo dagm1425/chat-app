@@ -580,8 +580,8 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       sx={{
                         display: "grid",
                         placeItems: "center",
-                        width: 34,
-                        height: 34,
+                        width: 40,
+                        height: 40,
                         bgcolor: isSentFromUser
                           ? "primary.light"
                           : "background.default",
