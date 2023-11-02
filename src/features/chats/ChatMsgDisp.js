@@ -47,6 +47,7 @@ import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import UsersSearch from "./UsersSearch";
 import { formatDate, formatFilename, formatTime } from "../../common/utils";
+import ChatImg from "./ChatImg";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -548,22 +549,18 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
                       </Box>
                     </Box>
                   ) : (
-                    <img
-                      src={message.fileMsg.fileUrl}
-                      style={{
-                        width: "100%",
-                        height: "auto",
-                        cursor: "pointer",
-                        marginBottom:
-                          message.caption !== "" ? "0.125rem" : "0rem",
-                      }}
-                      onClick={() =>
-                        openImgModal({
-                          fileName: message.fileMsg.fileName,
-                          url: message.fileMsg.fileUrl,
-                        })
-                      }
-                    />
+                    <>
+                      <ChatImg
+                        src={message.fileMsg.fileUrl}
+                        width={message.fileMsg.imgWidth}
+                        height={message.fileMsg.imgHeight}
+                        containerWidth={scroll.current.offsetWidth * 0.45}
+                        openImgModal={openImgModal}
+                        fileName={message.fileMsg.fileName}
+                        url={message.fileMsg.fileUrl}
+                        caption={message.caption}
+                      />
+                    </>
                   )
                 ) : (
                   <Box

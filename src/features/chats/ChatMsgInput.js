@@ -33,6 +33,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
 import styled from "styled-components";
+// import mozjpeg from "mozjpeg";
 
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -46,7 +47,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const fileInput = useRef(null);
   const msgInputForm = useRef(null);
-  const [file, setFile] = useState(null);
+  const [fileMsg, setFileMsg] = useState(null);
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
   const inputRef = useRef(null);
 
@@ -151,6 +152,25 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     fileInput.current.value = "";
   };
 
+  const imgSize = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+
+      reader.onload = function (e) {
+        const img = new Image();
+        img.src = e.target.result;
+
+        img.onload = function () {
+          const width = this.width;
+          const height = this.height;
+          resolve({ width, height });
+        };
+      };
+
+      reader.readAsDataURL(file);
+    });
+  };
+
   const reviewFileMsg = async (e) => {
     e.preventDefault();
 
@@ -163,7 +183,15 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       return;
     }
 
-    setFile(file);
+    let fileData;
+
+    if (file.type.includes("image")) {
+      const dimensions = await imgSize(file);
+      fileData = { file, imgSize: dimensions };
+    } else fileData = { file };
+
+    setFileMsg(fileData);
+
     handleFileMsgDialogOpen();
   };
 
@@ -285,7 +313,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           <FileMsgDialogContent
             chat={chat}
             user={user}
-            file={file}
+            fileMsg={fileMsg}
             setUploadTask={setUploadTask}
             onClose={handleFileMsgDialogClose}
             msgReply={msgReply}

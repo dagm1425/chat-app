@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -11,13 +12,14 @@ import { formatFilename } from "../../common/utils";
 function FileMsgDialogContent({
   chat,
   user,
-  file,
+  fileMsg,
   setUploadTask,
   onClose,
   msgReply,
   setMsgReply,
   scroll,
 }) {
+  const file = fileMsg.file;
   const chatId = chat.chatId;
   const [caption, setCaption] = useState("");
   const sufixes = ["B", "kB", "MB", "GB", "TB"];
@@ -45,7 +47,6 @@ function FileMsgDialogContent({
   const sendFileMsg = async () => {
     onClose();
     if (msgReply) setMsgReply(null);
-
     const msgId = uuid();
     const chatRef = doc(db, "chats", `${chatId}`);
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
@@ -68,6 +69,11 @@ function FileMsgDialogContent({
         uploadTask: null,
       },
     };
+
+    if (fileType.includes("image")) {
+      message.fileMsg.imgWidth = fileMsg.imgSize.width;
+      message.fileMsg.imgHeight = fileMsg.imgSize.height;
+    }
 
     await setDoc(msgRef, message);
 

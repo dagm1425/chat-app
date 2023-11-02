@@ -92,9 +92,8 @@ function ChatMsgImgDisp({ imgData, downloadFile, onClose }) {
             <img
               src={imgData.url}
               style={{
-                maxWidth: "80%",
+                maxWidth: "100%",
                 height: "auto",
-                margin: "0 auto",
               }}
             />
           </TransformComponent>
