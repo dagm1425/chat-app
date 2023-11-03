@@ -7,7 +7,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import { off, onValue, ref } from "firebase/database";
 import { rtDb } from "../../firebase";
-import { formatDistance } from "date-fns";
+import { isToday, isYesterday, isThisYear, format, isSameWeek } from "date-fns";
 import { onSnapshot, collection } from "firebase/firestore";
 
 function Home({ setUserStatus }) {
@@ -48,23 +48,10 @@ function Home({ setUserStatus }) {
             [userId]: "online",
           }));
         } else {
-          const now = new Date();
           const lastSeenDate = new Date(value);
-          const timeDifferenceInMilliseconds = now - lastSeenDate;
-          const hoursDifference =
-            timeDifferenceInMilliseconds / (1000 * 60 * 60);
-
-          let lastSeen;
-
-          if (hoursDifference > 6 && hoursDifference <= 24 * 7) {
-            lastSeen = "recently";
-          } else {
-            lastSeen = formatDistance(lastSeenDate, now, { addSuffix: true });
-          }
-
           setUserStatuses((prevStatuses) => ({
             ...prevStatuses,
-            [userId]: `last seen ${lastSeen}`,
+            [userId]: formatLastSeen(lastSeenDate),
           }));
         }
       });
@@ -76,6 +63,36 @@ function Home({ setUserStatus }) {
     };
   }, [userIds]);
 
+  const formatLastSeen = (lastSeenDate) => {
+    const currentDate = new Date();
+
+    if (isToday(lastSeenDate)) {
+      const formattedLastSeen = format(
+        lastSeenDate,
+        "'last seen today at' h:mm a"
+      );
+      return formattedLastSeen;
+    } else if (isYesterday(lastSeenDate)) {
+      const formattedLastSeen = format(
+        lastSeenDate,
+        "'last seen yesterday at' h:mm a"
+      );
+      return formattedLastSeen;
+    } else if (isSameWeek(lastSeenDate, currentDate)) {
+      const formattedLastSeen = format(
+        lastSeenDate,
+        "'last seen' eeee 'at' h:mm a"
+      );
+      return formattedLastSeen;
+    } else if (isThisYear(lastSeenDate)) {
+      const formattedLastSeen = format(lastSeenDate, "'last seen' dd/MM/yy");
+      return formattedLastSeen;
+    } else {
+      const formattedLastSeen = format(lastSeenDate, "'last seen' dd/MM/yy");
+      return formattedLastSeen;
+    }
+  };
+
   return (
     <>
       <Router>
@@ -84,16 +101,26 @@ function Home({ setUserStatus }) {
           setSelectedChatId={setSelectedChatId}
           userStatuses={userStatuses}
           setUserStatus={setUserStatus}
+          // setIsOpen={setIsOpen}
         />
         <Routes>
           <Route path="/" element={<ChatsHome />}></Route>
           <Route
             path="/:id"
             element={
+              // isMobile ? (
+              //   <ChatsSection
+              //     setSelectedChatId={setSelectedChatId}
+              //     userStatuses={userStatuses}
+              //     isOpen={isOpen}
+              //     isMobile={isMobile}
+              // />
+              // ) : (
               <ChatsSection
                 setSelectedChatId={setSelectedChatId}
                 userStatuses={userStatuses}
               />
+              // )
             }
           ></Route>
         </Routes>
