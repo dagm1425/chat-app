@@ -49,7 +49,7 @@ import UsersSearch from "./UsersSearch";
 import { formatDate, formatFilename, formatTime } from "../../common/utils";
 import ChatImg from "./ChatImg";
 
-function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
+function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
@@ -837,6 +837,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, scroll }) {
           excUsers={chat.type === "private" ? chat.members : [user]}
           handleItemClick={handleForwardMsg}
           onClose={handleMsgForwardClose}
+          userStatuses={userStatuses}
         />
       </Dialog>
 
@@ -863,6 +864,7 @@ ChatMsgDisp.propTypes = {
   chat: PropTypes.object,
   uploadTask: PropTypes.object,
   setMsgReply: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
   scroll: PropTypes.oneOfType([
     PropTypes.func,
     PropTypes.shape({ current: PropTypes.instanceOf(Element) }),

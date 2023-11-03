@@ -39,6 +39,7 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
         setMsgReply={setMsgReply}
         scroll={scroll}
         setSelectedChatId={setSelectedChatId}
+        userStatuses={userStatuses}
       />
       <ChatMsgInput
         chat={chat}
