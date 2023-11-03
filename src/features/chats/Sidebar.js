@@ -22,14 +22,14 @@ function Sidebar({
         position: "fixed",
         top: 0,
         left: 0,
-        width: "23%",
+        width: { xs: location.pathname === "/" ? "100%" : "0", sm: "23%" },
         height: "100vh",
+        overflow: {
+          xs: location.pathname === "/" ? "auto" : "hidden",
+          sm: "hidden",
+        },
         borderRight: "1.5px solid",
         borderColor: "background.paper",
-        "@media (max-width: 480px)": {
-          width: location.pathname === "/" ? "100%" : "0",
-          overflow: location.pathname === "/" ? "auto" : "hidden",
-        },
       }}
     >
       <Box

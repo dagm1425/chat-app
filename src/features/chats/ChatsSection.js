@@ -19,16 +19,11 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
   return (
     <Box
       sx={{
-        ml: "23%",
-        width: "77%",
+        ml: { xs: "0", sm: "23%" },
+        width: { xs: location.pathname !== "/" ? "100%" : "0", sm: "77%" },
         display: "flex",
         flexDirection: "column",
         height: "100vh",
-
-        "@media (max-width: 480px)": {
-          ml: "0",
-          width: location.pathname !== "/" ? "100%" : "0",
-        },
       }}
     >
       <ChatHeader chat={chat} userStatuses={userStatuses} />

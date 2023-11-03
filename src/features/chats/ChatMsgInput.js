@@ -256,10 +256,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          gap: "0.5rem",
-          "@media (max-width: 480px)": {
-            gap: "0rem",
-          },
+          gap: { xs: "0rem", sm: "0.5rem" },
         }}
       >
         <IconButton
@@ -293,11 +290,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         <IconButton
           onClick={handleFileSelectClick}
           sx={{
+            pr: { xs: "0.75rem", sm: "0rem" },
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
-            },
-            "@media (max-width: 480px)": {
-              pr: "0.75rem",
             },
           }}
         >
@@ -411,11 +406,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
         <IconButton
           sx={{
+            pl: { xs: "0.75rem", sm: "0rem" },
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
-            },
-            "@media (max-width: 480px)": {
-              pl: "0.75rem",
             },
           }}
           onClick={() => msgInputForm.current.requestSubmit()}

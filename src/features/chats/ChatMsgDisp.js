@@ -443,7 +443,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         flexDirection: "column",
         height: "100%",
         flex: "1 1 auto",
-        p: "6rem 4rem",
+        p: { xs: "2rem 2rem", sm: "6rem 4rem" },
         overflowY: "auto",
         background: (theme) =>
           theme.palette.mode === "light"
@@ -462,9 +462,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         "&::-webkit-scrollbar-thumb": {
           backgroundColor: "rgba(0,0,0,.1)",
           outline: "1px solid slategrey",
-        },
-        "@media (max-width: 480px)": {
-          p: "2rem 2rem",
         },
       }}
       onScroll={updateScrollTop}

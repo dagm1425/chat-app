@@ -224,16 +224,13 @@ function ChatHeader({ chat, userStatuses }) {
         flex: "0 1 auto",
         position: "fixed",
         top: "0",
-        width: "78%",
+        width: { xs: "100%", sm: "78%" },
         py: "0.75rem",
         zIndex: "1000",
         bgcolor: "background.default",
         borderBottom: "2px solid",
         // borderLeft: "2px solid",
         borderColor: "background.paper",
-        "@media (max-width: 480px)": {
-          width: "100%",
-        },
       }}
     >
       <Box
@@ -243,51 +240,38 @@ function ChatHeader({ chat, userStatuses }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          "@media (max-width: 480px)": {
-            gap: "0.75rem",
-          },
+          gap: { xs: "0.75rem", sm: "0" },
         }}
       >
         <IconButton
           onClick={handleBack}
           sx={{
-            display: "none",
+            display: { xs: "block", sm: "none" },
             mb: "-6px",
-            "@media (max-width: 480px)": {
-              display: "block",
-            },
           }}
         >
           <ArrowBackIcon />
         </IconButton>
         <Box
           sx={{
-            "@media (max-width: 480px)": {
-              display: "flex",
-              alignItems: "center",
-              gap: "0.75rem",
-              mr: "auto",
-            },
+            display: { xs: "flex", sm: "block" },
+            alignItems: { xs: "center", sm: "initial" },
+            gap: { xs: "0.75rem", sm: "0rem" },
+            mr: { xs: "auto", sm: "initial" },
           }}
         >
           {chat.type === "private" ? (
             <Avatar
               src={otherChatMember.photoURL}
               sx={{
-                display: "none",
-                "@media (max-width: 480px)": {
-                  display: "block",
-                },
+                display: { xs: "block", sm: "none" },
               }}
             />
           ) : (
             <Avatar
               sx={{
-                display: "none",
+                display: { xs: "block", sm: "none" },
                 bgcolor: chat.avatarBgColor,
-                "@media (max-width: 480px)": {
-                  display: "block",
-                },
               }}
             >
               {chat.displayName.charAt(0).toUpperCase()}

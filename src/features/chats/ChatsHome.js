@@ -6,12 +6,12 @@ function ChatsHome() {
   return (
     <Box
       sx={{
+        display: { xs: "none", sm: "grid" },
         ml: "23%",
         width: "77%",
         bgcolor: " rgba(0,0,0,0.02)",
         height: "100vh",
         textAlign: "center",
-        display: "grid",
         placeItems: "center",
         "@media (max-width: 480px)": {
           display: "none",
