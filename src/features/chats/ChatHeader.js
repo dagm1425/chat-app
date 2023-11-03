@@ -352,6 +352,7 @@ function ChatHeader({ chat, userStatuses }) {
         <DialogTitle sx={{ fontWeight: "normal" }}>Add members</DialogTitle>
         <UsersSearch
           excUsers={chat.members}
+          userStatuses={userStatuses}
           handleItemClick={handleItemClick}
           selectedMembers={selectedMembers}
           addMembers={addMembers}
