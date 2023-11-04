@@ -40,6 +40,7 @@ import { selectChats } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
+import { formatDate } from "../../common/utils";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const user = useSelector(selectUser);
@@ -56,7 +57,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
     useState(false);
   const [scrollTop, setScrollTop] = useState(0);
-
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
@@ -200,7 +200,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   };
 
   const renderMsgDate = (msgDate) => {
-    msgDates.add(msgDate);
+    if (!msgDates.has(msgDate)) return;
 
     return (
       <Box
@@ -413,6 +413,11 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   };
 
   const msgList = chatMsg.map((message) => {
+    const date = formatDate(message.timestamp);
+
+    if (!msgDates.has(date)) msgDates.add(date);
+    else msgDates.delete(date);
+
     return (
       <ChatMsg
         key={message.msgId}
@@ -422,7 +427,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         chatMsg={chatMsg}
         fileMsgId={fileMsgId}
         setFileMsgId={setFileMsgId}
-        msgDates={msgDates}
         renderMsgDate={renderMsgDate}
         renderReadSign={renderReadSign}
         handleMsgClick={handleMsgClick}

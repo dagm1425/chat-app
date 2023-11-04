@@ -19,7 +19,6 @@ function ChatMsg({
   user,
   chat,
   chatMsg,
-  msgDates,
   renderMsgDate,
   fileMsgId,
   setFileMsgId,
@@ -39,7 +38,7 @@ function ChatMsg({
 
   return (
     <React.Fragment key={message.msgId}>
-      {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
+      {renderMsgDate(msgDate)}
       <Box
         id={message.msgId}
         sx={{
