@@ -15,8 +15,8 @@ function ChatImg({
   const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery("(max-width: 600px)");
   const maxWidth = isMobile ? 0.75 : 0.45;
-  const padding = isMobile ? 32 : 128;
-  const maxContainerWidth = containerWidth * maxWidth - padding * 2;
+  const padding = isMobile ? 64 : 128;
+  const maxContainerWidth = containerWidth * maxWidth - padding;
 
   const handleImageLoad = () => {
     setLoading(false);
