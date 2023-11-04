@@ -14,15 +14,16 @@ function ChatImg({
 }) {
   const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery("(max-width: 600px)");
+  const maxWidth = isMobile ? 0.75 : 0.45;
   const padding = isMobile ? 32 : 128;
-  const containerWidthMinusPadding = containerWidth - padding;
+  const maxContainerWidth = containerWidth * maxWidth - padding * 2;
 
   const handleImageLoad = () => {
     setLoading(false);
   };
 
   const computeRenderedDimensions = () => {
-    const renderedWidth = Math.min(containerWidthMinusPadding, width);
+    const renderedWidth = Math.min(maxContainerWidth, width);
     const renderedHeight = (renderedWidth / width) * height;
     return {
       width: `${renderedWidth}px`,

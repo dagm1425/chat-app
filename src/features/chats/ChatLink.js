@@ -7,6 +7,7 @@ import {
   ListItemAvatar,
   ListItemText,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import {
   // collection,
@@ -39,6 +40,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;
 
   const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
+  const isMobile = useMediaQuery("(max-width: 600px)");
 
   useEffect(() => {
     if (selectedChatId === chatId && unreadMsgCount > 0) resetUnreadCount();
@@ -64,7 +66,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       id={chatId}
       key={chatId}
       to={`/${chatId}`}
-      $selectedchat={chatId === selectedChatId}
+      $selectedchat={chatId === selectedChatId && !isMobile}
       onClick={handleLinkClick}
     >
       <ListItem

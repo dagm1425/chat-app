@@ -46,7 +46,7 @@ function ChatMsg({
           gap: isMsgFromOtherPublicChatMembers ? "0.5rem" : "block",
           alignSelf: isSentFromUser ? "flex-end" : "flex-start",
           width: "fit-content",
-          maxWidth: "45%",
+          maxWidth: { xs: "75%", sm: "45%" },
         }}
       >
         {isMsgFromOtherPublicChatMembers && (
@@ -162,7 +162,7 @@ function ChatMsg({
                       src={message.fileMsg.fileUrl}
                       width={message.fileMsg.imgWidth}
                       height={message.fileMsg.imgHeight}
-                      containerWidth={scroll.current.offsetWidth * 0.45}
+                      containerWidth={scroll.current.offsetWidth}
                       openImgModal={openImgModal}
                       fileName={message.fileMsg.fileName}
                       url={message.fileMsg.fileUrl}
