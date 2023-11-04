@@ -67,7 +67,7 @@ function UsersSearch({
   const usersList = filteredUsersBySearch(users).map((user) => {
     return (
       <ListItem key={user.uid} disablePadding>
-        <ListItemButton autoFocus onClick={() => handleItemClick(user)}>
+        <ListItemButton onClick={() => handleItemClick(user)}>
           <ListItemAvatar>
             <Avatar src={user.photoURL} sx={{ position: "relative" }} />
             {selectedMembers && (
