@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
   arrayUnion,
@@ -36,17 +36,18 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
-import { selectChats } from "./chatsSlice";
+import { selectChatMsgs, selectChats, setChatMsgs } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
-import { formatDate } from "../../common/utils";
+import { formatDate, formatTime } from "../../common/utils";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
-  const [chatMsg, setChatMsg] = useState([]);
+  const dispatch = useDispatch();
+  const chatMsg = useSelector((state) => selectChatMsgs(state, chatId)) || [];
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
@@ -114,7 +115,16 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         }
         return a.timestamp - b.timestamp;
       });
-      setChatMsg(sortedMessages);
+      const msgsWithFormattedTimestamp = sortedMessages.map((msg) => {
+        const message = {
+          ...msg,
+          msgTime: formatTime(msg.timestamp),
+          msgDate: formatDate(msg.timestamp),
+        };
+        delete message.timestamp;
+        return message;
+      });
+      dispatch(setChatMsgs({ chatId, chatMsg: msgsWithFormattedTimestamp }));
     });
   };
 

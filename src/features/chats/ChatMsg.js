@@ -12,7 +12,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import ChatImg from "./ChatImg";
-import { formatDate, formatFilename, formatTime } from "../../common/utils";
+import { formatFilename } from "../../common/utils";
 
 function ChatMsg({
   message,
@@ -31,14 +31,12 @@ function ChatMsg({
   scrollToMsg,
 }) {
   const isSentFromUser = message.from.uid === user.uid;
-  const msgTime = formatTime(message.timestamp);
-  const msgDate = formatDate(message.timestamp);
   const isMsgFromOtherPublicChatMembers =
     chat.type === "public" && message.from.uid !== user.uid;
 
   return (
     <React.Fragment key={message.msgId}>
-      {renderMsgDate(msgDate)}
+      {renderMsgDate(message.msgDate)}
       <Box
         id={message.msgId}
         sx={{
@@ -332,7 +330,7 @@ function ChatMsg({
             }}
           >
             <Typography variant="body2" sx={{ font: "inherit" }}>
-              {msgTime}
+              {message.msgTime}
             </Typography>
             {renderReadSign(message)}
           </Box>
