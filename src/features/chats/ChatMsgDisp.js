@@ -210,7 +210,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   };
 
   const renderMsgDate = (msgDate) => {
-    if (!msgDates.has(msgDate)) return;
+    msgDates.add(msgDate);
 
     return (
       <Box
@@ -423,29 +423,28 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   };
 
   const msgList = chatMsg.map((message) => {
-    const date = formatDate(message.timestamp);
-
-    if (!msgDates.has(date)) msgDates.add(date);
-    else msgDates.delete(date);
+    const msgDate = message.msgDate;
 
     return (
-      <ChatMsg
-        key={message.msgId}
-        message={message}
-        user={user}
-        chat={chat}
-        chatMsg={chatMsg}
-        fileMsgId={fileMsgId}
-        setFileMsgId={setFileMsgId}
-        renderMsgDate={renderMsgDate}
-        renderReadSign={renderReadSign}
-        handleMsgClick={handleMsgClick}
-        openImgModal={openImgModal}
-        cancelUpload={cancelUpload}
-        downloadFile={downloadFile}
-        scroll={scroll}
-        scrollToMsg={scrollToMsg}
-      />
+      <React.Fragment key={message.msgId}>
+        {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
+        <ChatMsg
+          key={message.msgId}
+          message={message}
+          user={user}
+          chat={chat}
+          chatMsg={chatMsg}
+          fileMsgId={fileMsgId}
+          setFileMsgId={setFileMsgId}
+          renderReadSign={renderReadSign}
+          handleMsgClick={handleMsgClick}
+          openImgModal={openImgModal}
+          cancelUpload={cancelUpload}
+          downloadFile={downloadFile}
+          scroll={scroll}
+          scrollToMsg={scrollToMsg}
+        />
+      </React.Fragment>
     );
   });
 
