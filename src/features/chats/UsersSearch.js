@@ -13,7 +13,7 @@ import {
   Typography,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, orderBy, query } from "firebase/firestore";
 import { db } from "../../firebase";
 import CircularProgress from "@mui/material/CircularProgress";
 import UserStatus from "../user/UserStatus";
@@ -39,7 +39,9 @@ function UsersSearch({
   }, []);
 
   const subscribeUsers = () => {
-    return onSnapshot(collection(db, "users"), (snapshot) => {
+    const q = query(collection(db, "users"), orderBy("displayName"));
+
+    return onSnapshot(q, (snapshot) => {
       const users = [];
       snapshot.forEach((doc) => {
         users.push(doc.data());
