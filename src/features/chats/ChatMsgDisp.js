@@ -429,7 +429,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
       <React.Fragment key={message.msgId}>
         {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
         <ChatMsg
-          key={message.msgId}
           message={message}
           user={user}
           chat={chat}
