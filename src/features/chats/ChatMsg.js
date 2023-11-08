@@ -14,6 +14,8 @@ import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import ChatImg from "./ChatImg";
 import { formatFilename } from "../../common/utils";
+import { isLink } from "../../common/utils";
+import ChatMsgLink from "./ChatMsgLink";
 
 function ChatMsg({
   message,
@@ -123,9 +125,16 @@ function ChatMsg({
             </Box>
           )}
         {message.msg ? (
-          <Typography variant="body2" sx={{ ml: "0.25rem" }}>
-            {message.msg}
-          </Typography>
+          isLink(message.msg) ? (
+            <ChatMsgLink
+              url={message.msg}
+              containerWidth={scroll.current.offsetWidth}
+            />
+          ) : (
+            <Typography variant="body2" sx={{ ml: "0.25rem" }}>
+              {message.msg}
+            </Typography>
+          )
         ) : (
           <>
             {message.fileMsg.fileType.includes("image") ? (

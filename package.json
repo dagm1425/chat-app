@@ -5,6 +5,7 @@
   "dependencies": {
     "@emotion/react": "^11.11.1",
     "@emotion/styled": "^11.11.0",
+    "@microlink/react": "^5.5.15",
     "@mui/icons-material": "^5.11.16",
     "@mui/material": "^5.13.4",
     "@reduxjs/toolkit": "^1.9.5",
@@ -22,7 +23,7 @@
     "react-router-dom": "^6.13.0",
     "react-scripts": "5.0.1",
     "react-zoom-pan-pinch": "^3.1.0",
-    "styled-components": "^6.0.5",
+    "styled-components": "^5.3.11",
     "util": "^0.12.5",
     "uuid": "^9.0.0",
     "web-vitals": "^2.1.4"
