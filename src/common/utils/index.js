@@ -42,6 +42,8 @@ export function formatTime(timestamp) {
 }
 
 export function isLink(str) {
+  str = str.replace(/\n/g, "");
+
   const pattern = new RegExp(
     "^(https?:\\/\\/)?" +
       "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" +
