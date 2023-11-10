@@ -86,11 +86,15 @@ function App() {
       });
       chats = chats.map((chat) => {
         if (chat.recentMsg === null) return chat;
+        const date = chat.recentMsg.timestamp
+          ? chat.recentMsg.timestamp.toDate()
+          : new Date();
+
         return {
           ...chat,
           recentMsg: {
             ...chat.recentMsg,
-            timestamp: formatDate(chat.recentMsg.timestamp),
+            timestamp: formatDate(date),
           },
         };
       });

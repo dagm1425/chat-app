@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
+  Timestamp,
   arrayUnion,
   collection,
   deleteDoc,
@@ -40,7 +41,7 @@ import { selectChatMsgs, selectChats, setChatMsgs } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
-import { formatDate, formatTime } from "../../common/utils";
+import { formatDate } from "../../common/utils";
 
 function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const user = useSelector(selectUser);
@@ -115,16 +116,15 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         }
         return a.timestamp - b.timestamp;
       });
-      const msgsWithFormattedTimestamp = sortedMessages.map((msg) => {
+      const msgsWithDateObject = sortedMessages.map((msg) => {
+        const timestamp = msg.timestamp ? msg.timestamp.toDate() : new Date();
         const message = {
           ...msg,
-          msgTime: formatTime(msg.timestamp),
-          msgDate: formatDate(msg.timestamp),
+          timestamp,
         };
-        delete message.timestamp;
         return message;
       });
-      dispatch(setChatMsgs({ chatId, chatMsg: msgsWithFormattedTimestamp }));
+      dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
     });
   };
 
@@ -281,11 +281,12 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     await deleteDoc(messageRef);
 
     if (isMsgRecent) {
-      const secondLastMsg = chatMsg[chatMsg.length - 2];
+      const secondLastMsg = { ...chatMsg[chatMsg.length - 2] };
+      const timestamp = Timestamp.fromDate(secondLastMsg.timestamp);
 
       delete secondLastMsg.msgReply;
-      await updateDoc(chatRef, { recentMsg: secondLastMsg });
-      await updateDoc(chatRef, { timestamp: secondLastMsg.timestamp });
+      await updateDoc(chatRef, { recentMsg: { ...secondLastMsg, timestamp } });
+      await updateDoc(chatRef, { timestamp });
     }
 
     for (const uid in unreadCounts) {
@@ -423,7 +424,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   };
 
   const msgList = chatMsg.map((message) => {
-    const msgDate = message.msgDate;
+    const msgDate = formatDate(message.timestamp);
 
     return (
       <React.Fragment key={message.msgId}>

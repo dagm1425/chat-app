@@ -13,7 +13,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import ChatImg from "./ChatImg";
-import { formatFilename } from "../../common/utils";
+import { formatFilename, formatTime } from "../../common/utils";
 import { isLink } from "../../common/utils";
 import ChatMsgLink from "./ChatMsgLink";
 
@@ -35,6 +35,7 @@ function ChatMsg({
   const isSentFromUser = message.from.uid === user.uid;
   const isMsgFromOtherPublicChatMembers =
     chat.type === "public" && message.from.uid !== user.uid;
+  const msgTime = formatTime(message.timestamp);
 
   return (
     <Box
@@ -337,7 +338,7 @@ function ChatMsg({
           }}
         >
           <Typography variant="body2" sx={{ font: "inherit" }}>
-            {message.msgTime}
+            {msgTime}
           </Typography>
           {renderReadSign(message)}
         </Box>

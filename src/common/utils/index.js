@@ -28,17 +28,13 @@ export function formatFilename(filename) {
 }
 
 export function formatDate(timestamp) {
-  const ts = timestamp == null ? new Date() : timestamp.toDate();
-
-  return formatRelative(ts, Timestamp.now().toDate(), {
+  return formatRelative(timestamp, Timestamp.now().toDate(), {
     locale,
   });
 }
 
 export function formatTime(timestamp) {
-  const ts = timestamp == null ? new Date() : timestamp.toDate();
-
-  return format(ts, "hh:mm a");
+  return format(timestamp, "hh:mm a");
 }
 
 export function isLink(str) {
