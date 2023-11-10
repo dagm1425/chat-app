@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import {
@@ -42,34 +41,11 @@ function ChatHeader({ chat, userStatuses }) {
     useState(false);
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
-  // const [recentMsg, setRecentMsg] = useState(null);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const publicChatMembers =
     chat.type === " private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
-
-  // useEffect(() => {
-  //   const unsub = subscribeRecentMsg();
-
-  //   return () => {
-  //     unsub();
-  //   };
-  // }, [chatId]);
-
-  // const subscribeRecentMsg = () => {
-  //   const q = query(
-  //     collection(db, "chats", `${chatId}`, "chatMessages"),
-  //     orderBy("timestamp", "desc"),
-  //     limit(1)
-  //   );
-
-  //   return onSnapshot(q, (querySnap) => {
-  //     let recentMsg = [];
-  //     querySnap.forEach((doc) => recentMsg.push(doc.data()));
-  //     setRecentMsg(recentMsg[0]);
-  //   });
-  // };
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
@@ -164,23 +140,6 @@ function ChatHeader({ chat, userStatuses }) {
   const MenuItems =
     chat.type === "private" ? privateChatMenuItems() : publicChatMenuItems();
 
-  // const otherChatMemberId = chat.members.find(
-  //   (member) => member.uid !== user.uid
-  // ).uid;
-  // const [otherChatMember, setOtherChatMember] = useState({});
-
-  // useEffect(() => {
-  //   const unsub = onSnapshot(
-  //     doc(db, "users", `${otherChatMemberId}`),
-  //     (user) => {
-  //       setOtherChatMember(user.data());
-  //     }
-  //   );
-
-  //   return () => {
-  //     unsub();
-  //   };
-  // }, []);
   const handleItemClick = (user) => {
     let selections;
 
@@ -229,7 +188,6 @@ function ChatHeader({ chat, userStatuses }) {
         zIndex: "1000",
         bgcolor: "background.default",
         borderBottom: "2px solid",
-        // borderLeft: "2px solid",
         borderColor: "background.paper",
       }}
     >
@@ -291,7 +249,7 @@ function ChatHeader({ chat, userStatuses }) {
                 sx={{
                   display: "block",
                   width: "inherit",
-                  whiteSpace: "nowrap" /* forces text to single line */,
+                  whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                 }}

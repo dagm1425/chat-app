@@ -101,26 +101,16 @@ function Home({ setUserStatus }) {
           setSelectedChatId={setSelectedChatId}
           userStatuses={userStatuses}
           setUserStatus={setUserStatus}
-          // setIsOpen={setIsOpen}
         />
         <Routes>
           <Route path="/" element={<ChatsHome />}></Route>
           <Route
             path="/:id"
             element={
-              // isMobile ? (
-              //   <ChatsSection
-              //     setSelectedChatId={setSelectedChatId}
-              //     userStatuses={userStatuses}
-              //     isOpen={isOpen}
-              //     isMobile={isMobile}
-              // />
-              // ) : (
               <ChatsSection
                 setSelectedChatId={setSelectedChatId}
                 userStatuses={userStatuses}
               />
-              // )
             }
           ></Route>
         </Routes>

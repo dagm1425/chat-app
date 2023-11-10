@@ -9,7 +9,6 @@ import {
   where,
   onSnapshot,
   orderBy,
-  // Timestamp,
 } from "firebase/firestore";
 import { setUser } from "../features/user/userSlice";
 import UserLogin from "../features/user/UserLogin";
@@ -20,27 +19,12 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import { formatDate } from "../common/utils";
 import { Box } from "@mui/material";
 import { ref, set, serverTimestamp, onDisconnect } from "firebase/database";
-// import formatRelative from "date-fns/formatRelative";
-// import { enUS } from "date-fns/esm/locale";
 
 function App() {
-  // const chats = useSelector(selectChats);
   const dispatch = useDispatch();
   const [user, loading] = useAuthState(auth);
   const [fetchingUserData, setFetchingUserData] = useState(true);
   const [fetchingChatsData, setFetchingChatsData] = useState(true);
-  // const formatRelativeLocale = {
-  //   lastWeek: "EEEE",
-  //   yesterday: "'Yesterday'",
-  //   today: "'Today'",
-  //   tomorrow: "EEEE",
-  //   nextWeek: "EEEE",
-  //   other: "dd/MM/yyy",
-  // };
-  // const locale = {
-  //   ...enUS,
-  //   formatRelative: (token) => formatRelativeLocale[token],
-  // };
 
   useEffect(() => {
     let unsubscribe;

@@ -158,12 +158,7 @@ function ChatMsg({
                     <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
                     <IconButton
                       sx={{ gridColumn: 1, gridRow: 1 }}
-                      onClick={() =>
-                        // const uploadObj = JSON.parse(
-                        //   message.fileMsg.uploadTask
-                        // );
-                        cancelUpload(message.msgId)
-                      }
+                      onClick={() => cancelUpload(message.msgId)}
                     >
                       <CloseIcon />
                     </IconButton>
@@ -220,12 +215,7 @@ function ChatMsg({
                             bgcolor: "transparent",
                           },
                         }}
-                        onClick={() =>
-                          // const uploadObj = JSON.parse(
-                          //   message.fileMsg.uploadTask
-                          // );
-                          cancelUpload(message.msgId)
-                        }
+                        onClick={() => cancelUpload(message.msgId)}
                       >
                         <CloseIcon />
                       </IconButton>

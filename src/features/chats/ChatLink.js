@@ -9,17 +9,9 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import {
-  // collection,
-  doc,
-  // onSnapshot,
-  // orderBy,
-  // query,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, updateDoc } from "firebase/firestore";
 import { Link } from "react-router-dom";
 import styled from "styled-components";
-// import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
@@ -29,12 +21,9 @@ import { db } from "../../firebase";
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
-  // const [chatMsg, setChatMsg] = useState([]);
-  // const [recentMsg, setRecentMsg] = useState(null);
   const recentMsg = chat.recentMsg;
   const unreadMsgCount = chat.unreadCounts[user.uid];
   const draft = chat.drafts.find((draft) => draft.from.uid === user.uid);
-  // const [unreadMsgCount, setUnreadMsgCount] = useState(0);
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
     chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;

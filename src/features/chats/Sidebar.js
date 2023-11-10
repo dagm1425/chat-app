@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
-// import ChatsSearchBar from "./ChatsSearchBar";
 import { Box, TextareaAutosize } from "@mui/material";
 import styled from "styled-components";
 import { useLocation } from "react-router-dom";

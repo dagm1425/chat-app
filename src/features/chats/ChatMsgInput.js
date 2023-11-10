@@ -3,17 +3,7 @@ import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
-import {
-  doc,
-  // increment,
-  // updateDoc,
-  // arrayUnion,
-  serverTimestamp,
-  // getDoc,
-  setDoc,
-  updateDoc,
-  // updateDoc,
-} from "firebase/firestore";
+import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
 import {
@@ -33,7 +23,6 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
 import styled from "styled-components";
-// import mozjpeg from "mozjpeg";
 
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
@@ -295,7 +284,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         <IconButton
           onClick={handleFileSelectClick}
           sx={{
-            // pr: { xs: "0.75rem", sm: "0rem" },
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
             },
@@ -411,7 +399,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
         <IconButton
           sx={{
-            // pl: { xs: "0.75rem", sm: "0rem" },
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
             },

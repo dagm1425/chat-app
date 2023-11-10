@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
@@ -30,11 +29,8 @@ function FileMsgDialogContent({
   const fileType = file.type;
 
   const updateProgress = async (msgRef, progress) => {
-    // const uploadTaskObj = progress == 100 ? null : JSON.stringify(uploadTask);
-
     await updateDoc(msgRef, {
       "fileMsg.progress": progress,
-      // "fileMsg.uploadTask": uploadTaskObj,
     });
   };
 
@@ -79,15 +75,6 @@ function FileMsgDialogContent({
 
     lastMmsg.scrollIntoView({ behavior: "smooth" });
 
-    // await updateDoc(chatRef, {
-    //   recentMsg: {
-    //     msgId,
-    //     from: user,
-    //     msg: caption === "" ? fileName : caption,
-    //     timestamp: serverTimestamp(),
-    //   },
-    // });
-
     const filePath = `${user.uid}/${msgId}/${file.name}`;
     const newFileRef = ref(storage, filePath);
     const uploadTask = uploadBytesResumable(newFileRef, file);
@@ -101,22 +88,12 @@ function FileMsgDialogContent({
           (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
 
         updateProgress(msgRef, progress, uploadTask);
-
-        switch (snapshot.state) {
-          case "paused":
-            console.log("Upload is paused");
-            break;
-          case "running":
-            console.log("Upload is running");
-            break;
-        }
       },
       (error) => {
         console.log("There was a problem uploading the file", error);
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          console.log("File available at", downloadURL);
           updateURL(msgRef, downloadURL);
         });
       }
@@ -196,7 +173,7 @@ FileMsgDialogContent.propTypes = {
     displayName: PropTypes.string,
     photoURL: PropTypes.string,
   }),
-  file: PropTypes.object,
+  fileMsg: PropTypes.object,
   setUploadTask: PropTypes.func,
   onClose: PropTypes.func,
   setMsgReply: PropTypes.func,
