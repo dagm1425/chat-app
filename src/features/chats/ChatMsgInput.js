@@ -86,6 +86,10 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       : "";
   }, [chatDrafts]);
 
+  useEffect(() => {
+    if (msgReply) inputRef.current.focus();
+  }, [msgReply]);
+
   const handleSendMsg = async (e) => {
     e.preventDefault();
 
