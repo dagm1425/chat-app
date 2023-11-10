@@ -87,8 +87,8 @@ function App() {
       chats = chats.map((chat) => {
         if (chat.recentMsg === null) return chat;
         const date = chat.recentMsg.timestamp
-          ? chat.recentMsg.timestamp.toDate()
-          : new Date();
+          ? chat.recentMsg.timestamp.toDate().toISOString()
+          : null;
 
         return {
           ...chat,

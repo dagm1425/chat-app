@@ -117,7 +117,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         return a.timestamp - b.timestamp;
       });
       const msgsWithDateObject = sortedMessages.map((msg) => {
-        const timestamp = msg.timestamp ? msg.timestamp.toDate() : new Date();
+        const timestamp = msg.timestamp
+          ? msg.timestamp.toDate().toISOString()
+          : null;
         const message = {
           ...msg,
           timestamp,
@@ -282,7 +284,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
 
     if (isMsgRecent) {
       const secondLastMsg = { ...chatMsg[chatMsg.length - 2] };
-      const timestamp = Timestamp.fromDate(secondLastMsg.timestamp);
+      const timestamp = Timestamp.fromDate(new Date(secondLastMsg.timestamp));
 
       delete secondLastMsg.msgReply;
       await updateDoc(chatRef, { recentMsg: { ...secondLastMsg, timestamp } });
