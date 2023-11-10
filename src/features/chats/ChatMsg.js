@@ -192,8 +192,8 @@ function ChatMsg({
                   sx={{
                     display: "grid",
                     placeItems: "center",
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     bgcolor: isSentFromUser
                       ? "primary.light"
                       : "background.default",
