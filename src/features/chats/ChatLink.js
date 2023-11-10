@@ -18,7 +18,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { Link } from "react-router-dom";
-import { styled } from "styled-components";
+import styled from "styled-components";
 // import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";

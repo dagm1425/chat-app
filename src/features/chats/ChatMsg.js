@@ -72,13 +72,13 @@ function ChatMsg({
           <Typography
             variant="body2"
             sx={{
-              fontSize: "0.825rem",
+              fontSize: "0.75rem",
               fontWeight: "bold",
               mb: message.msgReply || message.fileMsg ? "0.25rem" : "0rem",
               ml: "0.25rem",
             }}
           >
-            {message.from.displayName}
+            {message.from.uid === user.uid ? "You" : message.from.displayName}
           </Typography>
         )}
         {message.msgReply &&
@@ -93,9 +93,15 @@ function ChatMsg({
                 ml: "0.25rem",
                 borderLeft: "4px solid",
                 borderColor: "primary.main",
-                borderTopLeftRadius: "0.25rem",
-                borderBottomLeftRadius: "0.25rem",
+                borderRadius: "0.25rem",
+                bgcolor: "inherit",
+                filter: (theme) =>
+                  theme.palette.mode === "light"
+                    ? "brightness(0.94)"
+                    : "brightness(1.15)",
+                py: "0.125rem",
                 cursor: "pointer",
+                boxShadow: 2,
               }}
               onClick={() => {
                 scrollToMsg(message);
@@ -104,18 +110,20 @@ function ChatMsg({
               {message.msgReply.fileMsg && (
                 <InsertDriveFileIcon fontSize="small" />
               )}
-              <Box sx={{ fontSize: "0.825rem" }}>
+              <Box>
                 <Typography
                   variant="body2"
                   sx={{
-                    fontSize: "inherit",
-                    fontWeight: "bold",
+                    fontSize: "0.75rem",
+                    fontWeight: "500",
                     lineHeight: "1.25em",
                   }}
                 >
-                  {message.msgReply.from.displayName}
+                  {message.msgReply.from.uid === user.uid
+                    ? "You"
+                    : message.msgReply.from.displayName}
                 </Typography>
-                <Typography variant="body2" sx={{ fontSize: "inherit" }}>
+                <Typography variant="body2" sx={{ fontSize: "0.825rem" }}>
                   {message.msgReply.msg
                     ? message.msgReply.msg
                     : message.msgReply.caption
@@ -172,7 +180,6 @@ function ChatMsg({
                     openImgModal={openImgModal}
                     fileName={message.fileMsg.fileName}
                     url={message.fileMsg.fileUrl}
-                    caption={message.caption}
                   />
                 </>
               )

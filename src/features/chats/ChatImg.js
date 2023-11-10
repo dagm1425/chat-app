@@ -10,7 +10,6 @@ function ChatImg({
   openImgModal,
   fileName,
   url,
-  caption,
 }) {
   const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery("(max-width: 600px)");
@@ -34,7 +33,7 @@ function ChatImg({
   return (
     <Box
       sx={computeRenderedDimensions}
-      mb={caption !== "" ? "0.125rem" : "0rem"}
+      mb="0.125rem"
       onClick={() =>
         openImgModal({
           fileName,
@@ -45,6 +44,7 @@ function ChatImg({
       {loading && (
         <Skeleton
           variant="rectangular"
+          animation="wave"
           sx={{ width: "100%", height: "100%" }}
         />
       )}
@@ -56,6 +56,7 @@ function ChatImg({
           height: "auto",
           opacity: loading ? 0 : 1,
           transition: "opacity 0.3s ease-in-out",
+          cursor: "pointer",
         }}
         loading="lazy"
         alt=""
