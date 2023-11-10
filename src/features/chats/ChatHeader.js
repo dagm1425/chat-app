@@ -201,7 +201,7 @@ function ChatHeader({ chat, userStatuses }) {
   const addMembers = async () => {
     if (!selectedMembers.length) return;
 
-    const unreadCounts = chat.unreadCounts;
+    const unreadCounts = { ...chat.unreadCounts };
 
     handleAddPublicChatMembersClose();
     selectedMembers.forEach((member) => {
