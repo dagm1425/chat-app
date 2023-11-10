@@ -1,6 +1,5 @@
-/* eslint-disable react/prop-types */
 import React from "react";
-// import PropTypes from "prop-types";
+import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
@@ -355,3 +354,30 @@ function ChatMsg({
 }
 
 export default ChatMsg;
+
+ChatMsg.propTypes = {
+  message: PropTypes.object,
+  chat: PropTypes.object,
+  user: PropTypes.shape({
+    uid: PropTypes.string,
+    displayName: PropTypes.string,
+    photoURL: PropTypes.string,
+  }),
+  chatMsg: PropTypes.arrayOf(
+    PropTypes.shape({
+      msgId: PropTypes.string.isRequired,
+    })
+  ),
+  fileMsgId: PropTypes.string,
+  setFileMsgId: PropTypes.func,
+  renderReadSign: PropTypes.func,
+  handleMsgClick: PropTypes.func,
+  openImgModal: PropTypes.func,
+  cancelUpload: PropTypes.func,
+  downloadFile: PropTypes.func,
+  scroll: PropTypes.oneOfType([
+    PropTypes.func,
+    PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
+  ]),
+  scrollToMsg: PropTypes.func,
+};
