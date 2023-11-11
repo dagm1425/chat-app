@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
-import { Box, TextareaAutosize } from "@mui/material";
+import { Box, TextareaAutosize, useMediaQuery } from "@mui/material";
 import styled from "styled-components";
 import { useLocation } from "react-router-dom";
 
@@ -14,14 +14,16 @@ function Sidebar({
 }) {
   const [searchValue, setSearchValue] = useState("");
   const location = useLocation();
+  const isMobile = useMediaQuery("(max-width:600px)");
 
-  return (
+  return !isMobile || (isMobile && location.pathname === "/") ? (
     <Box
       sx={{
         position: "fixed",
         top: 0,
         left: 0,
-        width: { xs: location.pathname === "/" ? "100%" : "0", sm: "23%" },
+        width: { xs: "100%", sm: "35%", lg: "23%" },
+
         height: "100vh",
         overflow: {
           xs: location.pathname === "/" ? "auto" : "hidden",
@@ -59,7 +61,7 @@ function Sidebar({
         setSelectedChatId={setSelectedChatId}
       />
     </Box>
-  );
+  ) : null;
 }
 
 export default Sidebar;

@@ -7,6 +7,7 @@ import { selectChatById } from "./chatsSlice";
 import ChatHeader from "./ChatHeader";
 import ChatMsgDisp from "./ChatMsgDisp";
 import ChatMsgInput from "./ChatMsgInput";
+import { useMediaQuery } from "@mui/material";
 
 function ChatsSection({ setSelectedChatId, userStatuses }) {
   const { id } = useParams();
@@ -14,13 +15,15 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
   const [uploadTask, setUploadTask] = useState(null);
   const [msgReply, setMsgReply] = useState(null);
   const scroll = useRef();
-  const location = useLocation();
 
-  return (
+  const location = useLocation();
+  const isMobile = useMediaQuery("(max-width:600px)");
+
+  return !isMobile || (isMobile && location.pathname !== "/") ? (
     <Box
       sx={{
-        ml: { xs: "0", sm: "23%" },
-        width: { xs: location.pathname !== "/" ? "100%" : "0", sm: "77%" },
+        ml: { xs: "0", sm: "35%", lg: "23%" },
+        width: { xs: "100%", sm: "65%", lg: "77%" },
         display: "flex",
         flexDirection: "column",
         height: "100vh",
@@ -44,7 +47,7 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
         scroll={scroll}
       />
     </Box>
-  );
+  ) : null;
 }
 
 export default ChatsSection;
