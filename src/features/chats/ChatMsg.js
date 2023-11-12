@@ -7,6 +7,7 @@ import {
   Fade,
   IconButton,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import CloseIcon from "@mui/icons-material/Close";
@@ -35,6 +36,12 @@ function ChatMsg({
   const isMsgFromOtherPublicChatMembers =
     chat.type === "public" && message.from.uid !== user.uid;
   const msgTime = formatTime(message.timestamp);
+
+  const isMobile = useMediaQuery("(max-width:600px)");
+
+  console.log(scroll.current);
+  // useEffect(() => {
+  // }, [chat]);
 
   return (
     <Box
@@ -136,7 +143,9 @@ function ChatMsg({
           isLink(message.msg) ? (
             <ChatMsgLink
               url={message.msg}
-              containerWidth={scroll.current.offsetWidth}
+              containerWidth={
+                isMobile ? screen.width : scroll.current.offsetWidth
+              }
             />
           ) : (
             <Typography variant="body2" sx={{ ml: "0.25rem" }}>
@@ -170,7 +179,9 @@ function ChatMsg({
                     src={message.fileMsg.fileUrl}
                     width={message.fileMsg.imgWidth}
                     height={message.fileMsg.imgHeight}
-                    containerWidth={scroll.current.offsetWidth}
+                    containerWidth={
+                      isMobile ? screen.width : scroll.current.offsetWidth
+                    }
                     openImgModal={openImgModal}
                     fileName={message.fileMsg.fileName}
                     url={message.fileMsg.fileUrl}
