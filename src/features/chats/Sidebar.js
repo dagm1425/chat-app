@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
@@ -15,6 +15,13 @@ function Sidebar({
   const [searchValue, setSearchValue] = useState("");
   const location = useLocation();
   const isMobile = useMediaQuery("(max-width:600px)");
+  const inputRef = useRef(null);
+
+  useEffect(() => {
+    if (!isMobile && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, []);
 
   return !isMobile || (isMobile && location.pathname === "/") ? (
     <Box
@@ -48,11 +55,11 @@ function Sidebar({
           userStatuses={userStatuses}
         />
         <StyledTextarea
+          ref={inputRef}
           value={searchValue}
           placeholder="Search chat"
           maxRows={1}
           onChange={(e) => setSearchValue(e.target.value)}
-          autoFocus
         />
       </Box>
       <ChatsList
