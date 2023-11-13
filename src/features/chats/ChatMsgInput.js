@@ -14,6 +14,7 @@ import {
   TextareaAutosize,
   Popover,
   Typography,
+  useMediaQuery,
 } from "@mui/material";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import EmojiPicker from "emoji-picker-react";
@@ -39,6 +40,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const [fileMsg, setFileMsg] = useState(null);
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
   const inputRef = useRef(null);
+  const isMobile = useMediaQuery("(max-width: 600px)");
 
   useEffect(() => {
     const listener = (e) => {
@@ -61,7 +63,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
   useEffect(() => {
     updateDraft();
-    if (document.activeElement !== inputRef.current) inputRef.current.focus();
+    if (document.activeElement !== inputRef.current && !isMobile)
+      inputRef.current.focus();
     setChatDrafts({
       chatId,
       userDraft,
@@ -238,6 +241,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         position: "sticky",
         bottom: "0",
         py: "0.75rem",
+        bgcolor: "background.default",
         borderTop: "2px solid",
         borderColor: "background.paper",
       }}
