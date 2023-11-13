@@ -36,12 +36,7 @@ function ChatMsg({
   const isMsgFromOtherPublicChatMembers =
     chat.type === "public" && message.from.uid !== user.uid;
   const msgTime = formatTime(message.timestamp);
-
   const isMobile = useMediaQuery("(max-width:600px)");
-
-  console.log(scroll.current);
-  // useEffect(() => {
-  // }, [chat]);
 
   return (
     <Box
@@ -144,7 +139,7 @@ function ChatMsg({
             <ChatMsgLink
               url={message.msg}
               containerWidth={
-                isMobile ? screen.width : scroll.current.offsetWidth
+                isMobile ? window.innerWidth : scroll.current.offsetWidth
               }
             />
           ) : (
