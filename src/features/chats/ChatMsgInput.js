@@ -361,6 +361,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                     }}
                   >
                     {msgReply.from.displayName}
+                    {msgReply.from.uid === user.uid
+                      ? "You"
+                      : msgReply.from.displayName}
                   </Typography>
                   <Typography
                     variant="body1"
