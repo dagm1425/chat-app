@@ -29,6 +29,7 @@ import {
   DialogTitle,
   IconButton,
   Modal,
+  CircularProgress,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -49,6 +50,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const chatId = chat.chatId;
   const dispatch = useDispatch();
   const chatMsg = useSelector((state) => selectChatMsgs(state, chatId)) || [];
+  const [isChatsLoading, setIsChatsLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
@@ -122,6 +124,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         };
         return message;
       });
+      setIsChatsLoading(false);
       dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
     });
   };
@@ -471,7 +474,13 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         },
       }}
     >
-      {msgList.length > 0 ? msgList : null}
+      {isChatsLoading ? (
+        <Box sx={{ height: "100vh", display: "grid", placeItems: "center" }}>
+          <CircularProgress />
+        </Box>
+      ) : msgList.length > 0 ? (
+        msgList
+      ) : null}
       <span></span>
       <IconButton
         sx={{
