@@ -26,7 +26,10 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
         width: { xs: "100%", sm: "65%", lg: "77%" },
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
+        position: "fixed",
+        top: 0,
+        left: 0,
+        height: "100%",
       }}
     >
       <ChatHeader chat={chat} userStatuses={userStatuses} />

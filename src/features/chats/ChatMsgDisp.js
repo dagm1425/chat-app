@@ -449,7 +449,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         flexDirection: "column",
         height: "100%",
         flex: "1 1 auto",
-        p: { xs: "4.5rem 2rem", sm: "6rem 4rem" },
+        p: { xs: "4.5rem 0.75rem", sm: "6rem 4rem" },
         overflowY: "auto",
         background: (theme) =>
           theme.palette.mode === "light"
