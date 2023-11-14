@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -58,7 +58,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const [fileMsgId, setFileMsgId] = useState("");
   const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
     useState(false);
-  const [scrollTop, setScrollTop] = useState(0);
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
@@ -83,19 +82,16 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     updateUnreadMsg();
   }, [chatMsg]);
 
-  useEffect(() => {
-    if (!scrollTop) return;
-
-    const observer = new IntersectionObserver(callback);
+  useLayoutEffect(() => {
     const list = scroll.current.children;
     const target = list.item(list.length - 2);
+    const observer = new IntersectionObserver(callback);
 
-    setTimeout(() => {
-      observer.observe(target);
-    }, 1000);
+    if (!target) return;
+    observer.observe(target);
 
     return () => observer.disconnect();
-  }, [scrollTop]);
+  }, [chatId]);
 
   const subscribeChatMsg = () => {
     const q = query(
@@ -407,11 +403,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     lastMmsg.scrollIntoView({ behavior: "smooth" });
   };
 
-  const updateScrollTop = () => {
-    if (scrollTop) return;
-    setScrollTop(scroll.current.scrollTop);
-  };
-
   const renderReadSign = (message) => {
     if (
       (chat.type === "private" &&
@@ -479,7 +470,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
           outline: "1px solid slategrey",
         },
       }}
-      onScroll={updateScrollTop}
     >
       {msgList.length > 0 ? msgList : null}
       <span></span>
