@@ -72,6 +72,27 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     setIsScrollToBottomBtnActive(false);
   };
 
+  // eslint-disable-next-line no-unused-vars
+  const callback = (entries, observer) => {
+    entries.forEach((entry) => {
+      if (entry.isIntersecting) {
+        hideScrollToBottomBtn();
+      } else {
+        showScrollToBottomBtn();
+      }
+    });
+  };
+
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return (...args) => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  };
+
+  const debouncedCallback = debounce(callback, 1000);
+
   useEffect(() => {
     const unsub = subscribeChatMsg();
 
@@ -87,7 +108,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   useLayoutEffect(() => {
     const list = scroll.current.children;
     const target = list.item(list.length - 2);
-    const observer = new IntersectionObserver(callback);
+    const observer = new IntersectionObserver(debouncedCallback, {
+      passive: true,
+    });
 
     if (!target) return;
     observer.observe(target);
@@ -151,17 +174,6 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     });
 
     await batch.commit();
-  };
-
-  // eslint-disable-next-line no-unused-vars
-  const callback = (entries, observer) => {
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        hideScrollToBottomBtn();
-      } else {
-        showScrollToBottomBtn();
-      }
-    });
   };
 
   const handleMsgOptionsOpen = (e) => {
@@ -494,9 +506,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
           borderRadius: "50%",
           boxShadow: 2,
           zIndex: 100,
-          transform: isScrollToBottomBtnActive
-            ? "translateY(0)"
-            : "translateY(100px)",
+          // transform: isScrollToBottomBtnActive
+          //   ? "translateY(0)"
+          //   : "translateY(100px)",
           opacity: isScrollToBottomBtnActive ? 1 : 0,
           transition: "all 0.5s ease",
         }}
