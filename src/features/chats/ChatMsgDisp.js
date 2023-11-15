@@ -115,17 +115,16 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         return a.timestamp - b.timestamp;
       });
       const msgsWithDateObject = sortedMessages.map((msg) => {
-        const timestamp = msg.timestamp
-          ? msg.timestamp.toDate().toISOString()
-          : null;
-        const message = {
-          ...msg,
-          timestamp,
-        };
-        return message;
+        const timestamp = msg.timestamp?.toDate().toISOString();
+        return { ...msg, timestamp };
       });
+      const newMessages = msgsWithDateObject.filter(
+        (msg) => !chatMsg.find((existingMsg) => existingMsg.id === msg.id)
+      );
       setIsChatsLoading(false);
-      dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
+      if (newMessages.length) {
+        dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
+      }
     });
   };
 
