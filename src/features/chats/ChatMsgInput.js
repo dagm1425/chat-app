@@ -239,7 +239,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     <Box
       sx={{
         flex: "0 1 auto",
-        position: "sticky",
+        position: { xs: "fixed", sm: "sticky" },
+        width: { xs: "100%", sm: "initial" },
         bottom: "0",
         py: "0.75rem",
         bgcolor: "background.default",

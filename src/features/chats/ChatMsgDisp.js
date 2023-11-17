@@ -463,9 +463,13 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     <Box
       ref={scroll}
       sx={{
+        position: { xs: "fixed", sm: "initial" },
+        top: { xs: 0, sm: "initial" },
+        left: { xs: 0, sm: "initial" },
+        right: { xs: 0, sm: "initial" },
+        height: { xs: "100%", sm: "initial" },
         display: "flex",
         flexDirection: "column",
-        height: "100%",
         flex: "1 1 auto",
         p: { xs: "4.5rem 0.75rem", sm: "6rem 4rem" },
         overflowY: "auto",

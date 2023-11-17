@@ -198,8 +198,8 @@ function ChatMsg({
                   sx={{
                     display: "grid",
                     placeItems: "center",
-                    width: 36,
-                    height: 36,
+                    width: 40,
+                    height: 40,
                     bgcolor: isSentFromUser
                       ? "primary.light"
                       : "background.default",
@@ -228,14 +228,11 @@ function ChatMsg({
                     </Box>
                   ) : (
                     <Box sx={{ display: "grid" }}>
-                      <Fade in={message.msgId === fileMsgId}>
+                      <Fade in={isMobile ? true : message.msgId === fileMsgId}>
                         <IconButton
                           sx={{
-                            p: 0,
                             gridColumn: 1,
                             gridRow: 1,
-                            width: 34,
-                            height: 34,
                             "&.MuiButtonBase-root:hover": {
                               bgcolor: "transparent",
                             },
@@ -249,7 +246,7 @@ function ChatMsg({
                         >
                           <DownloadIcon
                             sx={{
-                              fontSize: "20px",
+                              fontSize: "1.425rem",
                               color: "text.primary",
                               "&.MuiButtonBase-root:hover": {
                                 bgcolor: "transparent",
@@ -258,14 +255,11 @@ function ChatMsg({
                           />
                         </IconButton>
                       </Fade>
-                      <Fade in={message.msgId !== fileMsgId}>
+                      <Fade in={isMobile ? false : message.msgId !== fileMsgId}>
                         <IconButton
                           sx={{
-                            p: 0,
                             gridColumn: 1,
                             gridRow: 1,
-                            width: 34,
-                            height: 34,
                             "&.MuiButtonBase-root:hover": {
                               bgcolor: "transparent",
                             },
@@ -273,7 +267,7 @@ function ChatMsg({
                         >
                           <InsertDriveFileIcon
                             sx={{
-                              fontSize: "20px",
+                              fontSize: "1.425rem",
                               color: "text.primary",
                               "&.MuiButtonBase-root:hover": {
                                 bgcolor: "transparent",

@@ -228,7 +228,8 @@ function ChatHeader({ chat, userStatuses }) {
           ) : (
             <Avatar
               sx={{
-                display: { xs: "block", sm: "none" },
+                display: { xs: "grid", sm: "none" },
+                placeItems: { xs: "center" },
                 bgcolor: chat.avatarBgColor,
               }}
             >
