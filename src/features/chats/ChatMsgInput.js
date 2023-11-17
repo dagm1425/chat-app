@@ -269,14 +269,16 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           <EmojiEmotionsIcon />
         </IconButton>
 
-        <Popover
-          anchorEl={anchorEl}
-          keepMounted
-          open={Boolean(anchorEl)}
-          onClose={closeEmojiPicker}
-        >
-          <EmojiPicker onEmojiClick={addEmoji} />
-        </Popover>
+        {Boolean(anchorEl) && (
+          <Popover
+            anchorEl={anchorEl}
+            keepMounted
+            open={Boolean(anchorEl)}
+            onClose={closeEmojiPicker}
+          >
+            <EmojiPicker onEmojiClick={addEmoji} lazyLoadEmojis={true} />
+          </Popover>
+        )}
 
         <input
           type="file"
