@@ -4,7 +4,13 @@ import { getDownloadURL, ref, uploadBytesResumable } from "firebase/storage";
 import { db, storage } from "../../firebase";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
-import { Box, Button, Typography, TextField } from "@mui/material";
+import {
+  Box,
+  Button,
+  Typography,
+  TextField,
+  useMediaQuery,
+} from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { formatFilename } from "../../common/utils";
 
@@ -27,6 +33,7 @@ function FileMsgDialogContent({
     sufixes[i]
   }`;
   const fileType = file.type;
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const updateProgress = async (msgRef, progress) => {
     await updateDoc(msgRef, {
@@ -47,7 +54,8 @@ function FileMsgDialogContent({
     const chatRef = doc(db, "chats", `${chatId}`);
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const msgList = scroll.current.children;
-    const lastMmsg = msgList.item(msgList.length - 2);
+    const i = isMobile ? msgList.length - 1 : msgList.length - 2;
+    const lastMmsg = msgList.item(i);
     let unreadCounts = { ...chat.unreadCounts };
     const message = {
       msgId,

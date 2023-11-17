@@ -91,7 +91,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     const msgId = uuid();
     const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
     const msgList = scroll.current.children;
-    const lastMmsg = msgList.item(msgList.length - 2);
+    const i = isMobile ? msgList.length - 1 : msgList.length - 2;
+    const lastMmsg = msgList.item(i);
     const chatRef = doc(db, "chats", `${chatId}`);
     let unreadCounts = { ...chat.unreadCounts };
     const newMsg = {
