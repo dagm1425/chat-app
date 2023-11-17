@@ -50,7 +50,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
   const dispatch = useDispatch();
-  const chatMsg = useSelector((state) => selectChatMsgs(state, chatId)) || [];
+  const chatMsg = useSelector((state) => selectChatMsgs(state, chatId));
   const [isChatsLoading, setIsChatsLoading] = useState(true);
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
@@ -96,6 +96,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const debouncedCallback = debounce(callback, 1000);
 
   useEffect(() => {
+    setIsChatsLoading(chatMsg ? false : true);
     const unsub = subscribeChatMsg();
 
     return () => {
@@ -434,30 +435,33 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
     } else return "";
   };
 
-  const msgList = chatMsg.map((message) => {
-    const msgDate = formatDate(message.timestamp);
+  const msgList =
+    chatMsg && chatMsg.length
+      ? chatMsg.map((message) => {
+          const msgDate = formatDate(message.timestamp);
 
-    return (
-      <React.Fragment key={message.msgId}>
-        {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
-        <ChatMsg
-          message={message}
-          user={user}
-          chat={chat}
-          chatMsg={chatMsg}
-          fileMsgId={fileMsgId}
-          setFileMsgId={setFileMsgId}
-          renderReadSign={renderReadSign}
-          handleMsgClick={handleMsgClick}
-          openImgModal={openImgModal}
-          cancelUpload={cancelUpload}
-          downloadFile={downloadFile}
-          scroll={scroll}
-          scrollToMsg={scrollToMsg}
-        />
-      </React.Fragment>
-    );
-  });
+          return (
+            <React.Fragment key={message.msgId}>
+              {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
+              <ChatMsg
+                message={message}
+                user={user}
+                chat={chat}
+                chatMsg={chatMsg}
+                fileMsgId={fileMsgId}
+                setFileMsgId={setFileMsgId}
+                renderReadSign={renderReadSign}
+                handleMsgClick={handleMsgClick}
+                openImgModal={openImgModal}
+                cancelUpload={cancelUpload}
+                downloadFile={downloadFile}
+                scroll={scroll}
+                scrollToMsg={scrollToMsg}
+              />
+            </React.Fragment>
+          );
+        })
+      : [];
 
   return (
     <Box
