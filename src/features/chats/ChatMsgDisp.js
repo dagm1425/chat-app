@@ -146,13 +146,9 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         const timestamp = msg.timestamp?.toDate().toISOString();
         return { ...msg, timestamp };
       });
-      const newMessages = msgsWithDateObject.filter(
-        (msg) => !chatMsg.find((existingMsg) => existingMsg.id === msg.id)
-      );
+
       setIsChatsLoading(false);
-      if (newMessages.length) {
-        dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
-      }
+      dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
     });
   };
 
