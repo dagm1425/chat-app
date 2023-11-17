@@ -30,6 +30,7 @@ import {
   IconButton,
   Modal,
   CircularProgress,
+  useMediaQuery,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
@@ -63,6 +64,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
+  const isMobile = useMediaQuery("(max-width:600px)");
 
   const showScrollToBottomBtn = () => {
     setIsScrollToBottomBtnActive(true);
@@ -106,6 +108,8 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
   }, [chatMsg]);
 
   useLayoutEffect(() => {
+    if (isMobile) return;
+
     const list = scroll.current.children;
     const target = list.item(list.length - 2);
     const observer = new IntersectionObserver(debouncedCallback, {
@@ -493,33 +497,35 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
         msgList
       ) : null}
       <span></span>
-      <IconButton
-        sx={{
-          fontSize: "2.5rem",
-          color: "text.secondary",
-          position: "fixed",
-          bottom: "6rem",
-          right: "0.75rem",
-          padding: "0",
-          bgcolor: "background.default",
-          border: "none",
-          borderRadius: "50%",
-          boxShadow: 2,
-          zIndex: 100,
-          // transform: isScrollToBottomBtnActive
-          //   ? "translateY(0)"
-          //   : "translateY(100px)",
-          opacity: isScrollToBottomBtnActive ? 1 : 0,
-          transition: "all 0.5s ease",
-        }}
-        onClick={scrollToBottom}
-      >
-        <KeyboardArrowDownIcon
+      {!isMobile && (
+        <IconButton
           sx={{
             fontSize: "2.5rem",
+            color: "text.secondary",
+            position: "fixed",
+            bottom: "6rem",
+            right: "0.75rem",
+            padding: "0",
+            bgcolor: "background.default",
+            border: "none",
+            borderRadius: "50%",
+            boxShadow: 2,
+            zIndex: 100,
+            transform: isScrollToBottomBtnActive
+              ? "translateY(0)"
+              : "translateY(100px)",
+            opacity: isScrollToBottomBtnActive ? 1 : 0,
+            transition: "all 0.3s ease",
           }}
-        />
-      </IconButton>
+          onClick={scrollToBottom}
+        >
+          <KeyboardArrowDownIcon
+            sx={{
+              fontSize: "2.5rem",
+            }}
+          />
+        </IconButton>
+      )}
       <Menu
         anchorEl={anchorEl}
         keepMounted
