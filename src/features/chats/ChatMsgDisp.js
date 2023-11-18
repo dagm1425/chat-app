@@ -295,11 +295,17 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
 
     if (isMsgRecent) {
       const secondLastMsg = { ...chatMsg[chatMsg.length - 2] };
+      const noSecondLastMsg = Object.keys(secondLastMsg).length === 0;
       const timestamp = Timestamp.fromDate(new Date(secondLastMsg.timestamp));
 
-      delete secondLastMsg.msgReply;
-      await updateDoc(chatRef, { recentMsg: { ...secondLastMsg, timestamp } });
-      await updateDoc(chatRef, { timestamp });
+      if (!noSecondLastMsg) delete secondLastMsg.msgReply;
+
+      const recentMsg = noSecondLastMsg
+        ? null
+        : { ...secondLastMsg, timestamp };
+
+      await updateDoc(chatRef, { recentMsg });
+      if (!noSecondLastMsg) await updateDoc(chatRef, { timestamp });
     }
 
     for (const uid in unreadCounts) {
