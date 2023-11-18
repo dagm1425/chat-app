@@ -149,7 +149,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     fileInput.current.value = "";
   };
 
-  const imgSize = (file) => {
+  const getImageSize = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
 
@@ -168,28 +168,43 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     });
   };
 
-  const reviewFileMsg = async (e) => {
-    e.preventDefault();
-
-    const file = e.target.files[0];
-    const maxFileSize = 5000000;
-
-    if (file.size > maxFileSize) {
+  const handleFileSize = (file) => {
+    const MAX_FILE_SIZE = 5000000;
+    if (file.size > MAX_FILE_SIZE) {
       alert("File size should not exceed 5 MB");
-      fileInput.current.value = "";
-      return;
+      resetFileInput();
+      throw new Error("File size exceeds the limit");
     }
+  };
 
-    let fileData;
+  const resetFileInput = () => {
+    fileInput.current.value = "";
+  };
 
+  const getFileData = async (file) => {
     if (file.type.includes("image")) {
-      const dimensions = await imgSize(file);
-      fileData = { file, imgSize: dimensions };
-    } else fileData = { file };
+      const dimensions = await getImageSize(file);
+      return { file, imgSize: dimensions };
+    } else {
+      return { file };
+    }
+  };
 
-    setFileMsg(fileData);
+  const reviewFileMsg = async (e) => {
+    try {
+      e.preventDefault();
 
-    handleFileMsgDialogOpen();
+      const file = e.target.files[0];
+
+      handleFileSize(file);
+      const fileData = await getFileData(file);
+
+      setFileMsg(fileData);
+      resetFileInput();
+      handleFileMsgDialogOpen();
+    } catch (error) {
+      console.error("Error processing file:", error.message);
+    }
   };
 
   const updateDraft = async () => {
