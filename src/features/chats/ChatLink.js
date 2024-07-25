@@ -63,9 +63,12 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
         sx={{
           cursor: "pointer",
           color: "text.primary",
+          px: { xs: "1rem", sm: "0.65rem", lg: "1rem" },
         }}
       >
-        <ListItemAvatar>
+        <ListItemAvatar
+          sx={{ minWidth: { xs: "56px", sm: "49px", lg: "56px" } }}
+        >
           {chat.type === "private" ? (
             <Avatar src={otherMember.photoURL} />
           ) : (
@@ -81,9 +84,9 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               <Typography
                 variant="body2"
                 sx={{
+                  fontSize: { xs: "1rem", sm: "inherit" },
                   display: "inline-block",
-                  width: "70%",
-                  verticalAlign: "middle",
+                  width: { xs: "78%", sm: "68%", lg: "78%" },
                   fontWeight: "bold",
                 }}
               >
@@ -101,10 +104,10 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 <Typography
                   variant="body2"
                   sx={{
+                    fontSize: { xs: "1rem", sm: "0.8rem", lg: "0.85rem" },
                     color: "text.secondary",
                     display: "inline-block",
                     width: "20%",
-                    verticalAlign: "middle",
                   }}
                 >
                   {recentMsgTimestamp}
@@ -122,6 +125,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 <Typography
                   sx={{
                     color: "text.secondary",
+                    fontSize: { xs: "1rem", sm: "inherit" },
                     display: "inline-block",
                     width: "70%",
                     pr: "0.5rem",

@@ -7,8 +7,8 @@ function ChatsHome() {
     <Box
       sx={{
         display: { xs: "none", sm: "grid" },
-        ml: { xs: "0", sm: "35%", lg: "23%" },
-        width: { xs: "100%", sm: "65%", lg: "77%" },
+        ml: { xs: "0", sm: "30%", lg: "23%" },
+        width: { xs: "100%", sm: "70%", lg: "77%" },
         bgcolor: " rgba(0,0,0,0.02)",
         height: "100vh",
         textAlign: "center",

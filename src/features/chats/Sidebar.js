@@ -29,7 +29,7 @@ function Sidebar({
         position: "fixed",
         top: 0,
         left: 0,
-        width: { xs: "100%", sm: "35%", lg: "23%" },
+        width: { xs: "100%", sm: "30%", lg: "23%" },
 
         height: "100vh",
         overflow: {
@@ -44,9 +44,14 @@ function Sidebar({
         sx={{
           display: "flex",
           alignItems: "center",
-          justifyContent: "space-evenly",
+          justifyContent: {
+            xs: "space-evenly",
+            sm: "space-between",
+            lg: "space-evenly",
+          },
           py: "0.875rem",
-          width: "100%",
+          px: { xs: "0", sm: "0.25rem", lg: "0" },
+          width: { xs: "100%", sm: "97%", lg: "100%" },
         }}
       >
         <UserDrawer
@@ -79,11 +84,15 @@ const StyledTextarea = styled(TextareaAutosize)`
   color: ${({ theme }) => theme.palette.text.primary};
   background-color: ${({ theme }) => theme.palette.background.paper};
   padding: 0.625rem 1rem;
-  width: 75%;
+  width: 80%;
   border-radius: 30px;
   border: none;
   outline: none;
   resize: none;
+
+  ${({ theme }) => theme.breakpoints.down("xs")} {
+    font-size: 1rem;
+  }
 `;
 
 Sidebar.propTypes = {

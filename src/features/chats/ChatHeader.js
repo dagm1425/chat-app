@@ -183,7 +183,7 @@ function ChatHeader({ chat, userStatuses }) {
         flex: "0 1 auto",
         position: "fixed",
         top: "0",
-        width: { xs: "100%", sm: "78%" },
+        width: { xs: "100%", sm: "71%", lg: "78%" },
         py: "0.75rem",
         zIndex: "1000",
         bgcolor: "background.default",
@@ -198,7 +198,7 @@ function ChatHeader({ chat, userStatuses }) {
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          gap: { xs: "0.75rem", sm: "0" },
+          gap: { xs: "0.5rem", sm: "0" },
         }}
       >
         <IconButton
@@ -216,6 +216,7 @@ function ChatHeader({ chat, userStatuses }) {
             alignItems: { xs: "center", sm: "initial" },
             gap: { xs: "0.75rem", sm: "0rem" },
             mr: { xs: "auto", sm: "initial" },
+            width: { xs: "70%", sm: "auto" },
           }}
         >
           {chat.type === "private" ? (
@@ -248,8 +249,6 @@ function ChatHeader({ chat, userStatuses }) {
               <Typography
                 variant="body2"
                 sx={{
-                  display: "block",
-                  width: "inherit",
                   whiteSpace: "nowrap",
                   overflow: "hidden",
                   textOverflow: "ellipsis",
