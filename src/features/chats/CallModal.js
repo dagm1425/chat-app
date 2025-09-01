@@ -41,6 +41,7 @@ const CallModal = ({
   const remoteAudioRef = useRef(null);
   // const timeoutStatusMsg = useRef(null);
   const isCleaningUpRef = useRef(false);
+  const isOngoingCall = callState.status === "Ongoing call";
 
   useEffect(() => {
     if (localVideoRef.current && localStreamRef.current) {
@@ -105,8 +106,7 @@ const CallModal = ({
         }, 3000);
       } else if (state === "failed") {
         // Cannot recover → hang up immediately
-        // hangUp();
-        console.log("connectionState:", state);
+        hangUp();
       } else {
         // Connection restored or ongoing
         clearTimeout(disconnectTimeout);
@@ -414,8 +414,7 @@ const CallModal = ({
         variant="body2"
         sx={{
           color: "#d6d6c2",
-          visibility:
-            remoteVideoRef.current?.srcObject !== null ? "visible" : "hidden",
+          visibility: isOngoingCall ? "visible" : "hidden",
         }}
       >
         {formatCallDuration(timer)}
@@ -437,7 +436,7 @@ const CallModal = ({
               borderRadius: "10px",
               px: 1.5,
               py: 0.5,
-              display: callState.status === "Ongoing call" ? "flex" : "none",
+              display: isOngoingCall ? "flex" : "none",
               justifyContent: "space-between",
               alignItems: "center",
               zIndex: 2,
@@ -449,7 +448,7 @@ const CallModal = ({
                 : callData.callee.displayName}
             </span>
             <span>|</span>
-            <span>{formatCallDuration(timer)}</span>
+            <span>{isOngoingCall && formatCallDuration(timer)}</span>
           </Box>
           <video
             style={{
@@ -460,18 +459,13 @@ const CallModal = ({
               height: 185,
               borderRadius: "10px",
               overflow: "hidden",
-              boxShadow:
-                callState.status === "Ongoing call"
-                  ? "0 0 5px rgba(0, 0, 0, 0.3)"
-                  : "",
-              transform:
-                callState.status === "Ongoing call"
-                  ? "translate(40px, 110px) scale(0.6) scaleX(-1)"
-                  : "translateX(-50%) scale(1) scaleX(-1)",
+              boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
+              transform: isOngoingCall
+                ? "translate(40px, 110px) scale(0.6) scaleX(-1)"
+                : "translateX(-50%) scale(1) scaleX(-1)",
               transition: "transform .3s ease-out",
               zIndex: 2,
-              marginBottom:
-                callState.status === "Ongoing call" ? "0" : ".625rem",
+              marginBottom: isOngoingCall ? "0" : ".625rem",
             }}
             ref={localVideoRef}
             autoPlay
@@ -488,7 +482,7 @@ const CallModal = ({
               objectFit: "cover",
               transform: "scaleX(-1)",
               borderRadius: 0,
-              display: callState.status === "Ongoing call" ? "block" : "none",
+              display: isOngoingCall ? "block" : "none",
               zIndex: 1,
             }}
             ref={remoteVideoRef}
