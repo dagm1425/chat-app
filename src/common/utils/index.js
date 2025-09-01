@@ -41,18 +41,11 @@ export function formatTime(timestamp) {
   return format(ts, "hh:mm a");
 }
 
-export function isLink(str) {
-  str = str.replace(/\n/g, "");
-
-  const pattern = new RegExp(
-    "^(https?:\\/\\/)?" +
-      "((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" +
-      "((\\d{1,3}\\.){3}\\d{1,3}))" +
-      "(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" +
-      "(\\?[;&a-z\\d%_.~+=-]*)?" +
-      "(\\#[-a-z\\d_]*)?$",
-    "i"
-  );
-
-  return pattern.test(str);
+export function isLink(text) {
+  try {
+    new URL(text);
+    return true;
+  } catch (e) {
+    return false;
+  }
 }
