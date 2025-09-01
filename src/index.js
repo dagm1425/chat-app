@@ -5,7 +5,6 @@ import { store } from "./app/store";
 import App from "./app/App";
 import "./index.css";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
-import { ThemeProvider as SCThemeProvider } from "styled-components";
 import { CssBaseline } from "@mui/material";
 
 const container = document.getElementById("root");
@@ -57,11 +56,9 @@ const CustomThemeProvider = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <SCThemeProvider theme={theme}>
-        <ColorModeContext.Provider value={colorMode}>
-          <App />
-        </ColorModeContext.Provider>
-      </SCThemeProvider>
+      <ColorModeContext.Provider value={colorMode}>
+        <App />
+      </ColorModeContext.Provider>
     </ThemeProvider>
   );
 };

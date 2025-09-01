@@ -8,10 +8,10 @@ import {
   ListItemText,
   Typography,
   useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { doc, updateDoc } from "firebase/firestore";
 import { Link } from "react-router-dom";
-import styled from "styled-components";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
@@ -30,6 +30,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
 
   const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
   const isMobile = useMediaQuery("(max-width: 600px)");
+  const theme = useTheme();
 
   useEffect(() => {
     if (selectedChatId === chatId && unreadMsgCount > 0) resetUnreadCount();
@@ -58,11 +59,24 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   };
 
   return (
-    <StyledLink
+    <Link
+      style={{
+        display: "block",
+        backgroundColor:
+          chatId === selectedChatId && !isMobile
+            ? theme.palette.background.paper
+            : theme.palette.background.default,
+        textDecoration: "none",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.filter = "brightness(0.8)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.filter = "";
+      }}
       id={chatId}
       key={chatId}
       to={`/${chatId}`}
-      $selectedchat={chatId === selectedChatId && !isMobile}
       onClick={handleLinkClick}
     >
       <ListItem
@@ -204,21 +218,9 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
           }
         />
       </ListItem>
-    </StyledLink>
+    </Link>
   );
 }
-
-const StyledLink = styled(Link)`
-  display: block;
-  background-color: ${(props) =>
-    props.$selectedchat
-      ? props.theme.palette.background.paper
-      : props.theme.palette.background.default};
-  text-decoration: none;
-  &:hover {
-    filter: brightness(0.8);
-  }
-`;
 
 export default ChatLink;
 

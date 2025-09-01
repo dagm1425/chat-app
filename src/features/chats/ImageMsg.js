@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { Box, CircularProgress, IconButton, Typography } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
-import ChatImg from "./ChatImg"; // Import ChatImg
+import ChatImg from "./ChatImg";
 
 const ImageMsg = ({
   message,

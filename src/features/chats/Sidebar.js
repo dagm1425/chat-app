@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
 import { Box, TextareaAutosize, useMediaQuery } from "@mui/material";
-import styled from "styled-components";
 import { useLocation } from "react-router-dom";
 
 function Sidebar({
@@ -59,7 +58,22 @@ function Sidebar({
           setUserStatus={setUserStatus}
           userStatuses={userStatuses}
         />
-        <StyledTextarea
+        <TextareaAutosize
+          sx={{
+            fontFamily: "inherit",
+            fontSize: {
+              xs: "1rem",
+              sm: "0.875rem",
+            },
+            color: "text.primary",
+            bgcolor: "background.paper",
+            p: "0.625rem 1rem",
+            width: "80%",
+            borderRadius: "30px",
+            border: "none",
+            outline: "none",
+            resize: "none",
+          }}
           ref={inputRef}
           value={searchValue}
           placeholder="Search chat"
@@ -77,23 +91,6 @@ function Sidebar({
 }
 
 export default Sidebar;
-
-const StyledTextarea = styled(TextareaAutosize)`
-  font-family: inherit;
-  font-size: 0.875rem;
-  color: ${({ theme }) => theme.palette.text.primary};
-  background-color: ${({ theme }) => theme.palette.background.paper};
-  padding: 0.625rem 1rem;
-  width: 80%;
-  border-radius: 30px;
-  border: none;
-  outline: none;
-  resize: none;
-
-  ${({ theme }) => theme.breakpoints.down("xs")} {
-    font-size: 1rem;
-  }
-`;
 
 Sidebar.propTypes = {
   selectedChatId: PropTypes.string,
