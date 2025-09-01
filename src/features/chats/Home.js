@@ -190,9 +190,6 @@ function Home({ setUserStatus }) {
     const remoteStream = new MediaStream();
 
     const offer = await peerConnection.createOffer();
-    await peerConnection.setLocalDescription(offer);
-
-    updateStartCallStates(localStream, remoteStream, peerConnection);
 
     const roomWithOffer = {
       offer: {
@@ -206,6 +203,18 @@ function Home({ setUserStatus }) {
     const roomsCollectionRef = collection(chatRef, "rooms");
 
     const roomRef = await addDoc(roomsCollectionRef, roomWithOffer);
+
+    const candidatesCollection = collection(roomRef, "callerCandidates");
+
+    peerConnection.addEventListener("icecandidate", async (event) => {
+      if (event.candidate) {
+        await addDoc(candidatesCollection, event.candidate.toJSON());
+      }
+    });
+
+    await peerConnection.setLocalDescription(offer);
+
+    updateStartCallStates(localStream, remoteStream, peerConnection);
 
     const callData = {
       ...partialCallData,
@@ -240,13 +249,7 @@ function Home({ setUserStatus }) {
     // Code for creating a room above
 
     // Code for collecting ICE candidates below
-    const candidatesCollection = collection(roomRef, "callerCandidates");
 
-    peerConnection.addEventListener("icecandidate", async (event) => {
-      if (event.candidate) {
-        await addDoc(candidatesCollection, event.candidate.toJSON());
-      }
-    });
     // Code for collecting ICE candidates above
 
     peerConnection.addEventListener("track", (event) => {
