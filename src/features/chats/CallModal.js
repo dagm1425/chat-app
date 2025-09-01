@@ -90,6 +90,43 @@ const CallModal = ({
     return () => unsubscribe();
   }, [callData?.chatId]);
 
+  useEffect(() => {
+    if (!peerConnectionRef.current) return;
+
+    let disconnectTimeout;
+
+    const handleConnectionChange = () => {
+      const state = peerConnectionRef.current.connectionState;
+
+      if (state === "disconnected") {
+        // Debounce short network hiccups (3 seconds)
+        disconnectTimeout = setTimeout(() => {
+          hangUp();
+        }, 3000);
+      } else if (state === "failed") {
+        // Cannot recover → hang up immediately
+        // hangUp();
+        console.log("connectionState:", state);
+      } else {
+        // Connection restored or ongoing
+        clearTimeout(disconnectTimeout);
+      }
+    };
+
+    peerConnectionRef.current.addEventListener(
+      "connectionstatechange",
+      handleConnectionChange
+    );
+
+    return () => {
+      clearTimeout(disconnectTimeout);
+      peerConnectionRef.current.removeEventListener(
+        "connectionstatechange",
+        handleConnectionChange
+      );
+    };
+  }, [peerConnectionRef.current]);
+
   // useEffect(() => {
   //   if (callState.status === "Ongoing call") {
   //     const interval = setInterval(() => setTimer((prev) => prev + 1), 1000);
