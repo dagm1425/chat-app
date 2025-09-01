@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import UserDrawer from "./UserDrawer";
 import ChatsList from "./ChatsList";
-import { Box, TextareaAutosize, useMediaQuery } from "@mui/material";
+import { Box, useMediaQuery, TextareaAutosize, useTheme } from "@mui/material";
 import { useLocation } from "react-router-dom";
 
 function Sidebar({
@@ -15,6 +15,8 @@ function Sidebar({
   const location = useLocation();
   const isMobile = useMediaQuery("(max-width:600px)");
   const inputRef = useRef(null);
+  const theme = useTheme();
+  const isSm = useMediaQuery(theme.breakpoints.up("sm"));
 
   useEffect(() => {
     if (!isMobile && inputRef.current) {
@@ -59,15 +61,12 @@ function Sidebar({
           userStatuses={userStatuses}
         />
         <TextareaAutosize
-          sx={{
+          style={{
             fontFamily: "inherit",
-            fontSize: {
-              xs: "1rem",
-              sm: "0.875rem",
-            },
-            color: "text.primary",
-            bgcolor: "background.paper",
-            p: "0.625rem 1rem",
+            fontSize: isSm ? "0.875rem" : "1rem",
+            color: theme.palette.text.primary,
+            backgroundColor: theme.palette.background.paper,
+            padding: "0.625rem 1rem",
             width: "80%",
             borderRadius: "30px",
             border: "none",

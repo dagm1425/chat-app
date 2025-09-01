@@ -11,10 +11,11 @@ import {
   Dialog,
   DialogTitle,
   IconButton,
-  TextareaAutosize,
   Popover,
   Typography,
   useMediaQuery,
+  TextareaAutosize,
+  useTheme,
 } from "@mui/material";
 import AttachmentIcon from "@mui/icons-material/Attachment";
 import EmojiPicker from "emoji-picker-react";
@@ -40,6 +41,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
   const inputRef = useRef(null);
   const isMobile = useMediaQuery("(max-width: 600px)");
+  const theme = useTheme();
 
   useEffect(() => {
     const listener = (e) => {
@@ -415,12 +417,12 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             ref={msgInputForm}
           >
             <TextareaAutosize
-              sx={{
+              style={{
                 fontFamily: "inherit",
-                color: "text.primary",
-                bgcolor: "background.paper",
-                p: "0.725rem 1.25rem",
-                mb: "-8px",
+                color: theme.palette.text.primary,
+                backgroundColor: theme.palette.background.paper,
+                padding: "0.725rem 1.25rem",
+                marginBottom: "-8px",
                 width: "100%",
                 border: "none",
                 outline: "none",
