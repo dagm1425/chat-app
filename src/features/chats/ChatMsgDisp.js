@@ -81,11 +81,22 @@ function ChatMsgDisp({
     setIsScrollToBottomBtnActive(false);
   };
 
+  const resetUnreadCount = async () => {
+    const unreadCounts = chat.unreadCounts;
+
+    if (unreadCounts[user.uid] === 0) return;
+
+    await updateDoc(doc(db, "chats", `${chatId}`), {
+      unreadCounts: { ...unreadCounts, [user.uid]: 0 },
+    });
+  };
+
   // eslint-disable-next-line no-unused-vars
   const callback = (entries, observer) => {
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         hideScrollToBottomBtn();
+        resetUnreadCount();
       } else {
         showScrollToBottomBtn();
       }
