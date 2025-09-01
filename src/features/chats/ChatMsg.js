@@ -82,9 +82,7 @@ function ChatMsg({
           chatMsg.find((msg) => msg.msgId === message.msgReply.msgId) && (
             <MsgReply message={message} user={user} scrollToMsg={scrollToMsg} />
           )}
-        {message.type === "text" && (
-          <TextMsg message={message} isMobile={isMobile} scroll={scroll} />
-        )}
+        {message.type === "text" && <TextMsg message={message} />}
         {message.type === "image" && (
           <ImageMsg
             message={message}
