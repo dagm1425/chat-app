@@ -161,31 +161,6 @@ const CallModal = ({
     };
   }, [callData?.chatId]);
 
-  // useEffect(() => {
-  //   if (!callData?.chatId || !callData?.roomId) return;
-  //   if (user.uid !== callData.caller?.uid) return;
-
-  //   timeoutRef.current = setTimeout(() => {
-  //     timeoutStatusMsg.current = {
-  //       [user.uid]: "No answer",
-  //       [callData.callee.uid]: "Missed call",
-  //     };
-  //     dispatch(setCall({ ...callState, status: "No answer" }));
-  //     console.log("auto hanging up after 30s");
-  //     hangUp();
-  //   }, 30000);
-
-  //   return () => clearTimeout(timeoutRef.current);
-  // }, [callData?.chatId, callData?.roomId]);
-
-  // useEffect(() => {
-  //   if (callState.status === "Ongoing call" && timeoutRef.current) {
-  //     console.log("timeout cleared");
-  //     clearTimeout(timeoutRef.current);
-  //     timeoutRef.current = null;
-  //   }
-  // }, [callState.status]);
-
   const getCallStatusText = () => {
     if (user.uid === callData.callee.uid) {
       return callState.status === "" ? "Incoming call" : callState.status;
