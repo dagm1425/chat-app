@@ -81,6 +81,8 @@ const CallModal = ({
           localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current?.srcObject)
           remoteVideoRef.current.srcObject = null;
+        console.log("calling cleanupLocalCall from onSnapshot listener");
+
         cleanupLocalCall();
       }
     });
@@ -346,6 +348,7 @@ const CallModal = ({
       [callData.callee.uid]: getCallStatus({ uid: callData.callee.uid }, timer),
     };
     sendMsg(status);
+    console.log("calling cleanupLocalCall from hangUp");
 
     cleanupLocalCall();
 
