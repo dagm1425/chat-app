@@ -64,6 +64,7 @@ function FileMsgDialogContent({
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
       msgReply,
+      type: fileType.includes("image") ? "image" : "file",
       fileMsg: {
         fileName: file.name,
         fileType,

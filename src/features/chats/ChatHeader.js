@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import PropTypes from "prop-types";
 import {
   Avatar,
   Box,
+  Button,
   Dialog,
   DialogTitle,
   IconButton,
@@ -18,6 +19,8 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import GroupAddIcon from "@mui/icons-material/GroupAdd";
 import ExitToAppIcon from "@mui/icons-material/ExitToApp";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
+import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import DeleteChatDialogContent from "./DeleteChatDialogContent";
@@ -28,13 +31,14 @@ import { db } from "../../firebase";
 import UsersSearch from "./UsersSearch";
 import UserStatus from "../user/UserStatus";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { selectCall, setCall } from "./chatsSlice";
 
-function ChatHeader({ chat, userStatuses }) {
+function ChatHeader({ chat, userStatuses, makeCall }) {
   const user = useSelector(selectUser);
+  const callState = useSelector(selectCall);
   const navigate = useNavigate();
-  const otherChatMember = chat.members.find(
-    (member) => member.uid !== user.uid
-  );
+  const dispatch = useDispatch();
   const [anchorEl, setAnchorEl] = useState(null);
   const [isDeleteChatOpen, setIsDeleteChatOpen] = useState(false);
   const [isAddPublicChatMembersOpen, setIsAddPublicChatMembersOpen] =
@@ -43,9 +47,19 @@ function ChatHeader({ chat, userStatuses }) {
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
   const publicChatMembers =
-    chat.type === " private"
+    chat.type === "private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
+  const otherChatMember = chat.members.find(
+    (member) => member.uid !== user.uid
+  );
+  const calleeStatus = userStatuses[otherChatMember.uid];
+
+  useEffect(() => {
+    if (calleeStatus === "online" && callState.status === "Calling...") {
+      dispatch(setCall({ ...callState, status: "Ringing..." }));
+    }
+  }, [calleeStatus, callState.status]);
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
@@ -187,7 +201,7 @@ function ChatHeader({ chat, userStatuses }) {
         py: "0.75rem",
         zIndex: "1000",
         bgcolor: "background.default",
-        borderBottom: "2px solid",
+        borderBottom: "1.5px solid",
         borderColor: "background.paper",
       }}
     >
@@ -259,9 +273,21 @@ function ChatHeader({ chat, userStatuses }) {
             )}
           </div>
         </Box>
-        <IconButton onClick={handleChatOptionsOpen}>
-          <MoreVertIcon />
-        </IconButton>
+        <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {chat.type === "private" && (
+            <Box>
+              <Button onClick={() => makeCall(chat, true)}>
+                <LocalPhoneOutlinedIcon />
+              </Button>
+              <Button onClick={() => makeCall(chat, false)}>
+                <VideocamOutlinedIcon />
+              </Button>
+            </Box>
+          )}
+          <IconButton onClick={handleChatOptionsOpen}>
+            <MoreVertIcon />
+          </IconButton>
+        </Box>
       </Box>
 
       <Menu
@@ -274,17 +300,12 @@ function ChatHeader({ chat, userStatuses }) {
       </Menu>
 
       <Dialog open={isDeleteChatOpen} onClose={handleDeleteChatClose}>
-        <DialogTitle sx={{ fontWeight: "normal" }}>
-          {chat.type === "private"
-            ? "Delete chat with " +
-              otherChatMember.displayName.replace(/ .*/, "") +
-              "?"
-            : "Delete group chat?"}
+        <DialogTitle
+          sx={{ fontSize: "1.1rem", fontWeight: "normal", px: "1.5rem" }}
+        >
+          Delete chat
         </DialogTitle>
-        <DeleteChatDialogContent
-          onClose={handleDeleteChatClose}
-          chatId={chat.chatId}
-        />
+        <DeleteChatDialogContent onClose={handleDeleteChatClose} chat={chat} />
       </Dialog>
 
       <Dialog
@@ -331,4 +352,5 @@ export default ChatHeader;
 ChatHeader.propTypes = {
   chat: PropTypes.object,
   userStatuses: PropTypes.objectOf(PropTypes.string),
+  makeCall: PropTypes.func,
 };

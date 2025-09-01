@@ -50,6 +50,13 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     });
   };
 
+  const returnRecentMsg = () => {
+    if (recentMsg.msg) return recentMsg.msg;
+    if (recentMsg.caption) return recentMsg.caption;
+    if (recentMsg.fileMsg) return formatFilename(recentMsg.fileMsg.fileName);
+    if (recentMsg.callData) return recentMsg.callData.status[user.uid];
+  };
+
   return (
     <StyledLink
       id={chatId}
@@ -157,12 +164,16 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                       </Typography>
                       {draft.msg}
                     </>
-                  ) : recentMsg.msg ? (
-                    recentMsg.msg
-                  ) : recentMsg.caption ? (
-                    recentMsg.caption
                   ) : (
-                    formatFilename(recentMsg.fileMsg.fileName)
+                    <Typography
+                      sx={{
+                        fontSize: ".975rem",
+                        color: "text.secondary",
+                        display: "inline",
+                      }}
+                    >
+                      {returnRecentMsg()}
+                    </Typography>
                   )}
                 </Typography>
                 {unreadMsgCount > 0 && selectedChatId !== chatId && (

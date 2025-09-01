@@ -45,7 +45,14 @@ import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
 import { formatDate } from "../../common/utils";
 
-function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
+function ChatMsgDisp({
+  chat,
+  uploadTask,
+  setMsgReply,
+  userStatuses,
+  scroll,
+  makeCall,
+}) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const chatId = chat.chatId;
@@ -408,12 +415,14 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
 
     msg.style.scrollMarginTop = "7rem";
     msg.style.filter = "brightness(0.7)";
+    msg.style.transition = "filter 0.6s ease-in-out";
 
     msg.scrollIntoView({ behavior: "smooth" });
 
     setTimeout(() => {
       msg.style.scrollMarginTop = "";
       msg.style.filter = "brightness(1)";
+      msg.style.transition = "";
     }, 1000);
   };
 
@@ -459,6 +468,7 @@ function ChatMsgDisp({ chat, uploadTask, setMsgReply, userStatuses, scroll }) {
                 downloadFile={downloadFile}
                 scroll={scroll}
                 scrollToMsg={scrollToMsg}
+                makeCall={makeCall}
               />
             </React.Fragment>
           );
@@ -607,4 +617,5 @@ ChatMsgDisp.propTypes = {
     PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
   ]),
   setSelectedChatId: PropTypes.func,
+  makeCall: PropTypes.func,
 };

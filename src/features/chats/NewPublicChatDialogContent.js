@@ -5,7 +5,7 @@ import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { useId } from "react";
-import { Box, Input, Button } from "@mui/material";
+import { Box, Button, TextField } from "@mui/material";
 
 function NewPublicChatDialogContent({ onClose }) {
   const [chatName, setChatName] = useState("");
@@ -44,20 +44,29 @@ function NewPublicChatDialogContent({ onClose }) {
   return (
     <Box
       sx={{
-        textAlign: "center",
+        width: "340px",
+        px: "1.5rem",
       }}
     >
-      <Input
+      {/* <Typography
+        variant="body1"
+        sx={{ fontSize: "1rem", color: "text.secondary", mb: ".25rem" }}
+      >
+        Set a name for your group chat:
+      </Typography> */}
+      <TextField
         value={chatName}
         sx={{
           display: "block",
-          fontSize: "18px",
-          width: 280,
-          mx: "1.25rem",
-          px: "6px",
+          fontSize: "16px",
+          mb: "2rem",
         }}
+        fullWidth
         onChange={(e) => setChatName(e.target.value)}
         autoFocus
+        label="Group chat name"
+        variant="standard"
+        required
       />
       <Box
         sx={{
@@ -65,7 +74,6 @@ function NewPublicChatDialogContent({ onClose }) {
           justifyContent: "flex-end",
           alignItems: "center",
           gap: "0.5rem",
-          mt: "1.75rem",
           pb: "1rem",
           pr: "1rem",
         }}

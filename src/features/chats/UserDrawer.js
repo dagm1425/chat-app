@@ -220,14 +220,25 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
         onClose={handleNewPublicChatClose}
         disableRestoreFocus
       >
-        <DialogTitle sx={{ fontWeight: "normal" }}>
-          Set group chat name
+        <DialogTitle
+          sx={{
+            fontSize: "1.1rem",
+            fontWeight: "normal",
+            px: "1.5rem",
+            pb: "0.6rem",
+          }}
+        >
+          New group chat
         </DialogTitle>
         <NewPublicChatDialogContent onClose={handleNewPublicChatClose} />
       </Dialog>
 
       <Dialog open={isSignOutOpen} onClose={handleSignOutClose}>
-        <DialogTitle sx={{ fontWeight: "normal" }}>Sign out?</DialogTitle>
+        <DialogTitle
+          sx={{ fontSize: "1.1rem", fontWeight: "normal", px: "1.5rem" }}
+        >
+          Sign out
+        </DialogTitle>
         <SignOutDialogContent
           signOutUser={signOutUser}
           onClose={handleSignOutClose}

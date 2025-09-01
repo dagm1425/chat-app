@@ -97,6 +97,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     let unreadCounts = { ...chat.unreadCounts };
     const newMsg = {
       msgId,
+      type: "text",
       from: user,
       msg,
       msgReply,

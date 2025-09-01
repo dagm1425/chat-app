@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import PropTypes from "prop-types";
 import { provider, auth, db } from "../../firebase";
 import {
@@ -6,14 +6,21 @@ import {
   signInWithPopup,
   updateProfile,
 } from "firebase/auth";
-import { doc, getCountFromServer, setDoc } from "firebase/firestore";
-import { Box, Button, Typography } from "@mui/material";
+import {
+  doc,
+  getCountFromServer,
+  setDoc,
+  collection,
+} from "firebase/firestore";
+import { Box, Button, Typography, TextField } from "@mui/material";
 import QuestionAnswerIcon from "@mui/icons-material/QuestionAnswer";
 import GoogleIcon from "@mui/icons-material/Google";
 import PersonIcon from "@mui/icons-material/Person";
-import { collection } from "firebase/firestore";
 
 function UserLogin({ setUserStatus }) {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
 
@@ -22,11 +29,15 @@ function UserLogin({ setUserStatus }) {
     const snapshot = await getCountFromServer(coll);
     const usersCount = snapshot.data().count;
     const usersLimit = 15;
+    return usersCount > usersLimit;
+  };
 
-    if (usersCount > usersLimit) {
-      return true;
-    }
-    return false;
+  const addUser = async (user) => {
+    await setDoc(doc(db, "users", `${user.uid}`), {
+      uid: user.uid,
+      displayName: user.displayName,
+      photoURL: user.photoURL,
+    });
   };
 
   const signInUser = async () => {
@@ -67,12 +78,24 @@ function UserLogin({ setUserStatus }) {
     }
   };
 
-  const addUser = async (user) => {
-    await setDoc(doc(db, "users", `${user.uid}`), {
-      uid: user.uid,
-      displayName: user.displayName,
-      photoURL: user.photoURL,
-    });
+  const signInWithEmailPwd = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      const currentUser = auth.currentUser;
+      if (!currentUser.displayName) {
+        const generatedName = email.split("@")[0];
+        await updateProfile(currentUser, {
+          displayName: generatedName,
+          photoURL:
+            "https://static.vecteezy.com/system/resources/previews/009/398/577/non_2x/man-avatar-clipart-illustration-free-png.png",
+        });
+      }
+      addUser(currentUser);
+      localStorage.setItem("auth", "true");
+      setUserStatus(currentUser.uid, true);
+    } catch (error) {
+      console.error("Email/Password authentication error:", error.message);
+    }
   };
 
   return (
@@ -90,16 +113,18 @@ function UserLogin({ setUserStatus }) {
       <Box
         sx={{
           textAlign: "center",
-          maxWidth: "340px",
+          maxWidth: "390px",
           width: "100%",
           bgcolor: "background.default",
+          border: "none",
+          borderRadius: "10px",
           boxShadow:
             "rgba(60, 64, 67, 0.3) 0px 1px 2px 0px, rgba(60, 64, 67, 0.15) 0px 2px 6px 2px",
         }}
       >
         <Box>
           <QuestionAnswerIcon
-            sx={{ color: "primary.main", fontSize: "4rem", mt: "4rem" }}
+            sx={{ color: "primary.main", fontSize: "4rem", mt: "2rem" }}
           />
           <Typography
             variant="subtitle1"
@@ -109,7 +134,7 @@ function UserLogin({ setUserStatus }) {
           </Typography>
           <Typography
             variant="body2"
-            sx={{ color: "text.secondary", mb: "4rem" }}
+            sx={{ color: "text.secondary", mb: "2rem" }}
           >
             Login to start messaging.
           </Typography>
@@ -122,16 +147,26 @@ function UserLogin({ setUserStatus }) {
               flexDirection: "column",
               mx: "auto",
               gap: "1rem",
-              mb: "5rem",
+              mb: "2.5rem",
             }}
           >
-            <Button
-              variant="contained"
-              sx={{ bgcolor: "background.light" }}
-              startIcon={<GoogleIcon />}
-              onClick={signInUser}
-            >
-              Continue with Google
+            <TextField
+              placeholder="Email"
+              variant="outlined"
+              size="small"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            <TextField
+              placeholder="Password"
+              variant="outlined"
+              size="small"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+            <Button variant="contained" onClick={signInWithEmailPwd}>
+              Sign in
             </Button>
             <Typography
               variant="body1"
@@ -142,7 +177,7 @@ function UserLogin({ setUserStatus }) {
 
                 "&::before, &::after": {
                   content: '""',
-                  borderColor: "text.secondary",
+                  borderColor: "#f5f5f0",
                   borderTop: "1px solid",
                   alignSelf: "center",
                 },
@@ -151,7 +186,15 @@ function UserLogin({ setUserStatus }) {
               or
             </Typography>
             <Button
-              variant="contained"
+              variant="outlined"
+              sx={{ bgcolor: "background.light" }}
+              startIcon={<GoogleIcon />}
+              onClick={signInUser}
+            >
+              Continue with Google
+            </Button>
+            <Button
+              variant="outlined"
               sx={{ bgcolor: "background.light" }}
               startIcon={<PersonIcon />}
               onClick={signInDemoUser}

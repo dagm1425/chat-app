@@ -9,7 +9,7 @@ import ChatMsgDisp from "./ChatMsgDisp";
 import ChatMsgInput from "./ChatMsgInput";
 import { useMediaQuery } from "@mui/material";
 
-function ChatsSection({ setSelectedChatId, userStatuses }) {
+function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
   const { id } = useParams();
   const chat = useSelector((state) => selectChatById(state, id));
   const [uploadTask, setUploadTask] = useState(null);
@@ -32,7 +32,7 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
         height: "100%",
       }}
     >
-      <ChatHeader chat={chat} userStatuses={userStatuses} />
+      <ChatHeader chat={chat} userStatuses={userStatuses} makeCall={makeCall} />
       <ChatMsgDisp
         chat={chat}
         uploadTask={uploadTask}
@@ -41,6 +41,7 @@ function ChatsSection({ setSelectedChatId, userStatuses }) {
         scroll={scroll}
         setSelectedChatId={setSelectedChatId}
         userStatuses={userStatuses}
+        makeCall={makeCall}
       />
       <ChatMsgInput
         chat={chat}
@@ -58,4 +59,5 @@ export default ChatsSection;
 ChatsSection.propTypes = {
   setSelectedChatId: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
+  makeCall: PropTypes.func,
 };
