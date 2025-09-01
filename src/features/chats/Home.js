@@ -34,6 +34,14 @@ function Home({ setUserStatus }) {
       {
         urls: "stun:stun.l.google.com:19302",
       },
+      {
+        urls: [
+          "turn:15.236.82.248:3478?transport=udp",
+          "turn:15.236.82.248:3478?transport=tcp",
+        ],
+        username: "webrtc",
+        credential: "webrtc123",
+      },
     ],
   };
 
