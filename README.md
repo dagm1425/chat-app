@@ -1,4 +1,4 @@
-# ChatApp, a web-based messaging app.
+# ChatApp, a web-based messaging and video/audio calling app.
 
 ### <a href="https://dn-chat-app.netlify.app" target="_blank">Visit web app</a>
 
