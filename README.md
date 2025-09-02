@@ -24,6 +24,23 @@
 - Make group calls (under development)
 - Responsive design
 
+
+*Sidenote when testing WebRTC Calls* 
+
+Current implementation: 
+Uses Google STUN server. Windows Firewall may block incoming traffic, so peer-to-peer calls can fail. 
+To allow incoming calls on Windows, run Command Prompt as Admin:
+
+```netsh advfirewall firewall add rule name="WebRTC Inbound UDP" dir=in action=allow protocol=UDP localport=1024-65535```
+
+For maximum reliability (“works everywhere”): TURN over TLS (turns:) is required. 
+This runs on port 443 (almost always open) but needs a valid TLS certificate and a proper domain, 
+which was not feasible for this demo project running on a subdomain.
+
+After testing, run the below command to delete the created rule
+```netsh advfirewall firewall delete rule name="WebRTC Inbound UDP"```
+
+
 ### Desktop:
 
 <img src="https://github.com/dagm1425/chat-app/blob/main/images/desktop.png" alt="Desktop" width="500">
