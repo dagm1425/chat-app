@@ -8,11 +8,11 @@
 - Redux
 - Material-UI
 - Firebase
-
+- WebRTC
 
 ### Features:
 
-- Sign in with Google
+- Sign in with Google or email
 - Toggle dark / light theme
 - Track users online presence 
 - Create and delete private chats
@@ -20,6 +20,8 @@
 - Send, draft, reply, forward, and delete messages
 - Track unread messages count 
 - Share files, images, and links
+- Make audio and video calls
+- Make group calls (under development)
 - Responsive design
 
 ### Desktop:
