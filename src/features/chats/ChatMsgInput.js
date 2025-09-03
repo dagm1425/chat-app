@@ -381,7 +381,6 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                       lineHeight: "1.125rem",
                     }}
                   >
-                    {msgReply.from.displayName}
                     {msgReply.from.uid === user.uid
                       ? "You"
                       : msgReply.from.displayName}
@@ -419,6 +418,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             <TextareaAutosize
               style={{
                 fontFamily: "inherit",
+                fontSize: "1rem",
                 color: theme.palette.text.primary,
                 backgroundColor: theme.palette.background.paper,
                 padding: "0.725rem 1.25rem",
