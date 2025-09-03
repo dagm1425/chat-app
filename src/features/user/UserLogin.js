@@ -156,6 +156,14 @@ function UserLogin({ setUserStatus }) {
               size="small"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root:hover fieldset": {
+                  borderColor: "rgba(0, 0, 0, 0.23)",
+                },
+                "& .Mui-focused:hover fieldset": {
+                  borderColor: (theme) => theme.palette.primary.main,
+                },
+              }}
             />
             <TextField
               placeholder="Password"
@@ -164,6 +172,14 @@ function UserLogin({ setUserStatus }) {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
+              sx={{
+                "& .MuiOutlinedInput-root:hover fieldset": {
+                  borderColor: "rgba(0, 0, 0, 0.23)",
+                },
+                "& .Mui-focused:hover fieldset": {
+                  borderColor: (theme) => theme.palette.primary.main,
+                },
+              }}
             />
             <Button variant="contained" onClick={signInWithEmailPwd}>
               Sign in
