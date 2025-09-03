@@ -107,7 +107,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 sx={{
                   fontSize: { xs: "1rem", sm: "inherit" },
                   display: "inline-block",
-                  width: { xs: "78%", sm: "68%", lg: "78%" },
+                  width: { xs: "67%", sm: "68%", lg: "67%" },
                   fontWeight: "bold",
                 }}
               >
@@ -128,7 +128,6 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     fontSize: { xs: "1rem", sm: "0.8rem", lg: "0.85rem" },
                     color: "text.secondary",
                     display: "inline-block",
-                    width: "20%",
                   }}
                 >
                   {recentMsgTimestamp}
@@ -160,7 +159,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   {recentMsg && chat.type === "public" && !draft && (
                     <Typography
                       component="span"
-                      sx={{ font: "inherit", color: "primary.main" }}
+                      sx={{
+                        font: "inherit",
+                        fontSize: { xs: "1rem", sm: ".925rem" },
+                        color: "primary.main",
+                      }}
                     >
                       {recentMsg.from.uid === user.uid
                         ? "You"
@@ -169,7 +172,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     </Typography>
                   )}
                   {draft ? (
-                    <>
+                    <Typography
+                      sx={{
+                        fontSize: { xs: "1rem", sm: ".925rem" },
+                      }}
+                    >
                       <Typography
                         component="span"
                         sx={{ font: "inherit", color: "primary.main" }}
@@ -177,11 +184,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                         Draft:{" "}
                       </Typography>
                       {draft.msg}
-                    </>
+                    </Typography>
                   ) : (
                     <Typography
                       sx={{
-                        fontSize: ".975rem",
+                        fontSize: { xs: "1rem", sm: ".925rem" },
                         color: "text.secondary",
                         display: "inline",
                       }}
