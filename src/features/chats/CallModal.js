@@ -403,8 +403,8 @@ const CallModal = ({
       <Box sx={{ textAlign: "center" }}>
         <Typography variant="h3" fontSize="1.625rem" color="#fff">
           {user.uid === callData.callee.uid
-            ? callData.caller.displayName
-            : callData.callee.displayName}
+            ? callData.caller.displayName.split(" ")[0]
+            : callData.callee.displayName.split(" ")[0]}
         </Typography>
         <Typography variant="subtitle1" fontWeight="normal" color="#d6d6c2">
           {getCallStatusText()}
@@ -444,8 +444,8 @@ const CallModal = ({
           >
             <span>
               {user.uid === callData.callee.uid
-                ? callData.caller.displayName
-                : callData.callee.displayName}
+                ? callData.caller.displayName.split(" ")[0]
+                : callData.callee.displayName.split(" ")[0]}
             </span>
             <span>|</span>
             <span>{isOngoingCall && formatCallDuration(timer)}</span>

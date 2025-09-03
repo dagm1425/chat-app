@@ -164,7 +164,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     >
                       {recentMsg.from.uid === user.uid
                         ? "You"
-                        : recentMsg.from.displayName}
+                        : recentMsg.from.displayName.split(" ")[0]}
                       {": "}
                     </Typography>
                   )}
