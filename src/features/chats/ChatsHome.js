@@ -26,7 +26,7 @@ function ChatsHome() {
           variant="subtitle1"
           sx={{ fontSize: "1.25em", mt: "0.25rem" }}
         >
-          ChatApp
+          WeConnect
         </Typography>
         <Typography variant="body2" sx={{ color: "text.secondary" }}>
           Create or select a chat to start messaging.

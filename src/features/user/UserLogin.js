@@ -130,7 +130,7 @@ function UserLogin({ setUserStatus }) {
             variant="subtitle1"
             sx={{ fontSize: "1.25em", mt: "0.25rem" }}
           >
-            ChatApp
+            WeConnect
           </Typography>
           <Typography
             variant="body2"
