@@ -11,7 +11,13 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { db } from "../../firebase";
-import { Avatar, Box, IconButton, Typography } from "@mui/material";
+import {
+  Avatar,
+  Box,
+  IconButton,
+  Typography,
+  useMediaQuery,
+} from "@mui/material";
 import { Mic, MicOff, CallEnd, Call } from "@mui/icons-material";
 import { useSelector, useDispatch } from "react-redux";
 import { selectCall, setCall } from "./chatsSlice";
@@ -41,6 +47,7 @@ const CallModal = ({
   const remoteAudioRef = useRef(null);
   // const timeoutStatusMsg = useRef(null);
   const isCleaningUpRef = useRef(false);
+  const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
 
   useEffect(() => {
@@ -384,7 +391,7 @@ const CallModal = ({
         left: "50%",
         transform: "translate(-50%, -50%)",
         zIndex: 2000,
-        width: 500,
+        width: { xs: 380, sm: 500 },
         height: 490,
         p: 2,
         bgcolor: "#20232A",
@@ -428,7 +435,7 @@ const CallModal = ({
               top: "25px",
               left: "50%",
               transform: "translateX(-50%)",
-              width: "20%",
+              width: { xs: "35%", sm: "30%" },
               bgcolor: "rgba(0, 0, 0, 0.4)",
               backdropFilter: "blur(5px)",
               color: "white",
@@ -447,7 +454,7 @@ const CallModal = ({
                 ? callData.caller.displayName.split(" ")[0]
                 : callData.callee.displayName.split(" ")[0]}
             </span>
-            <span>|</span>
+            <span> | </span>
             <span>{isOngoingCall && formatCallDuration(timer)}</span>
           </Box>
           <video
@@ -461,7 +468,9 @@ const CallModal = ({
               overflow: "hidden",
               boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
               transform: isOngoingCall
-                ? "translate(40px, 110px) scale(0.6) scaleX(-1)"
+                ? isMobile
+                  ? "translate(0px, 60px) scale(0.5) scaleX(-1)"
+                  : "translate(40px, 110px) scale(0.6) scaleX(-1)"
                 : "translateX(-50%) scale(1) scaleX(-1)",
               transition: "transform .3s ease-out",
               zIndex: 2,

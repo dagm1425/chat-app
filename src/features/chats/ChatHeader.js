@@ -275,7 +275,7 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           {chat.type === "private" && (
-            <Box>
+            <Box sx={{ display: "flex", alignItems: "center" }}>
               <Button onClick={() => makeCall(chat, true)}>
                 <LocalPhoneOutlinedIcon />
               </Button>
