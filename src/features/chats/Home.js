@@ -25,6 +25,7 @@ function Home({ setUserStatus }) {
     peerConnectionRef,
     makeCall,
     joinCall,
+    cleanupLocalCall,
   } = useWebRTC(db);
 
   useEffect(() => {
@@ -120,6 +121,7 @@ function Home({ setUserStatus }) {
             localStreamRef={localStreamRef}
             remoteStreamRef={remoteStreamRef}
             joinCall={joinCall}
+            cleanupLocalCall={cleanupLocalCall}
           />
         )}
         <Routes>

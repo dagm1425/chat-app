@@ -19,8 +19,8 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Mic, MicOff, CallEnd, Call } from "@mui/icons-material";
-import { useSelector, useDispatch } from "react-redux";
-import { selectCall, setCall } from "./chatsSlice";
+import { useSelector } from "react-redux";
+import { selectCall } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import { useEffect, useState, useRef } from "react";
 import { selectUser } from "../user/userSlice";
@@ -30,11 +30,11 @@ const CallModal = ({
   localStreamRef,
   remoteStreamRef,
   joinCall,
+  cleanupLocalCall,
 }) => {
   const callState = useSelector(selectCall);
   const user = useSelector(selectUser);
   const callData = callState.callData;
-  const dispatch = useDispatch();
   const [isMuted, setIsMuted] = useState(false);
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -91,7 +91,7 @@ const CallModal = ({
           remoteVideoRef.current.srcObject = null;
         console.log("calling cleanupLocalCall from onSnapshot listener");
 
-        cleanupLocalCall();
+        handleLocalCallCleanup();
       }
     });
 
@@ -222,36 +222,11 @@ const CallModal = ({
     await updateDoc(chatRef, { unreadCounts });
   };
 
-  const cleanupLocalCall = () => {
-    console.log("cleanupLocalCall is running");
-
-    if (callState.callData.status !== "Call ended") {
-      dispatch(setCall({ ...callState, status: "Call ended" }));
-    }
-
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-      localStreamRef.current = null;
-    }
-    if (remoteStreamRef.current) {
-      remoteStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-      remoteStreamRef.current = null;
-    }
-    if (peerConnectionRef.current) {
-      peerConnectionRef.current.close();
-    }
-
+  const handleLocalCallCleanup = () => {
     if (localAudioRef.current) localAudioRef.current.srcObject = null;
     if (remoteAudioRef.current) remoteAudioRef.current.srcObject = null;
 
-    setTimeout(() => {
-      dispatch(setCall({ isActive: false, callData: {}, status: "" }));
-    }, 900);
-
+    cleanupLocalCall();
     isCleaningUpRef.current = false;
   };
 
@@ -333,7 +308,7 @@ const CallModal = ({
     sendMsg(status);
     console.log("calling cleanupLocalCall from hangUp");
 
-    cleanupLocalCall();
+    handleLocalCallCleanup();
 
     if (callData.roomId) {
       const roomRef = doc(collection(chatRef, "rooms"), callData.roomId);
@@ -599,6 +574,7 @@ CallModal.propTypes = {
     current: PropTypes.instanceOf(MediaStream),
   }),
   joinCall: PropTypes.func,
+  cleanupLocalCall: PropTypes.func,
 };
 
 export default CallModal;

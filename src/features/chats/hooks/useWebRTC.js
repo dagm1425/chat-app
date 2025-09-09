@@ -241,12 +241,39 @@ const useWebRTC = (db) => {
     }
   }
 
+  const cleanupLocalCall = () => {
+    if (callState.callData.status !== "Call ended") {
+      dispatch(setCall({ ...callState, status: "Call ended" }));
+    }
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      localStreamRef.current = null;
+    }
+    if (remoteStreamRef.current) {
+      remoteStreamRef.current.getTracks().forEach((track) => {
+        track.stop();
+      });
+      remoteStreamRef.current = null;
+    }
+    if (peerConnectionRef.current) {
+      peerConnectionRef.current.close();
+    }
+
+    setTimeout(() => {
+      dispatch(setCall({ isActive: false, callData: {}, status: "" }));
+    }, 900);
+  };
+
   return {
     localStreamRef,
     remoteStreamRef,
     peerConnectionRef,
     makeCall,
     joinCall,
+    cleanupLocalCall,
   };
 };
 
