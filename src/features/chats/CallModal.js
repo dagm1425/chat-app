@@ -63,11 +63,6 @@ const CallModal = ({
     if (remoteAudioRef.current && remoteStreamRef.current) {
       remoteAudioRef.current.srcObject = remoteStreamRef.current;
     }
-    console.log("localstreamref.current in useEffect", localStreamRef.current);
-    console.log(
-      "remotestreamref.current in useEffect",
-      remoteStreamRef.current
-    );
   }, [localStreamRef.current, remoteStreamRef.current]);
 
   useEffect(() => {
@@ -89,8 +84,6 @@ const CallModal = ({
           localVideoRef.current.srcObject = null;
         if (remoteVideoRef.current?.srcObject)
           remoteVideoRef.current.srcObject = null;
-        console.log("calling cleanupLocalCall from onSnapshot listener");
-
         handleLocalCallCleanup();
       }
     });
@@ -134,15 +127,6 @@ const CallModal = ({
     };
   }, [peerConnectionRef.current]);
 
-  // useEffect(() => {
-  //   if (callState.status === "Ongoing call") {
-  //     const interval = setInterval(() => setTimer((prev) => prev + 1), 1000);
-  //     return () => clearInterval(interval);
-  //   } else {
-  //     setTimer(0);
-  //   }
-  // }, [callState.status]);
-
   useEffect(() => {
     if (!callData?.chatId) return;
 
@@ -154,7 +138,6 @@ const CallModal = ({
       const startTime = data?.callData?.startTime?.toDate();
 
       if (startTime && !intervalId) {
-        console.log("setting timer interval");
         intervalId = setInterval(() => {
           const elapsedMs = new Date() - startTime;
           const elapsedSeconds = Math.floor(elapsedMs / 1000);
@@ -183,7 +166,6 @@ const CallModal = ({
   };
 
   const sendMsg = async (status) => {
-    console.log("running sendMsg");
     const msgId = uuid();
     const msgRef = doc(db, "chats", callData.chatId, "chatMessages", msgId);
     const chatRef = doc(db, "chats", callData.chatId);
@@ -209,8 +191,6 @@ const CallModal = ({
       timestamp: serverTimestamp(),
     };
     await setDoc(msgRef, newMsg);
-    console.log("Message written to Firestore with msgId:", msgId);
-
     await updateDoc(chatRef, { recentMsg: newMsg });
     await updateDoc(chatRef, { timestamp: newMsg.timestamp });
 
@@ -230,32 +210,6 @@ const CallModal = ({
     isCleaningUpRef.current = false;
   };
 
-  // const callerStatus = () => {
-  //   if (timer === 0 && user.uid === callData.caller.uid) {
-  //     return "Cancelled call";
-  //   } else if (timer === 0 && user.uid !== callData.caller.uid) {
-  //     return "Call rejected";
-  //   } else if (timer !== 0) {
-  //     return `Outgoing call - ${String(Math.floor(timer / 60)).padStart(
-  //       2,
-  //       "0"
-  //     )}:${String(timer % 60).padStart(2, "0")}`;
-  //   }
-  // };
-
-  // const calleeStatus = () => {
-  //   if (timer === 0 && user.uid !== callData.callee.uid) {
-  //     return "Missed call";
-  //   } else if (timer === 0 && user.uid === callData.callee.uid) {
-  //     return "Call rejected";
-  //   } else if (timer !== 0) {
-  //     return `Incoming call - ${String(Math.floor(timer / 60)).padStart(
-  //       2,
-  //       "0"
-  //     )}:${String(timer % 60).padStart(2, "0")}`;
-  //   }
-  // };
-
   const getCallStatus = (userForStatus, timer) => {
     const isCaller = userForStatus.uid === callData.caller.uid;
     const isCallee = userForStatus.uid === callData.callee.uid;
@@ -270,7 +224,6 @@ const CallModal = ({
   };
 
   const hangUp = async () => {
-    console.log("hangUp is running");
     if (localVideoRef.current?.srcObject)
       localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current?.srcObject)
@@ -287,27 +240,11 @@ const CallModal = ({
       },
     });
 
-    // console.log("!timeoutStatusMsg.current", !timeoutStatusMsg.current);
-
-    // const status = timeoutStatusMsg.current
-    //   ? timeoutStatusMsg.current
-    //   : {
-    //       [callData.caller.uid]: getCallStatus(
-    //         { uid: callData.caller.uid },
-    //         timer
-    //       ),
-    //       [callData.callee.uid]: getCallStatus(
-    //         { uid: callData.callee.uid },
-    //         timer
-    //       ),
-    //     };
     const status = {
       [callData.caller.uid]: getCallStatus({ uid: callData.caller.uid }, timer),
       [callData.callee.uid]: getCallStatus({ uid: callData.callee.uid }, timer),
     };
     sendMsg(status);
-    console.log("calling cleanupLocalCall from hangUp");
-
     handleLocalCallCleanup();
 
     if (callData.roomId) {

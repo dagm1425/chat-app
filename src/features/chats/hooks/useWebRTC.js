@@ -148,7 +148,6 @@ const useWebRTC = (db) => {
 
     peerConnection.addEventListener("track", (event) => {
       event.streams[0].getTracks().forEach(async (track) => {
-        console.log("adding remote tracks");
         remoteStream.addTrack(track);
         updateCallStatusAndStartTime(chat, completeCall);
       });
@@ -233,7 +232,6 @@ const useWebRTC = (db) => {
       onSnapshot(roomRef, async (snapshot) => {
         const data = snapshot.data();
         if (!peerConnection.currentRemoteDescription && data?.answer) {
-          console.log("Set remote description: ", data.answer);
           const answer = new RTCSessionDescription(data.answer);
           await peerConnection.setRemoteDescription(answer);
         }
