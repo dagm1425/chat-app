@@ -18,7 +18,14 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import { Mic, MicOff, CallEnd, Call } from "@mui/icons-material";
+import {
+  Mic,
+  MicOff,
+  CallEnd,
+  Call,
+  ScreenShare,
+  StopScreenShare,
+} from "@mui/icons-material";
 import { useSelector } from "react-redux";
 import { selectCall } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
@@ -31,11 +38,14 @@ const CallModal = ({
   remoteStreamRef,
   joinCall,
   cleanupLocalCall,
+  startScreenShare,
+  stopScreenShare,
 }) => {
   const callState = useSelector(selectCall);
   const user = useSelector(selectUser);
   const callData = callState.callData;
   const [isMuted, setIsMuted] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -273,6 +283,23 @@ const CallModal = ({
     setIsMuted((prev) => !prev);
   };
 
+  const toggleScreenShare = async () => {
+    if (isScreenSharing) {
+      await stopScreenShare();
+      setIsScreenSharing(false);
+    } else {
+      const stream = await startScreenShare();
+      if (stream) {
+        setIsScreenSharing(true);
+
+        stream.getVideoTracks()[0].onended = async () => {
+          await stopScreenShare();
+          setIsScreenSharing(false);
+        };
+      }
+    }
+  };
+
   const handleMouseDown = (e) => {
     dragging.current = true;
     dragOffset.current = {
@@ -451,6 +478,33 @@ const CallModal = ({
           </IconButton>
         )}
 
+        {callData.isVideoCall && (
+          <IconButton
+            onClick={toggleScreenShare}
+            sx={{
+              width: 48,
+              height: 48,
+              bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              color: isScreenSharing ? "#20232A" : "#fff",
+              boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+
+              "&:hover": {
+                bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              },
+              "&.MuiButtonBase-root:hover": {
+                bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              },
+            }}
+            disableRipple
+          >
+            {isScreenSharing ? (
+              <StopScreenShare sx={{ fontSize: "1.5rem" }} />
+            ) : (
+              <ScreenShare sx={{ fontSize: "1.5rem" }} />
+            )}
+          </IconButton>
+        )}
+
         <IconButton
           onClick={toggleMute}
           sx={{
@@ -512,6 +566,8 @@ CallModal.propTypes = {
   }),
   joinCall: PropTypes.func,
   cleanupLocalCall: PropTypes.func,
+  startScreenShare: PropTypes.func,
+  stopScreenShare: PropTypes.func,
 };
 
 export default CallModal;

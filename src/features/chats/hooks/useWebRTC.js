@@ -265,6 +265,72 @@ const useWebRTC = (db) => {
     }, 900);
   };
 
+  const startScreenShare = async () => {
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+      });
+      const screenTrack = screenStream.getVideoTracks()[0];
+
+      if (peerConnectionRef.current) {
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find(
+          (sender) => sender.track && sender.track.kind === "video"
+        );
+        if (videoSender) {
+          videoSender.replaceTrack(screenTrack);
+        }
+      }
+
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      const newStream = new MediaStream([screenTrack]);
+      if (audioTrack) {
+        newStream.addTrack(audioTrack);
+      }
+
+      localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
+      localStreamRef.current = newStream;
+
+      return newStream;
+    } catch (e) {
+      console.error("Error starting screen share", e);
+      return null;
+    }
+  };
+
+  const stopScreenShare = async () => {
+    try {
+      const cameraStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+      });
+      const cameraTrack = cameraStream.getVideoTracks()[0];
+
+      if (peerConnectionRef.current) {
+        const senders = peerConnectionRef.current.getSenders();
+        const videoSender = senders.find(
+          (sender) => sender.track && sender.track.kind === "video"
+        );
+        if (videoSender) {
+          videoSender.replaceTrack(cameraTrack);
+        }
+      }
+
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
+      const newStream = new MediaStream([cameraTrack]);
+      if (audioTrack) {
+        newStream.addTrack(audioTrack);
+      }
+
+      localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
+      localStreamRef.current = newStream;
+
+      return newStream;
+    } catch (e) {
+      console.error("Error stopping screen share", e);
+      return null;
+    }
+  };
+
   return {
     localStreamRef,
     remoteStreamRef,
@@ -272,6 +338,8 @@ const useWebRTC = (db) => {
     makeCall,
     joinCall,
     cleanupLocalCall,
+    startScreenShare,
+    stopScreenShare,
   };
 };
 

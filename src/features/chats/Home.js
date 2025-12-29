@@ -26,6 +26,8 @@ function Home({ setUserStatus }) {
     makeCall,
     joinCall,
     cleanupLocalCall,
+    startScreenShare,
+    stopScreenShare,
   } = useWebRTC(db);
 
   useEffect(() => {
@@ -122,6 +124,8 @@ function Home({ setUserStatus }) {
             remoteStreamRef={remoteStreamRef}
             joinCall={joinCall}
             cleanupLocalCall={cleanupLocalCall}
+            startScreenShare={startScreenShare}
+            stopScreenShare={stopScreenShare}
           />
         )}
         <Routes>
