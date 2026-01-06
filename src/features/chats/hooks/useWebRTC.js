@@ -7,6 +7,7 @@ import {
   updateDoc,
   addDoc,
   serverTimestamp,
+  deleteField,
 } from "firebase/firestore";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall } from "../chatsSlice";
@@ -291,6 +292,14 @@ const useWebRTC = (db) => {
       localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
       localStreamRef.current = newStream;
 
+      if (callState.callData?.chatId) {
+        const chatRef = doc(db, "chats", callState.callData.chatId);
+
+        await updateDoc(chatRef, {
+          [`call.screenSharingUids.${user.uid}`]: true,
+        });
+      }
+
       return newStream;
     } catch (e) {
       console.error("Error starting screen share", e);
@@ -323,6 +332,14 @@ const useWebRTC = (db) => {
 
       localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
       localStreamRef.current = newStream;
+
+      if (callState.callData?.chatId) {
+        const chatRef = doc(db, "chats", callState.callData.chatId);
+
+        await updateDoc(chatRef, {
+          [`call.screenSharingUids.${user.uid}`]: deleteField(),
+        });
+      }
 
       return newStream;
     } catch (e) {

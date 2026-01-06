@@ -46,6 +46,7 @@ const CallModal = ({
   const callData = callState.callData;
   const [isMuted, setIsMuted] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
   const dragOffset = useRef({ x: 0, y: 0 });
@@ -63,6 +64,9 @@ const CallModal = ({
   useEffect(() => {
     if (localVideoRef.current && localStreamRef.current) {
       localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    if (localAudioRef.current && localStreamRef.current) {
+      localAudioRef.current.srcObject = localStreamRef.current;
     }
     if (remoteVideoRef.current && remoteStreamRef.current) {
       remoteVideoRef.current.srcObject = remoteStreamRef.current;
@@ -84,6 +88,19 @@ const CallModal = ({
       if (!docSnap.exists()) return;
 
       const callDataFromFirestore = docSnap.data().call;
+
+      if (callDataFromFirestore) {
+        const screenSharingUids = callDataFromFirestore.screenSharingUids || {};
+
+        const localUid = user.uid;
+        const remoteUid =
+          localUid === callData.caller.uid
+            ? callData.callee.uid
+            : callData.caller.uid;
+
+        const remoteIsSharing = !!screenSharingUids[remoteUid];
+        setIsRemoteScreenSharing(remoteIsSharing);
+      }
 
       if (
         !isCleaningUpRef.current &&
@@ -330,8 +347,8 @@ const CallModal = ({
         left: "50%",
         transform: "translate(-50%, -50%)",
         zIndex: 2000,
-        width: { xs: 380, sm: 500 },
-        height: 490,
+        width: { xs: 380, sm: 725 },
+        height: 540,
         p: 2,
         bgcolor: "#20232A",
         overflow: "hidden",
@@ -345,27 +362,40 @@ const CallModal = ({
         userSelect: "none",
       }}
     >
-      <Avatar src={callData.callee.photoURL} sx={{ width: 75, height: 75 }} />
-      <Box sx={{ textAlign: "center" }}>
-        <Typography variant="h3" fontSize="1.625rem" color="#fff">
-          {user.uid === callData.callee.uid
-            ? callData.caller.displayName.split(" ")[0]
-            : callData.callee.displayName.split(" ")[0]}
-        </Typography>
-        <Typography variant="subtitle1" fontWeight="normal" color="#d6d6c2">
-          {getCallStatusText()}
-        </Typography>
-      </Box>
-      <Typography
-        variant="body2"
+      <Box
         sx={{
-          color: "#d6d6c2",
-          visibility: isOngoingCall ? "visible" : "hidden",
+          display: "flex",
+          flexDirection: "column",
+          justifyContent: "center",
+          alignItems: "center",
+          pt: 2,
+          visibility: isRemoteScreenSharing ? "hidden" : "visible",
         }}
       >
-        {formatCallDuration(timer)}
-      </Typography>
-
+        <Avatar
+          src={callData.callee.photoURL}
+          sx={{ width: 75, height: 75, mb: 1 }}
+        />
+        <Box sx={{ textAlign: "center" }}>
+          <Typography variant="h3" fontSize="1.625rem" color="#fff">
+            {user.uid === callData.callee.uid
+              ? callData.caller.displayName.split(" ")[0]
+              : callData.callee.displayName.split(" ")[0]}
+          </Typography>
+          <Typography variant="subtitle1" fontWeight="normal" color="#d6d6c2">
+            {getCallStatusText()}
+          </Typography>
+        </Box>
+        <Typography
+          variant="body2"
+          sx={{
+            color: "#d6d6c2",
+            visibility: isOngoingCall ? "visible" : "hidden",
+          }}
+        >
+          {formatCallDuration(timer)}
+        </Typography>
+      </Box>
       {callData.isVideoCall ? (
         <>
           <Box
@@ -374,8 +404,7 @@ const CallModal = ({
               top: "25px",
               left: "50%",
               transform: "translateX(-50%)",
-              width: { xs: "35%", sm: "30%" },
-              bgcolor: "rgba(0, 0, 0, 0.4)",
+              bgcolor: "rgba(0, 0, 0, 0.3)",
               backdropFilter: "blur(5px)",
               color: "white",
               fontSize: "0.875rem",
@@ -383,6 +412,7 @@ const CallModal = ({
               px: 1.5,
               py: 0.5,
               display: isOngoingCall ? "flex" : "none",
+              gap: 1,
               justifyContent: "space-between",
               alignItems: "center",
               zIndex: 2,
@@ -400,17 +430,22 @@ const CallModal = ({
             style={{
               position: "absolute",
               left: "50%",
-              top: 215,
-              width: 245,
+              top: 250,
+              width: 248,
               height: 185,
+              backgroundColor: isScreenSharing ? "#1a1a1a" : "transparent",
               borderRadius: "10px",
               overflow: "hidden",
               boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
               transform: isOngoingCall
                 ? isMobile
-                  ? "translate(0px, 60px) scale(0.5) scaleX(-1)"
-                  : "translate(40px, 110px) scale(0.6) scaleX(-1)"
-                : "translateX(-50%) scale(1) scaleX(-1)",
+                  ? `translate(0px, 60px) scale(0.5) scaleX(${
+                      isScreenSharing ? 1 : -1
+                    })`
+                  : `translate(140px, 120px) scale(0.7) scaleX(${
+                      isScreenSharing ? 1 : -1
+                    })`
+                : `translateX(-50%) scale(1) scaleX(-1)`,
               transition: "transform .3s ease-out",
               zIndex: 2,
               marginBottom: isOngoingCall ? "0" : ".625rem",
@@ -427,8 +462,8 @@ const CallModal = ({
               left: 0,
               width: "100%",
               height: "100%",
-              objectFit: "cover",
-              transform: "scaleX(-1)",
+              objectFit: isRemoteScreenSharing ? "contain" : "cover",
+              transform: "scaleX(1)",
               borderRadius: 0,
               display: isOngoingCall ? "block" : "none",
               zIndex: 1,
@@ -481,18 +516,21 @@ const CallModal = ({
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleScreenShare}
+            disabled={!isOngoingCall}
             sx={{
               width: 48,
               height: 48,
-              bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              display:
+                user.uid === callData.callee.uid && !isOngoingCall
+                  ? "none"
+                  : "flex",
+              bgcolor: isScreenSharing ? "#fff" : "rgba(0, 0, 0, 0.3)",
               color: isScreenSharing ? "#20232A" : "#fff",
+              opacity: isOngoingCall ? 1 : 0.4,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-
-              "&:hover": {
-                bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
-              },
-              "&.MuiButtonBase-root:hover": {
-                bgcolor: isScreenSharing ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              "&.Mui-disabled": {
+                bgcolor: "rgba(255, 255, 255, 0.08)",
+                color: "#fff",
               },
             }}
             disableRipple
@@ -510,15 +548,30 @@ const CallModal = ({
           sx={{
             width: 48,
             height: 48,
-            bgcolor: isMuted ? "#fff" : "rgba(255, 255, 255, 0.08)",
+            display:
+              user.uid === callData.callee.uid && !isOngoingCall
+                ? "none"
+                : "flex",
+            bgcolor: isMuted
+              ? "#fff"
+              : callData.isVideoCall && isOngoingCall
+              ? "rgba(0, 0, 0, 0.3)"
+              : "rgba(255, 255, 255, 0.08)",
             color: isMuted ? "#20232A" : "#fff",
             boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-
             "&:hover": {
-              bgcolor: isMuted ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              bgcolor: isMuted
+                ? "#fff"
+                : callData.isVideoCall && isOngoingCall
+                ? "rgba(0, 0, 0, 0.3)"
+                : "rgba(255, 255, 255, 0.08)",
             },
             "&.MuiButtonBase-root:hover": {
-              bgcolor: isMuted ? "#fff" : "rgba(255, 255, 255, 0.08)",
+              bgcolor: isMuted
+                ? "#fff"
+                : callData.isVideoCall && isOngoingCall
+                ? "rgba(0, 0, 0, 0.3)"
+                : "rgba(255, 255, 255, 0.08)",
             },
           }}
           disableRipple
