@@ -34,11 +34,7 @@ const useWebRTC = (db) => {
     return calleeData.isUserLineBusy;
   };
 
-  const updateCallStatusAndStartTime = async (chat, call) => {
-    if (callState.status !== "Ongoing call") {
-      dispatch(setCall({ ...call, status: "Ongoing call" }));
-    }
-
+  const updateCallStartTime = async (chat) => {
     const chatRef = doc(db, "chats", chat.chatId);
 
     if (!callState.callData.startTime) {
@@ -150,7 +146,7 @@ const useWebRTC = (db) => {
     peerConnection.addEventListener("track", (event) => {
       event.streams[0].getTracks().forEach(async (track) => {
         remoteStream.addTrack(track);
-        updateCallStatusAndStartTime(chat, completeCall);
+        updateCallStartTime(chat);
       });
     });
 
@@ -210,10 +206,6 @@ const useWebRTC = (db) => {
         event.streams[0].getTracks().forEach((track) => {
           remoteStream.addTrack(track);
         });
-
-        if (callState.status !== "Ongoing call") {
-          dispatch(setCall({ ...callState, status: "Ongoing call" }));
-        }
       });
 
       const offer = roomSnapshot.data().offer;

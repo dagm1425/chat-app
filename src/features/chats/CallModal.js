@@ -26,22 +26,24 @@ import {
   ScreenShare,
   StopScreenShare,
 } from "@mui/icons-material";
-import { useSelector } from "react-redux";
-import { selectCall } from "./chatsSlice";
+import { useDispatch, useSelector } from "react-redux";
+import { selectCall, setCall } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import { useEffect, useState, useRef } from "react";
 import { selectUser } from "../user/userSlice";
 
-const CallModal = ({
-  peerConnectionRef,
-  localStreamRef,
-  remoteStreamRef,
-  joinCall,
-  cleanupLocalCall,
-  startScreenShare,
-  stopScreenShare,
-}) => {
+const CallModal = (props) => {
+  const {
+    peerConnectionRef,
+    localStreamRef,
+    remoteStreamRef,
+    joinCall,
+    cleanupLocalCall,
+    startScreenShare,
+    stopScreenShare,
+  } = props;
   const callState = useSelector(selectCall);
+  const dispatch = useDispatch();
   const user = useSelector(selectUser);
   const callData = callState.callData;
   const [isMuted, setIsMuted] = useState(false);
@@ -49,6 +51,7 @@ const CallModal = ({
   const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
+
   const dragOffset = useRef({ x: 0, y: 0 });
   const [timer, setTimer] = useState(0);
   const dragging = useRef(false);
@@ -251,6 +254,8 @@ const CallModal = ({
   };
 
   const hangUp = async () => {
+    dispatch(setCall({ ...callState, status: "Call ended" }));
+
     if (localVideoRef.current?.srcObject)
       localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current?.srcObject)
@@ -424,7 +429,7 @@ const CallModal = ({
                 : callData.callee.displayName.split(" ")[0]}
             </span>
             <span> | </span>
-            <span>{isOngoingCall && formatCallDuration(timer)}</span>
+            <span>{formatCallDuration(timer)}</span>
           </Box>
           <video
             style={{
@@ -468,6 +473,9 @@ const CallModal = ({
               display: isOngoingCall ? "block" : "none",
               zIndex: 1,
             }}
+            onPlaying={() =>
+              dispatch(setCall({ ...callState, status: "Ongoing call" }))
+            }
             ref={remoteVideoRef}
             autoPlay
             playsInline
@@ -476,7 +484,13 @@ const CallModal = ({
       ) : (
         <>
           <audio ref={localAudioRef} autoPlay muted />
-          <audio ref={remoteAudioRef} autoPlay />
+          <audio
+            ref={remoteAudioRef}
+            autoPlay
+            onPlaying={() =>
+              dispatch(setCall({ ...callState, status: "Ongoing call" }))
+            }
+          />
         </>
       )}
 
