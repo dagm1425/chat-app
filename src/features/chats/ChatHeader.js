@@ -274,16 +274,14 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
           </div>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-          {chat.type === "private" && (
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Button onClick={() => makeCall(chat, true)}>
-                <LocalPhoneOutlinedIcon />
-              </Button>
-              <Button onClick={() => makeCall(chat, false)}>
-                <VideocamOutlinedIcon />
-              </Button>
-            </Box>
-          )}
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Button onClick={() => makeCall(chat, true)}>
+              <LocalPhoneOutlinedIcon />
+            </Button>
+            <Button onClick={() => makeCall(chat, false)}>
+              <VideocamOutlinedIcon />
+            </Button>
+          </Box>
           <IconButton onClick={handleChatOptionsOpen}>
             <MoreVertIcon />
           </IconButton>
