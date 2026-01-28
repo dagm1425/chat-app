@@ -55,6 +55,9 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     if (recentMsg.msg) return recentMsg.msg;
     if (recentMsg.caption) return recentMsg.caption;
     if (recentMsg.fileMsg) return formatFilename(recentMsg.fileMsg.fileName);
+    if (recentMsg.type === "call-system") {
+      return recentMsg.callData?.systemText || "";
+    }
     if (recentMsg.callData) return recentMsg.callData.status[user.uid];
   };
 
@@ -104,6 +107,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
             <React.Fragment>
               <Typography
                 variant="body2"
+                component="div"
                 sx={{
                   fontSize: { xs: "1rem", sm: "inherit" },
                   display: "inline-block",
@@ -124,6 +128,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
               {recentMsgTimestamp && !draft && (
                 <Typography
                   variant="body2"
+                  component="div"
                   sx={{
                     fontSize: { xs: "1rem", sm: "0.8rem", lg: "0.85rem" },
                     color: "text.secondary",
@@ -137,7 +142,11 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
           }
           secondary={
             !recentMsg && !draft ? (
-              <Typography variant="body2" sx={{ color: "text.secondary" }}>
+              <Typography
+                variant="body2"
+                component="div"
+                sx={{ color: "text.secondary" }}
+              >
                 {chatCreator} created this chat
               </Typography>
             ) : (
@@ -155,6 +164,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     textOverflow: "ellipsis",
                   }}
                   variant="body2"
+                  component="div"
                 >
                   {recentMsg && chat.type === "public" && !draft && (
                     <Typography
@@ -176,6 +186,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                       sx={{
                         fontSize: { xs: "1rem", sm: ".925rem" },
                       }}
+                      component="span"
                     >
                       <Typography
                         component="span"
@@ -192,6 +203,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                         color: "text.secondary",
                         display: "inline",
                       }}
+                      component="span"
                     >
                       {returnRecentMsg()}
                     </Typography>

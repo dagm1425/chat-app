@@ -10,7 +10,10 @@ import { selectUser } from "../user/userSlice";
 
 const CallMsg = ({ message, makeCall }) => {
   const user = useSelector(selectUser);
-  const status = message.callData.status[user.uid];
+  const status = message.callData.status
+    ? message.callData.status[user.uid]
+    : undefined;
+
   const chat = message.callData.chat;
   const isVideoCall = message.callData.isVideoCall;
   const isUserCaller = user.uid === message.from.uid;

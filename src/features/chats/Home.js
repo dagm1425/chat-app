@@ -21,9 +21,10 @@ function Home({ setUserStatus }) {
   const callState = useSelector(selectCall);
   const {
     localStreamRef,
-    remoteStreamRef,
-    peerConnectionRef,
-    makeCall,
+    remoteStreamsRef, // Map<userId, MediaStream>
+    peerConnectionsRef, // Map<userId, RTCPeerConnection>
+    streamsVersion, // Tracks stream changes - increments when streams are added/removed
+    startCall,
     joinCall,
     cleanupLocalCall,
     startScreenShare,
@@ -119,9 +120,10 @@ function Home({ setUserStatus }) {
         />
         {callState.isActive && (
           <CallModal
-            peerConnectionRef={peerConnectionRef}
+            peerConnectionsRef={peerConnectionsRef}
             localStreamRef={localStreamRef}
-            remoteStreamRef={remoteStreamRef}
+            remoteStreamsRef={remoteStreamsRef}
+            streamsVersion={streamsVersion}
             joinCall={joinCall}
             cleanupLocalCall={cleanupLocalCall}
             startScreenShare={startScreenShare}
@@ -136,7 +138,7 @@ function Home({ setUserStatus }) {
               <ChatsSection
                 setSelectedChatId={setSelectedChatId}
                 userStatuses={userStatuses}
-                makeCall={makeCall}
+                makeCall={startCall}
               />
             }
           ></Route>

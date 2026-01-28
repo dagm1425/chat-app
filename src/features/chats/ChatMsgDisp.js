@@ -186,7 +186,8 @@ function ChatMsgDisp({
           batch.update(doc.ref, { isMsgRead: true });
         }
       } else {
-        if (!isUserMessage && !isMsgRead.includes(user.uid)) {
+        const readBy = Array.isArray(isMsgRead) ? isMsgRead : [];
+        if (!isUserMessage && !readBy.includes(user.uid)) {
           batch.update(doc.ref, { isMsgRead: arrayUnion(user.uid) });
         }
       }
@@ -267,6 +268,32 @@ function ChatMsgDisp({
     );
   };
 
+  const renderSystemCallMsg = (message) => {
+    const text = message.callData?.systemText;
+    if (!text) return null;
+
+    return (
+      <Box
+        sx={{
+          fontSize: 12,
+          alignSelf: "center",
+          p: "0.375rem 0.625rem",
+          m: { xs: "0.75rem", sm: "1rem" },
+          bgcolor: (theme) =>
+            theme.palette.mode === "light"
+              ? theme.palette.grey[200]
+              : theme.palette.grey[800],
+          borderRadius: "1rem",
+          width: "fit-content",
+          maxWidth: "80%",
+          textAlign: "center",
+        }}
+      >
+        {text}
+      </Box>
+    );
+  };
+
   const handleMsgReply = async () => {
     const msgReply = chatMsg.find((msg) => msg.msgId === msgId);
     setMsgReply(msgReply);
@@ -306,7 +333,7 @@ function ChatMsgDisp({
     const isMsgRecent = chat.recentMsg && chat.recentMsg.msgId === msgId;
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
     const unreadCounts = { ...chat.unreadCounts };
-    const readBy = msg.isMsgRead;
+    const readBy = Array.isArray(msg.isMsgRead) ? msg.isMsgRead : [];
     const isUserMsg = msg.from.uid === user.uid;
 
     await deleteDoc(messageRef);
@@ -330,7 +357,9 @@ function ChatMsgDisp({
       if (
         ((isUserMsg && uid !== user.uid) ||
           (!isUserMsg && uid !== msg.from.uid)) &&
-        (typeof readBy === "boolean" ? !msg.isMsgRead : !readBy.includes(uid))
+        (typeof msg.isMsgRead === "boolean"
+          ? !msg.isMsgRead
+          : !readBy.includes(uid))
       ) {
         unreadCounts[uid]--;
       }
@@ -451,6 +480,7 @@ function ChatMsgDisp({
         message.isMsgRead) ||
       (chat.type === "public" &&
         message.from.uid === user.uid &&
+        Array.isArray(message.isMsgRead) &&
         message.isMsgRead.length)
     ) {
       return <DoneAllIcon sx={{ fontSize: "0.875rem", opacity: 0.9 }} />;
@@ -461,26 +491,31 @@ function ChatMsgDisp({
     chatMsg && chatMsg.length
       ? chatMsg.map((message) => {
           const msgDate = formatDate(message.timestamp);
+          const isCallSystemMsg = message.type === "call-system";
 
           return (
             <React.Fragment key={message.msgId}>
               {msgDates.has(msgDate) ? null : renderMsgDate(msgDate)}
-              <ChatMsg
-                message={message}
-                user={user}
-                chat={chat}
-                chatMsg={chatMsg}
-                fileMsgId={fileMsgId}
-                setFileMsgId={setFileMsgId}
-                renderReadSign={renderReadSign}
-                handleMsgClick={handleMsgClick}
-                openImgModal={openImgModal}
-                cancelUpload={cancelUpload}
-                downloadFile={downloadFile}
-                scroll={scroll}
-                scrollToMsg={scrollToMsg}
-                makeCall={makeCall}
-              />
+              {isCallSystemMsg ? (
+                renderSystemCallMsg(message)
+              ) : (
+                <ChatMsg
+                  message={message}
+                  user={user}
+                  chat={chat}
+                  chatMsg={chatMsg}
+                  fileMsgId={fileMsgId}
+                  setFileMsgId={setFileMsgId}
+                  renderReadSign={renderReadSign}
+                  handleMsgClick={handleMsgClick}
+                  openImgModal={openImgModal}
+                  cancelUpload={cancelUpload}
+                  downloadFile={downloadFile}
+                  scroll={scroll}
+                  scrollToMsg={scrollToMsg}
+                  makeCall={makeCall}
+                />
+              )}
             </React.Fragment>
           );
         })

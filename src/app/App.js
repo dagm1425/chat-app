@@ -72,9 +72,14 @@ function App() {
         chats.push(chat);
 
         if (chat.call?.isActive && chat.call?.callData) {
+          const startTime =
+            chat.call.callData.startTime &&
+            typeof chat.call.callData.startTime.toDate === "function"
+              ? chat.call.callData.startTime.toDate().toISOString()
+              : chat.call.callData.startTime;
           call = {
             isActive: chat.call.isActive,
-            callData: chat.call.callData,
+            callData: { ...chat.call.callData, startTime },
             status: "",
           };
         }

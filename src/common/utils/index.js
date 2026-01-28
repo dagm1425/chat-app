@@ -41,6 +41,12 @@ export function formatTime(timestamp) {
   return format(ts, "hh:mm a");
 }
 
+export function formatDurationMinutes(seconds) {
+  if (!Number.isFinite(seconds) || seconds <= 0) return "0 min";
+  const minutes = Math.ceil(seconds / 60);
+  return `${minutes} min`;
+}
+
 export function isLink(text) {
   try {
     new URL(text);
