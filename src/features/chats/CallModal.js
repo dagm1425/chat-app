@@ -79,6 +79,9 @@ const CallModal = (props) => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isRemoteScreenSharing, setIsRemoteScreenSharing] = useState(false);
   const [remoteStreamsArray, setRemoteStreamsArray] = useState([]); // For group calls: [[userId, stream], ...]
+  const [readyRemoteStreamIds, setReadyRemoteStreamIds] = useState(
+    () => new Set()
+  );
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -96,6 +99,9 @@ const CallModal = (props) => {
   const isCleaningUpRef = useRef(false);
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
+  const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) =>
+    readyRemoteStreamIds.has(userId)
+  );
 
   // DEBUG: Track localVideoRef on every render
   useEffect(() => {
@@ -134,8 +140,22 @@ const CallModal = (props) => {
     return callData.participantDetails[uid] || null;
   };
 
+  const markRemoteStreamReady = (userId) => {
+    if (!userId) return;
+    setReadyRemoteStreamIds((prev) => {
+      if (prev.has(userId)) return prev;
+      const next = new Set(prev);
+      next.add(userId);
+      return next;
+    });
+  };
+
   // Track which streams we've already attached to video elements
   const attachedStreamsRef = useRef(new Set());
+
+  useEffect(() => {
+    setReadyRemoteStreamIds(new Set());
+  }, [callData?.chatId]);
 
   // Update remote streams array when streams change (for group calls)
   // streamsVersion increments when streams are added/removed, triggering this effect
@@ -155,6 +175,18 @@ const CallModal = (props) => {
         remoteVideoRefsMap.current.delete(userId);
         attachedStreamsRef.current.delete(userId);
       }
+    });
+
+    setReadyRemoteStreamIds((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      next.forEach((userId) => {
+        if (!currentUserIds.has(userId)) {
+          next.delete(userId);
+          changed = true;
+        }
+      });
+      return changed ? next : prev;
     });
   }, [streamsVersion, callState, dispatch]); // Only runs when streams actually change
 
@@ -881,15 +913,15 @@ const CallModal = (props) => {
                       ? "grid"
                       : "none",
                   gridTemplateColumns:
-                    remoteStreamsArray.length === 0
+                    readyRemoteStreamsArray.length === 0
                       ? "1fr" // No remote (Waiting): Local is PiP, Grid empty/hidden
-                      : remoteStreamsArray.length === 1
+                      : readyRemoteStreamsArray.length === 1
                       ? "1fr" // 1 Remote
                       : "1fr 1fr", // 2+ Remote
                   gridTemplateRows:
-                    remoteStreamsArray.length <= 2
+                    readyRemoteStreamsArray.length <= 2
                       ? "1fr" // 1-2 Remote
-                      : remoteStreamsArray.length <= 4
+                      : readyRemoteStreamsArray.length <= 4
                       ? "1fr 1fr" // 3-4 Remote
                       : "1fr 1fr 1fr", // 5+ Remote
                   gap: "2px",
@@ -908,15 +940,22 @@ const CallModal = (props) => {
                     participantInfo?.displayName?.split(" ")[0] ||
                     "Participant";
                   const isThisUserSharing = !!screenSharingUids[userId];
+                  const isReady = readyRemoteStreamIds.has(userId);
 
                   return (
                     <Box
                       key={userId}
                       sx={{
-                        position: "relative",
+                        position: isReady ? "relative" : "absolute",
+                        top: isReady ? "auto" : 0,
+                        left: isReady ? "auto" : 0,
+                        width: isReady ? "100%" : "1px",
+                        height: isReady ? "100%" : "1px",
                         backgroundColor: "#1a1a1a",
                         borderRadius: "4px",
                         overflow: "hidden",
+                        opacity: isReady ? 1 : 0,
+                        pointerEvents: isReady ? "auto" : "none",
                       }}
                     >
                       <video
@@ -939,6 +978,7 @@ const CallModal = (props) => {
                               isCleaningUpRef.current
                             } callStatusBefore=${callState.status}`
                           );
+                          markRemoteStreamReady(userId);
                           ensureStartTime();
                           if (!isCleaningUpRef.current) {
                             dispatch(
