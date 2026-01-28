@@ -1220,25 +1220,27 @@ const CallModal = (props) => {
           )}
         </IconButton>
 
-        <IconButton
-          onClick={hangUp}
-          sx={{
-            bgcolor: "error.main",
-            color: "#fff",
-            width: 48,
-            height: 48,
+        {callState.status !== "Call ended" && (
+          <IconButton
+            onClick={hangUp}
+            sx={{
+              bgcolor: "error.main",
+              color: "#fff",
+              width: 48,
+              height: 48,
 
-            "&:hover": {
-              bgcolor: "error.main",
-            },
-            "&.MuiButtonBase-root:hover": {
-              bgcolor: "error.main",
-            },
-          }}
-          disableRipple
-        >
-          <CallEnd sx={{ fontSize: "1.5rem" }} />
-        </IconButton>
+              "&:hover": {
+                bgcolor: "error.main",
+              },
+              "&.MuiButtonBase-root:hover": {
+                bgcolor: "error.main",
+              },
+            }}
+            disableRipple
+          >
+            <CallEnd sx={{ fontSize: "1.5rem" }} />
+          </IconButton>
+        )}
       </Box>
     </Box>
   );
