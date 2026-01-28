@@ -36,6 +36,7 @@ import { useNavigate } from "react-router-dom";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { ColorModeContext } from "../..";
 import { useTheme } from "@emotion/react";
+import UserSettingsDialogContent from "../user/UserSettingsDialogContent";
 
 function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
   const user = useSelector(selectUser);
@@ -46,6 +47,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
   const [isNewPublicChatOpen, setIsNewPublicChatOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const colorMode = React.useContext(ColorModeContext);
 
   const signOutUser = async () => {
@@ -89,6 +91,15 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
     setIsSignOutOpen(true);
   };
 
+  const handleSettingsOpen = () => {
+    setIsDrawerOpen(false);
+    setIsSettingsOpen(true);
+  };
+
+  const handleSettingsClose = () => {
+    setIsSettingsOpen(false);
+  };
+
   const createNewPrivateChat = async (otherChatMember) => {
     const chatId = uuid();
 
@@ -109,6 +120,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
       type: "private",
       createdBy: user,
       members: [user, otherChatMember],
+      memberIds: [user.uid, otherChatMember.uid],
       timestamp: serverTimestamp(),
       recentMsg: null,
       drafts: [],
@@ -184,8 +196,8 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
                 <Switch checked={theme.palette.mode === "dark"} size="small" />
               </ListItemButton>
             </ListItem>
-            <ListItem disablePadding disabled>
-              <ListItemButton>
+            <ListItem disablePadding>
+              <ListItemButton onClick={handleSettingsOpen}>
                 <ListItemIcon>
                   <SettingsIcon />
                 </ListItemIcon>
@@ -243,6 +255,15 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
           signOutUser={signOutUser}
           onClose={handleSignOutClose}
         />
+      </Dialog>
+
+      <Dialog open={isSettingsOpen} onClose={handleSettingsClose}>
+        <DialogTitle
+          sx={{ fontSize: "1.1rem", fontWeight: "normal", px: "1.5rem" }}
+        >
+          Profile Settings
+        </DialogTitle>
+        <UserSettingsDialogContent onClose={handleSettingsClose} />
       </Dialog>
     </>
   );

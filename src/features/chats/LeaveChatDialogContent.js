@@ -13,6 +13,7 @@ function LeaveChatDialogContent({ chatId, user, onClose }) {
 
     await updateDoc(doc(db, "chats", `${chatId}`), {
       members: arrayRemove(user),
+      memberIds: arrayRemove(user.uid),
     });
   };
 

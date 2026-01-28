@@ -54,11 +54,7 @@ function App() {
 
     const q = query(
       collection(db, "chats"),
-      where("members", "array-contains", {
-        uid: user.uid,
-        displayName: user.displayName,
-        photoURL: user.photoURL,
-      }),
+      where("memberIds", "array-contains", user.uid),
       orderBy("timestamp", "desc")
     );
 

@@ -22,6 +22,7 @@ function NewPublicChatDialogContent({ onClose }) {
       type: "public",
       createdBy: user,
       members: [user],
+      memberIds: [user.uid],
       timestamp: serverTimestamp(),
       recentMsg: null,
       drafts: [],

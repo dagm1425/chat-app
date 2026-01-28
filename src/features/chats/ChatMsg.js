@@ -27,6 +27,11 @@ function ChatMsg({
   const isSentFromUser = message.from.uid === user.uid;
   const isMsgFromOtherPublicChatMembers =
     chat.type === "public" && message.from.uid !== user.uid;
+  const senderInfo =
+    chat.members?.find((member) => member.uid === message.from.uid) ||
+    message.from;
+  const senderDisplayName = senderInfo?.displayName || message.from.displayName;
+  const senderPhotoURL = senderInfo?.photoURL || message.from.photoURL;
   const msgTime = formatTime(message.timestamp);
   const isMobile = useMediaQuery("(max-width:600px)");
 
@@ -43,7 +48,7 @@ function ChatMsg({
     >
       {isMsgFromOtherPublicChatMembers && (
         <Avatar
-          src={message.from.photoURL}
+          src={senderPhotoURL}
           sx={{ width: 28, height: 28, alignSelf: "flex-end" }}
         />
       )}
@@ -75,7 +80,7 @@ function ChatMsg({
               ml: "0.25rem",
             }}
           >
-            {message.from.uid === user.uid ? "You" : message.from.displayName}
+            {message.from.uid === user.uid ? "You" : senderDisplayName}
           </Typography>
         )}
         {message.msgReply &&

@@ -428,6 +428,7 @@ function ChatMsgDisp({
         type: "private",
         createdBy: user,
         members: [user, recipientUser],
+        memberIds: [user.uid, recipientUser.uid],
         timestamp: serverTimestamp(),
         recentMsg: null,
         drafts: [],

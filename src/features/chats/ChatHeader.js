@@ -183,6 +183,7 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
 
     await updateDoc(doc(db, "chats", `${chat.chatId}`), {
       members: arrayUnion(...selectedMembers),
+      memberIds: arrayUnion(...selectedMembers.map((member) => member.uid)),
       unreadCounts,
     });
   };
