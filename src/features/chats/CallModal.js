@@ -887,10 +887,8 @@ const CallModal = (props) => {
                       ? "1fr" // 1 Remote
                       : "1fr 1fr", // 2+ Remote
                   gridTemplateRows:
-                    remoteStreamsArray.length <= 1
-                      ? "1fr"
-                      : remoteStreamsArray.length <= 2
-                      ? "1fr 1fr" // 2 Remote
+                    remoteStreamsArray.length <= 2
+                      ? "1fr" // 1-2 Remote
                       : remoteStreamsArray.length <= 4
                       ? "1fr 1fr" // 3-4 Remote
                       : "1fr 1fr 1fr", // 5+ Remote
