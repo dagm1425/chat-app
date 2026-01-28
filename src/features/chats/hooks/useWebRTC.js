@@ -594,15 +594,6 @@ const useWebRTC = (db) => {
     }
   };
 
-  const buildGroupCallSystemText = (
-    initiatorName,
-    isVideoCall,
-    durationLabel
-  ) => {
-    const callType = isVideoCall ? "video" : "voice";
-    return `${initiatorName} started a group ${callType} call • ${durationLabel}`;
-  };
-
   const sendGroupCallSystemMsg = async (chatRef, chatData, callData) => {
     if (!callData?.isGroupCall) return;
 
@@ -611,23 +602,14 @@ const useWebRTC = (db) => {
       ? Math.max(0, Math.floor((Date.now() - startTime.getTime()) / 1000))
       : 0;
     const durationLabel = formatDurationMinutes(durationSeconds);
-    const initiatorInfo =
-      callData.participantDetails?.[callData.initiator] || user;
-    const initiatorName =
-      initiatorInfo?.displayName || initiatorInfo?.uid || "Someone";
     const isVideoCall = !!callData.isVideoCall;
 
-    const systemText = buildGroupCallSystemText(
-      initiatorName,
-      isVideoCall,
-      durationLabel
-    );
     const msgId = uuid();
     const msgRef = doc(chatRef, "chatMessages", msgId);
     const newMsg = {
       msgId,
       type: "call-system",
-      from: initiatorInfo,
+      from: callData.participantDetails?.[callData.initiator] || user,
       msgReply: null,
       isMsgRead: chatData.type === "private" ? false : [],
       timestamp: serverTimestamp(),
@@ -637,7 +619,6 @@ const useWebRTC = (db) => {
         durationSeconds,
         durationLabel,
         initiatorUid: callData.initiator,
-        systemText,
       },
     };
 

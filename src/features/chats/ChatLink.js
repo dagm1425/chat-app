@@ -56,7 +56,18 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     if (recentMsg.caption) return recentMsg.caption;
     if (recentMsg.fileMsg) return formatFilename(recentMsg.fileMsg.fileName);
     if (recentMsg.type === "call-system") {
-      return recentMsg.callData?.systemText || "";
+      const durationLabel = recentMsg.callData?.durationLabel || "0 min";
+      const isVideoCall = !!recentMsg.callData?.isVideoCall;
+      const initiatorUid = recentMsg.callData?.initiatorUid;
+      const initiator =
+        chat.members?.find((member) => member.uid === initiatorUid) ||
+        recentMsg.from;
+      const initiatorName =
+        initiator?.uid === user.uid
+          ? "You"
+          : initiator?.displayName || "Someone";
+      const callType = isVideoCall ? "video" : "voice";
+      return `${initiatorName} started a group ${callType} call • ${durationLabel}`;
     }
     if (recentMsg.callData) return recentMsg.callData.status[user.uid];
   };
@@ -156,8 +167,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     color: "text.secondary",
                     fontSize: { xs: "1rem", sm: "inherit" },
                     display: "inline-block",
-                    width: "70%",
-                    pr: "0.5rem",
+                    width: { xs: "70%", sm: "80%", lg: "82%" },
+                    pr: { xs: "0.5rem", sm: "0.25rem" },
                     verticalAlign: "middle",
                     whiteSpace: "nowrap",
                     overflow: "hidden",
@@ -166,21 +177,24 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   variant="body2"
                   component="div"
                 >
-                  {recentMsg && chat.type === "public" && !draft && (
-                    <Typography
-                      component="span"
-                      sx={{
-                        font: "inherit",
-                        fontSize: { xs: "1rem", sm: ".925rem" },
-                        color: "primary.main",
-                      }}
-                    >
-                      {recentMsg.from.uid === user.uid
-                        ? "You"
-                        : recentMsg.from.displayName.split(" ")[0]}
-                      {": "}
-                    </Typography>
-                  )}
+                  {recentMsg &&
+                    chat.type === "public" &&
+                    !draft &&
+                    recentMsg.type !== "call-system" && (
+                      <Typography
+                        component="span"
+                        sx={{
+                          font: "inherit",
+                          fontSize: { xs: "1rem", sm: ".925rem" },
+                          color: "primary.main",
+                        }}
+                      >
+                        {recentMsg.from.uid === user.uid
+                          ? "You"
+                          : recentMsg.from.displayName.split(" ")[0]}
+                        {": "}
+                      </Typography>
+                    )}
                   {draft ? (
                     <Typography
                       sx={{

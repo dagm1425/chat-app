@@ -269,8 +269,16 @@ function ChatMsgDisp({
   };
 
   const renderSystemCallMsg = (message) => {
-    const text = message.callData?.systemText;
-    if (!text) return null;
+    const durationLabel = message.callData?.durationLabel || "0 min";
+    const isVideoCall = !!message.callData?.isVideoCall;
+    const initiatorUid = message.callData?.initiatorUid;
+    const initiator =
+      chat.members?.find((member) => member.uid === initiatorUid) ||
+      message.from;
+    const initiatorName =
+      initiator?.uid === user.uid ? "You" : initiator?.displayName || "Someone";
+    const callType = isVideoCall ? "video" : "voice";
+    const text = `${initiatorName} started a group ${callType} call • ${durationLabel}`;
 
     return (
       <Box
