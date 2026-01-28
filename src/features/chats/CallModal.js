@@ -353,8 +353,6 @@ const CallModal = (props) => {
             new Date().toISOString()
           );
           handleLocalCallCleanup();
-          // setTimeout(() => {
-          // }, 1000);
 
           return; // Don't process further updates
         }
@@ -504,6 +502,10 @@ const CallModal = (props) => {
       startTimeRef.current = new Date();
     }
   };
+
+  useEffect(() => {
+    console.log("localVideoRef.current", localVideoRef.current);
+  }, []);
 
   const getCallStatusText = () => {
     // If user is not the initiator, show "Incoming call" when status is empty
@@ -701,7 +703,6 @@ const CallModal = (props) => {
     // - Set isActive = false and clear callData if no participants left
     // - Clean up peer connections and streams
     console.log("[CallModal] Calling handleLocalCallCleanup()");
-
     handleLocalCallCleanup().catch((error) => {
       console.error(
         "[CallModal] Unhandled error in handleLocalCallCleanup():",
