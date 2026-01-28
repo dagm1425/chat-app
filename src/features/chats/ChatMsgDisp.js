@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
   Timestamp,
-  // arrayUnion,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -191,11 +191,6 @@ function ChatMsgDisp({
           batch.update(doc.ref, { isMsgRead: arrayUnion(user.uid) });
         }
       }
-      // else {
-      //   if (!isUserMessage && !isMsgRead.includes(user.uid)) {
-      //     batch.update(doc.ref, { isMsgRead: arrayUnion(user.uid) });
-      //   }
-      // }
     });
 
     await batch.commit();

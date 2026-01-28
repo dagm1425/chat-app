@@ -18,6 +18,8 @@ import { v4 as uuid } from "uuid";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall } from "../chatsSlice";
 import { selectUser } from "../../user/userSlice";
+import { store } from "../../../app/store";
+import { formatDurationMinutes } from "../../../common/utils";
 
 const useWebRTC = (db) => {
   const dispatch = useDispatch();
@@ -48,94 +50,148 @@ const useWebRTC = (db) => {
       },
     ],
   };
-  const checkIfCalleeIsBusy = async (calleeUid) => {
-    const calleeDoc = await getDoc(doc(db, "users", calleeUid));
-    const calleeData = calleeDoc.data();
 
-    return calleeData.isUserLineBusy;
+  const normalizeCallDataStartTime = (data) => {
+    if (!data) return data;
+    const startTime =
+      data.startTime && typeof data.startTime.toDate === "function"
+        ? data.startTime.toDate().toISOString()
+        : data.startTime;
+    return { ...data, startTime };
   };
 
-  const updateCallStartTime = async (chat) => {
-    const chatRef = doc(db, "chats", chat.chatId);
-
-    if (!callState.callData.startTime) {
-      await updateDoc(chatRef, {
-        "call.callData.startTime": serverTimestamp(),
-      });
-    }
-  };
-
-  const updateStartCallStates = (localStream, remoteStream, peerConnection) => {
-    localStreamRef.current = localStream;
-    remoteStreamRef.current = remoteStream;
-    peerConnectionRef.current = peerConnection;
-  };
-
-  const makeCall = async (chat, isAudioCall) => {
-    const otherChatMember = chat.members.find(
-      (member) => member.uid !== user.uid
-    );
-    const partialCallData = {
-      caller: user,
-      callee: otherChatMember,
-      isVideoCall: !isAudioCall,
-    };
-    const call = {
-      isActive: true,
-      callData: partialCallData,
-      status: "Calling...",
-    };
-
-    dispatch(setCall(call));
-
-    const isCalleeBusy = await checkIfCalleeIsBusy(otherChatMember.uid);
-
-    if (isCalleeBusy) {
-      dispatch(setCall({ ...call, status: "Line is busy" }));
-      setTimeout(() => {
-        dispatch(setCall({ isActive: false, callData: {}, status: "" }));
-      }, 2500);
-      return;
-    }
-
-    const peerConnection = new RTCPeerConnection(configuration);
-
-    const localStream = await navigator.mediaDevices.getUserMedia({
-      video: !isAudioCall,
-      audio: true,
-    });
-    localStream.getTracks().forEach((track) => {
-      peerConnection.addTrack(track, localStream);
-    });
-
-    const remoteStream = new MediaStream();
-
-    const offer = await peerConnection.createOffer();
-
-    const roomWithOffer = {
-      offer: {
-        type: offer.type,
-        sdp: offer.sdp,
-      },
-    };
-
-    const chatRef = doc(db, "chats", chat.chatId);
-
-    const roomsCollectionRef = collection(chatRef, "rooms");
-
-    const roomRef = await addDoc(roomsCollectionRef, roomWithOffer);
-
-    const candidatesCollection = collection(roomRef, "callerCandidates");
-
-    peerConnection.addEventListener("icecandidate", async (event) => {
-      if (event.candidate) {
-        await addDoc(candidatesCollection, event.candidate.toJSON());
+  const createPeerConnection = useCallback(
+    async (targetUserId, chatId, stream) => {
+      if (peerConnectionsRef.current.has(targetUserId)) {
+        console.warn(`[L48] Already have a connection for ${targetUserId}`);
+        return peerConnectionsRef.current.get(targetUserId);
       }
-    });
 
-    await peerConnection.setLocalDescription(offer);
+      console.log(
+        `[L53] Creating new RTCPeerConnection for targetUserId: ${targetUserId}`
+      );
+      const pc = new RTCPeerConnection(configuration);
+      peerConnectionsRef.current.set(targetUserId, pc);
+      console.log(
+        `[L55] PeerConnection created and stored. Current PC count: ${peerConnectionsRef.current.size}`
+      );
 
-    updateStartCallStates(localStream, remoteStream, peerConnection);
+      // Add local tracks to this new connection
+      if (stream) {
+        stream.getTracks().forEach((track) => {
+          pc.addTrack(track, stream);
+        });
+      }
+
+      // Handle ICE candidates
+      pc.onicecandidate = async (event) => {
+        if (event.candidate) {
+          console.log(
+            `[L67] ICE candidate generated for ${targetUserId}, sending to Firestore`
+          );
+          const signalsRef = collection(db, "chats", chatId, "signals");
+          await addDoc(signalsRef, {
+            type: "candidate",
+            from: user.uid,
+            to: targetUserId,
+            payload: event.candidate.toJSON(),
+          });
+          console.log(
+            `[L73] ICE candidate sent to Firestore for ${targetUserId}`
+          );
+        } else {
+          console.log(
+            `[L65] ICE candidate gathering complete for ${targetUserId}`
+          );
+        }
+      };
+
+      // Handle incoming tracks
+      pc.ontrack = (event) => {
+        console.log(
+          `[L77] ontrack event received from ${targetUserId}, track kind: ${event.track.kind}`
+        );
+        // Get existing stream or create new one
+        let remoteStream = remoteStreamsRef.current.get(targetUserId);
+        if (!remoteStream) {
+          console.log(`[L81] Creating new MediaStream for ${targetUserId}`);
+          remoteStream = new MediaStream();
+          remoteStreamsRef.current.set(targetUserId, remoteStream);
+        }
+
+        // Add tracks that aren't already in the stream
+        event.streams[0].getTracks().forEach((track) => {
+          const existingTrack = remoteStream
+            .getTracks()
+            .find((t) => t.id === track.id);
+          if (!existingTrack) {
+            console.log(
+              `[L91] Adding ${track.kind} track to remote stream for ${targetUserId}`
+            );
+            remoteStream.addTrack(track);
+          }
+        });
+
+        forceRender(); // Trigger re-render to show new video
+      };
+
+      // Handle connection state changes (cleanup if disconnected)
+      pc.onconnectionstatechange = () => {
+        console.log(
+          `[L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}`
+        );
+        if (
+          pc.connectionState === "disconnected" ||
+          pc.connectionState === "failed" ||
+          pc.connectionState === "closed"
+        ) {
+          console.log(
+            `[L105] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}`
+          );
+          remoteStreamsRef.current.delete(targetUserId);
+          peerConnectionsRef.current.delete(targetUserId);
+          forceRender();
+        }
+      };
+
+      return pc;
+    },
+    [db, user.uid, forceRender]
+  );
+
+  const startCall = async (chat, isAudioCall) => {
+    console.log(
+      `[L116] startCall called: isAudioCall=${isAudioCall}, chatId=${chat.chatId}`
+    );
+    try {
+      // 1. Get Local Stream
+      console.log(
+        `[L119] Requesting user media: video=${!isAudioCall}, audio=true`
+      );
+      const localStream = await navigator.mediaDevices.getUserMedia({
+        video: !isAudioCall,
+        audio: true,
+      });
+      localStreamRef.current = localStream;
+      console.log(
+        `[L123] Local stream obtained, tracks: ${localStream
+          .getTracks()
+          .map((t) => t.kind)
+          .join(", ")}`
+      );
+
+      // 2. Build participantDetails map (uid → user info)
+      // Include all chat members so callee info is available immediately
+      const participantDetails = {};
+      chat.members.forEach((member) => {
+        participantDetails[member.uid] = member;
+      });
+
+      const isGroupCall = chat.members.length > 2;
+
+      // 3. Create Call Data (stored directly in chat document)
+      const callId = uuid(); // Generate ID for reference if needed
+      const isVideoCall = !isAudioCall;
 
       const callData = {
         id: callId,
@@ -195,16 +251,33 @@ const useWebRTC = (db) => {
     // Listen for participant changes in chat.call.callData
     const unsubscribe = onSnapshot(chatRef, async (snapshot) => {
       const data = snapshot.data();
-      if (!peerConnection.currentRemoteDescription && data?.answer) {
-        const answer = new RTCSessionDescription(data.answer);
-        await peerConnection.setRemoteDescription(answer);
-      }
-    });
+      if (!data?.call?.callData) return;
 
-    peerConnection.addEventListener("track", (event) => {
-      event.streams[0].getTracks().forEach(async (track) => {
-        remoteStream.addTrack(track);
-        updateCallStartTime(chat);
+      const participants = data.call.callData.participants || [];
+      console.log(
+        `[debug speed] [useWebRTC][Participants] snapshot @ ${new Date().toISOString()} chatId=${chatId} participants=${JSON.stringify(
+          participants
+        )}`
+      );
+
+      // Cleanup left participants
+      const currentPeerIds = Array.from(peerConnectionsRef.current.keys());
+      currentPeerIds.forEach((pid) => {
+        if (!participants.includes(pid)) {
+          // They left
+          console.log(
+            `[debug speed] [useWebRTC][Participants] left @ ${new Date().toISOString()} uid=${pid}`
+          );
+          const pc = peerConnectionsRef.current.get(pid);
+          pc.close();
+          peerConnectionsRef.current.delete(pid);
+          const hadStream = remoteStreamsRef.current.has(pid);
+          remoteStreamsRef.current.delete(pid);
+          console.log(
+            `[debug speed] [useWebRTC][Participants] remote stream removed @ ${new Date().toISOString()} uid=${pid} hadStream=${hadStream}`
+          );
+          forceRender();
+        }
       });
     });
 
@@ -454,68 +527,305 @@ const useWebRTC = (db) => {
         video: isVideoCall,
         audio: true,
       });
-      remoteStream = new MediaStream();
+      localStreamRef.current = localStream;
+      console.log(
+        `[L331] Local stream obtained, tracks: ${localStream
+          .getTracks()
+          .map((t) => t.kind)
+          .join(", ")}`
+      );
 
-      peerConnection = new RTCPeerConnection(configuration);
+      const currentParticipants = callData.participants || [];
+      console.log(
+        `[L333] Current participants: ${JSON.stringify(currentParticipants)}`
+      );
 
-      localStream.getTracks().forEach((track) => {
-        peerConnection.addTrack(track, localStream);
-      });
+      console.log(`[L335] Setting up signal subscriptions`);
+      subscribeToSignals(chatId);
+      subscribeToParticipants(chatId, localStream);
 
-      updateJoinCallStates(peerConnection, localStream, remoteStream);
+      // 1. Initiate connections to everyone CURRENTLY in the list
+      console.log(`[L339] Initiating connections to existing participants`);
+      await initiateConnectionsToExistingParticipants(chatId, localStream);
 
-      const candidatesCollection = collection(roomRef, "calleeCandidates");
+      // 2. Add self to participants and participantDetails using a canonical variable
+      let updatedParticipants = currentParticipants;
+      if (!updatedParticipants.includes(user.uid)) {
+        updatedParticipants = [...currentParticipants, user.uid];
+        console.log(
+          `[L343] Adding self to participants: ${
+            user.uid
+          }, updatedParticipants: ${JSON.stringify(updatedParticipants)}`
+        );
 
-      peerConnection.addEventListener("icecandidate", async (event) => {
-        if (event.candidate) {
-          await addDoc(candidatesCollection, event.candidate.toJSON());
-        }
-      });
-
-      peerConnection.addEventListener("track", (event) => {
-        event.streams[0].getTracks().forEach((track) => {
-          remoteStream.addTrack(track);
+        await updateDoc(chatRef, {
+          [`call.callData.participants`]: updatedParticipants,
         });
-      });
 
-      const offer = roomSnapshot.data().offer;
-      await peerConnection.setRemoteDescription(offer);
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-
-      const roomWithAnswer = {
-        answer: {
-          type: answer.type,
-          sdp: answer.sdp,
-        },
-      };
-
-      await updateDoc(roomRef, roomWithAnswer);
-
-      onSnapshot(roomRef, async (snapshot) => {
-        const data = snapshot.data();
-        if (!peerConnection.currentRemoteDescription && data?.answer) {
-          const answer = new RTCSessionDescription(data.answer);
-          await peerConnection.setRemoteDescription(answer);
+        // Set startTime when first participant joins (for call duration timer)
+        // Only set if not already set (to preserve original start time in group calls)
+        if (!callData.startTime) {
+          await updateDoc(chatRef, {
+            "call.callData.startTime": serverTimestamp(),
+          });
         }
-      });
-    }
-  }
+      } else {
+        console.log(`[L343] Self already present in participants: ${user.uid}`);
+      }
 
-  const cleanupLocalCall = () => {
-    if (callState.callData.status !== "Call ended") {
-      dispatch(setCall({ ...callState, status: "Call ended" }));
-    }
+      // Construct updated callData for Redux (mirror Firestore)
+      const updatedCallData = {
+        ...callData,
+        participants: updatedParticipants,
+      };
+      const normalizedCallData = normalizeCallDataStartTime(updatedCallData);
 
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-      localStreamRef.current = null;
+      // Update callData in Redux, preserving current status if set (e.g. by onPlaying)
+      const currentStatus = store.getState().chats.call.status;
+      dispatch(
+        setCall({
+          isActive: true,
+          callData: normalizedCallData,
+          status: currentStatus,
+        })
+      );
+    } catch (error) {
+      console.error("Error joining call:", error);
     }
-    if (remoteStreamRef.current) {
-      remoteStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
+  };
+
+  const buildGroupCallSystemText = (
+    initiatorName,
+    isVideoCall,
+    durationLabel
+  ) => {
+    const callType = isVideoCall ? "video" : "voice";
+    return `${initiatorName} started a group ${callType} call • ${durationLabel}`;
+  };
+
+  const sendGroupCallSystemMsg = async (chatRef, chatData, callData) => {
+    if (!callData?.isGroupCall) return;
+
+    const startTime = callData.startTime?.toDate?.();
+    const durationSeconds = startTime
+      ? Math.max(0, Math.floor((Date.now() - startTime.getTime()) / 1000))
+      : 0;
+    const durationLabel = formatDurationMinutes(durationSeconds);
+    const initiatorInfo =
+      callData.participantDetails?.[callData.initiator] || user;
+    const initiatorName =
+      initiatorInfo?.displayName || initiatorInfo?.uid || "Someone";
+    const isVideoCall = !!callData.isVideoCall;
+
+    const systemText = buildGroupCallSystemText(
+      initiatorName,
+      isVideoCall,
+      durationLabel
+    );
+    const msgId = uuid();
+    const msgRef = doc(chatRef, "chatMessages", msgId);
+    const newMsg = {
+      msgId,
+      type: "call-system",
+      from: initiatorInfo,
+      msgReply: null,
+      isMsgRead: chatData.type === "private" ? false : [],
+      timestamp: serverTimestamp(),
+      callData: {
+        kind: "group-start",
+        isVideoCall,
+        durationSeconds,
+        durationLabel,
+        initiatorUid: callData.initiator,
+        systemText,
+      },
+    };
+
+    await setDoc(msgRef, newMsg);
+    await updateDoc(chatRef, { recentMsg: newMsg });
+    await updateDoc(chatRef, { timestamp: newMsg.timestamp });
+  };
+
+  const cleanupLocalCall = async () => {
+    const cleanupStart = Date.now();
+    try {
+      console.log("[useWebRTC] cleanupLocalCall() called");
+
+      // 2. Set "Call ended" status for UI feedback MAY NOT BE NEEDED SINCE WE HAVE IT IN LISTENER AND ()
+      console.log("[useWebRTC] Step 2: Setting 'Call ended' status");
+      if (callState.status !== "Call ended") {
+        dispatch(setCall({ ...callState, status: "Call ended" }));
+        console.log("[useWebRTC] Status set to 'Call ended'");
+      } else {
+        console.log("[useWebRTC] Status already 'Call ended', skipping");
+      }
+
+      // Capture chatId before clearing Redux state
+      const chatId = callState.callData?.chatId;
+
+      // 6. Remove self from participants and cleanup Firestore
+      if (chatId) {
+        console.log("[useWebRTC] Step 6: Updating Firestore");
+        console.log(`[useWebRTC] ChatId: ${chatId}`);
+        try {
+          const chatRef = doc(db, "chats", chatId);
+
+          // Get current participants
+          console.log(
+            "[useWebRTC] Getting current participants from Firestore"
+          );
+          const getDocStart = Date.now();
+          const snap = await getDoc(chatRef);
+          console.log(
+            `[debug speed] [useWebRTC][CallEnd] getDoc completed @ ${new Date().toISOString()} durationMs=${
+              Date.now() - getDocStart
+            } chatId=${chatId}`
+          );
+          if (snap.exists()) {
+            const chatData = snap.data();
+            const callData = chatData?.call?.callData;
+            if (callData) {
+              // Calculate new participants first
+              const parts = callData.participants || [];
+              console.log(
+                `[useWebRTC] Current participants: ${JSON.stringify(parts)}`
+              );
+              const newParts = parts.filter((p) => p !== user.uid);
+              console.log(
+                `[useWebRTC] Participants after removing self: ${JSON.stringify(
+                  newParts
+                )}`
+              );
+
+              // Determine if call should end
+              // A call with < 2 participants should always end (any call type)
+              const shouldEndCall = newParts.length < 2;
+
+              if (shouldEndCall) {
+                console.log(
+                  `[useWebRTC] Closing call in Firestore, remaining: ${newParts.length})`
+                );
+                console.log(
+                  `[debug speed] [useWebRTC][CallEnd] writing @ ${new Date().toISOString()} chatId=${chatId}`
+                );
+                await updateDoc(chatRef, {
+                  "call.isActive": false,
+                  "call.status": "",
+                  "call.callData": deleteField(),
+                });
+                console.log(
+                  `[debug speed] [useWebRTC][CallEnd] write completed @ ${new Date().toISOString()} chatId=${chatId}`
+                );
+                console.log("[useWebRTC] Call closed in Firestore");
+                if (callData.isGroupCall) {
+                  sendGroupCallSystemMsg(chatRef, chatData, callData).catch(
+                    (error) => {
+                      console.error(
+                        "[useWebRTC] Error sending group call system message:",
+                        error
+                      );
+                    }
+                  );
+                }
+              } else {
+                console.log(
+                  `[useWebRTC] ${newParts.length} participants remaining, call stays active`
+                );
+                // Only update participants if call stays active
+                console.log("[useWebRTC] Updating participants in Firestore");
+                await updateDoc(chatRef, {
+                  [`call.callData.participants`]: newParts,
+                });
+                console.log("[useWebRTC] Participants updated in Firestore");
+              }
+            } else {
+              console.log("[useWebRTC] No callData found in Firestore");
+            }
+
+            // Clear screen sharing state unconditionally
+            // (runs even if callData was already deleted by other party)
+            console.log(
+              `[useWebRTC] Clearing screenSharingUids for ${user.uid}`
+            );
+            await updateDoc(chatRef, {
+              [`call.screenSharingUids.${user.uid}`]: deleteField(),
+            });
+            console.log("[useWebRTC] Screen sharing state cleared");
+          } else {
+            console.log("[useWebRTC] Chat document does not exist");
+          }
+        } catch (e) {
+          console.error("[useWebRTC] Error leaving call:", e);
+        }
+      } else {
+        console.log(
+          "[useWebRTC] No chatId in callData, skipping Firestore update"
+        );
+      }
+
+      console.log("[useWebRTC] Current state:", {
+        chatId: chatId,
+        participants: callState.callData?.participants,
+        peerConnectionsCount: peerConnectionsRef.current.size,
+        remoteStreamsCount: remoteStreamsRef.current.size,
+      });
+
+      // 1. Unsubscribe from Firestore listeners
+      console.log("[useWebRTC] Step 1: Unsubscribing from Firestore listeners");
+      if (unsubscribeSignalsRef.current) {
+        console.log("[useWebRTC] Unsubscribing from signals listener");
+        unsubscribeSignalsRef.current();
+        unsubscribeSignalsRef.current = null;
+      }
+      if (unsubscribeParticipantsRef.current) {
+        console.log("[useWebRTC] Unsubscribing from participants listener");
+        unsubscribeParticipantsRef.current();
+        unsubscribeParticipantsRef.current = null;
+      }
+
+      // 3. Close all peer connections
+      console.log(
+        `[useWebRTC] Step 3: Closing ${peerConnectionsRef.current.size} peer connections`
+      );
+      peerConnectionsRef.current.forEach((pc, userId) => {
+        console.log(
+          `[useWebRTC] Closing PC for ${userId}, state: ${pc.connectionState}`
+        );
+        pc.close();
+      });
+      peerConnectionsRef.current.clear();
+      console.log("[useWebRTC] All peer connections closed and cleared");
+
+      // 4. Stop all local tracks
+      console.log("[useWebRTC] Step 4: Stopping local tracks");
+      if (localStreamRef.current) {
+        const localTracks = localStreamRef.current.getTracks();
+        console.log(`[useWebRTC] Stopping ${localTracks.length} local tracks`);
+        localTracks.forEach((track) => {
+          console.log(`[useWebRTC] Stopping local ${track.kind} track`);
+          track.stop();
+        });
+        localStreamRef.current = null;
+        console.log("[useWebRTC] Local stream cleared");
+      } else {
+        console.log("[useWebRTC] No local stream to stop");
+      }
+
+      // 5. Stop all remote tracks and clear
+      console.log(
+        `[useWebRTC] Step 5: Stopping ${remoteStreamsRef.current.size} remote streams`
+      );
+      remoteStreamsRef.current.forEach((stream, userId) => {
+        const tracks = stream.getTracks();
+        console.log(
+          `[useWebRTC] Stopping ${tracks.length} tracks for ${userId}`
+        );
+        tracks.forEach((track) => {
+          console.log(
+            `[useWebRTC] Stopping remote ${track.kind} track for ${userId}`
+          );
+          track.stop();
+        });
       });
       remoteStreamsRef.current.clear();
       console.log("[useWebRTC] All remote streams stopped and cleared");
@@ -525,7 +835,54 @@ const useWebRTC = (db) => {
         "[useWebRTC] Clearing Redux state to close modal (isActive: false)"
       );
       dispatch(setCall({ isActive: false, callData: {}, status: "" }));
-    }, 900);
+
+      console.log("[useWebRTC] Redux state cleared, Firestore already updated");
+
+      // 7. Clean up signals subcollection
+      if (chatId) {
+        console.log("[useWebRTC] Step 7: Cleaning up signals subcollection");
+        try {
+          const signalsRef = collection(db, "chats", chatId, "signals");
+          const signalsQuery = query(signalsRef);
+          const signalsSnapshot = await getDocs(signalsQuery);
+          const signalCount = signalsSnapshot.docs.length;
+          console.log(
+            `[useWebRTC] Found ${signalCount} signal documents to delete`
+          );
+
+          if (signalCount > 0) {
+            const deletePromises = signalsSnapshot.docs.map((doc) => {
+              console.log(`[useWebRTC] Deleting signal document: ${doc.id}`);
+              return deleteDoc(doc.ref);
+            });
+            await Promise.all(deletePromises);
+            console.log(
+              `[useWebRTC] Successfully deleted ${signalCount} signal documents`
+            );
+          } else {
+            console.log("[useWebRTC] No signals to delete");
+          }
+        } catch (error) {
+          console.error("[useWebRTC] Error cleaning up signals:", error);
+        }
+      } else {
+        console.log("[useWebRTC] No chatId, skipping signal cleanup");
+      }
+
+      console.log("[useWebRTC] cleanupLocalCall() completed");
+      console.log(
+        `[useWebRTC] cleanupLocalCall() durationMs=${Date.now() - cleanupStart}`
+      );
+    } catch (error) {
+      console.error("[useWebRTC] Error in cleanupLocalCall():", error);
+      console.error("[useWebRTC] Error stack:", error.stack);
+      console.log(
+        `[useWebRTC] cleanupLocalCall() failed afterMs=${
+          Date.now() - cleanupStart
+        }`
+      );
+      throw error; // Re-throw so CallModal can catch it
+    }
   };
 
   const startScreenShare = async () => {
