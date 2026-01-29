@@ -1026,21 +1026,6 @@ const CallModal = (props) => {
                     }
                   }}
                   autoPlay
-                  onPlaying={() => {
-                    // Avoid unnecessary dispatches if status is already correct
-                    ensureStartTime();
-                    if (
-                      !isCleaningUpRef.current &&
-                      callState.status !== "Ongoing call"
-                    ) {
-                      console.log(
-                        `[CallModal][onPlaying][audio] Setting status to Ongoing call for user=${userId}`
-                      );
-                      dispatch(
-                        setCall({ ...callState, status: "Ongoing call" })
-                      );
-                    }
-                  }}
                 />
               ))}
             </>
