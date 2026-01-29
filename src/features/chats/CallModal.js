@@ -815,7 +815,9 @@ const CallModal = (props) => {
       <Box
         sx={{
           display:
-            callData?.isGroupCall && readyRemoteStreamsArray.length > 0
+            callData?.isGroupCall &&
+            readyRemoteStreamsArray.length > 0 &&
+            callState.status !== "Call ended"
               ? "none"
               : "flex",
           flexDirection: "column",
