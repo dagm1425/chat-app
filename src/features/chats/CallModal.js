@@ -1137,17 +1137,151 @@ const CallModal = (props) => {
         </>
       ) : (
         <>
-          <audio ref={localAudioRef} autoPlay muted />
-          <audio
-            ref={remoteAudioRef}
-            autoPlay
-            onPlaying={() => {
-              ensureStartTime();
-              if (!isCleaningUpRef.current) {
-                dispatch(setCall({ ...callState, status: "Ongoing call" }));
-              }
-            }}
-          />
+          {callData.isGroupCall ? (
+            <>
+              {/* Group Audio: Remote Participants Grid */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: 0,
+                  left: 0,
+                  width: "100%",
+                  height: "100%",
+                  display:
+                    (isOngoingCall || isInitiator()) && //?
+                    callState.status !== "Call ended"
+                      ? "grid"
+                      : "none",
+                  gridTemplateColumns:
+                    remoteStreamsArray.length <= 1 ? "1fr" : "1fr 1fr",
+                  gridTemplateRows:
+                    remoteStreamsArray.length <= 2
+                      ? "1fr"
+                      : remoteStreamsArray.length <= 4
+                      ? "1fr 1fr"
+                      : "1fr 1fr 1fr",
+                  gap: "8px",
+                  padding: "24px",
+                  zIndex: 1,
+                }}
+              >
+                {remoteStreamsArray.map(([userId]) => {
+                  const participantInfo = getParticipantInfo(userId);
+                  const displayName =
+                    participantInfo?.displayName?.split(" ")[0] ||
+                    "Participant";
+                  return (
+                    <Box
+                      key={userId}
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        justifyContent: "center",
+                        alignItems: "center",
+                        backgroundColor: "#1a1a1a",
+                        borderRadius: "12px",
+                        overflow: "hidden",
+                        gap: 1,
+                      }}
+                    >
+                      <Avatar
+                        src={participantInfo?.photoURL || undefined}
+                        sx={{ width: 72, height: 72 }}
+                      >
+                        {displayName.charAt(0)}
+                      </Avatar>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: "white", fontSize: "0.85rem" }}
+                      >
+                        {displayName}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Group Audio: Remote audio elements */}
+              {remoteStreamsArray.map(([userId, stream]) => (
+                <audio
+                  key={`audio-${userId}`}
+                  ref={(el) => {
+                    if (el && stream && el.srcObject !== stream) {
+                      console.log(
+                        `[CallModal] Setting audio srcObject for user ${userId}`
+                      );
+                      el.srcObject = stream;
+                    }
+                  }}
+                  autoPlay
+                  onPlaying={() => {
+                    ensureStartTime();
+                    markRemoteStreamReady(userId);
+                    if (!isCleaningUpRef.current) {
+                      dispatch(
+                        setCall({ ...callState, status: "Ongoing call" })
+                      );
+                    }
+                  }}
+                />
+              ))}
+
+              {/* Local Audio PiP */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  left: "50%",
+                  top: 250,
+                  display: callState.status === "Call ended" ? "none" : "flex",
+                  width: 248,
+                  height: 185,
+                  backgroundColor: "#1a1a1a",
+                  borderRadius: "10px",
+                  overflow: "hidden",
+                  boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
+                  transform: isOngoingCall
+                    ? isMobile
+                      ? "translate(0px, 60px) scale(0.5)"
+                      : "translate(140px, 120px) scale(0.7)"
+                    : "translateX(-50%) scale(1)",
+                  transition: "transform .3s ease-out",
+                  zIndex: 3,
+                  marginBottom: isOngoingCall ? "0" : ".625rem",
+                  flexDirection: "column",
+                  justifyContent: "center",
+                  alignItems: "center",
+                  gap: 1,
+                  color: "white",
+                }}
+              >
+                <Avatar
+                  src={user.photoURL || undefined}
+                  sx={{ width: 72, height: 72 }}
+                >
+                  {user.displayName?.charAt(0) || "Y"}
+                </Avatar>
+                <Typography variant="body2" sx={{ fontSize: "0.9rem" }}>
+                  You
+                </Typography>
+              </Box>
+
+              <audio ref={localAudioRef} autoPlay muted />
+            </>
+          ) : (
+            <>
+              <audio ref={localAudioRef} autoPlay muted />
+              <audio
+                ref={remoteAudioRef}
+                autoPlay
+                onPlaying={() => {
+                  ensureStartTime();
+                  if (!isCleaningUpRef.current) {
+                    dispatch(setCall({ ...callState, status: "Ongoing call" }));
+                  }
+                }}
+              />
+            </>
+          )}
         </>
       )}
 
