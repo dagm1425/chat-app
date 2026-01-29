@@ -814,7 +814,10 @@ const CallModal = (props) => {
     >
       <Box
         sx={{
-          display: "flex",
+          display:
+            callData?.isGroupCall && readyRemoteStreamsArray.length > 0
+              ? "none"
+              : "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
