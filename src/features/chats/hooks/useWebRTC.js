@@ -31,6 +31,7 @@ const useWebRTC = (db) => {
   const peerConnectionsRef = useRef(new Map());
   const remoteStreamsRef = useRef(new Map());
   const localStreamRef = useRef(null);
+  const dummyVideoTrackRef = useRef(null);
 
   // Store unsubscribe functions for Firestore listeners
   const unsubscribeSignalsRef = useRef(null);
@@ -201,6 +202,7 @@ const useWebRTC = (db) => {
         isVideoCall, // Only store isVideoCall, derive isAudioCall as !isVideoCall
         isGroupCall,
         chatId: chat.chatId,
+        ...(isVideoCall ? { videoEnabled: { [user.uid]: true } } : {}),
       };
 
       // 4. Update Redux State (Optimistic update to prevent App.js listener from overriding status)
@@ -573,6 +575,12 @@ const useWebRTC = (db) => {
         console.log(`[L343] Self already present in participants: ${user.uid}`);
       }
 
+      if (isVideoCall && !callData.videoEnabled?.[user.uid]) {
+        await updateDoc(chatRef, {
+          [`call.callData.videoEnabled.${user.uid}`]: true,
+        });
+      }
+
       // Construct updated callData for Redux (mirror Firestore)
       const updatedCallData = {
         ...callData,
@@ -866,6 +874,27 @@ const useWebRTC = (db) => {
     }
   };
 
+  const getDummyVideoTrack = () => {
+    if (
+      dummyVideoTrackRef.current &&
+      dummyVideoTrackRef.current.readyState !== "ended"
+    ) {
+      return dummyVideoTrackRef.current;
+    }
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    const stream = canvas.captureStream(5);
+    const track = stream.getVideoTracks()[0];
+    dummyVideoTrackRef.current = track;
+    return track;
+  };
+
   const startScreenShare = async () => {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -911,17 +940,25 @@ const useWebRTC = (db) => {
 
   const stopScreenShare = async () => {
     try {
-      const cameraStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-      });
-      const cameraTrack = cameraStream.getVideoTracks()[0];
+      const shouldUseDummyTrack =
+        callState.callData?.videoEnabled?.[user.uid] === false;
+      let nextVideoTrack;
+
+      if (shouldUseDummyTrack) {
+        nextVideoTrack = getDummyVideoTrack();
+      } else {
+        const cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        nextVideoTrack = cameraStream.getVideoTracks()[0];
+      }
 
       peerConnectionsRef.current.forEach((pc) => {
         const senders = pc.getSenders();
         const videoSender = senders.find(
           (s) => s.track && s.track.kind === "video"
         );
-        if (videoSender) videoSender.replaceTrack(cameraTrack);
+        if (videoSender) videoSender.replaceTrack(nextVideoTrack);
       });
 
       // Stop old screen track before replacing
@@ -929,7 +966,7 @@ const useWebRTC = (db) => {
 
       const audioTracks = localStreamRef.current.getAudioTracks();
       const audioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
-      const newStream = new MediaStream([cameraTrack]);
+      const newStream = new MediaStream([nextVideoTrack]);
       if (audioTrack) newStream.addTrack(audioTrack);
 
       localStreamRef.current = newStream;

@@ -23,9 +23,12 @@ import {
   Call,
   ScreenShare,
   StopScreenShare,
+  Videocam,
+  VideocamOff,
 } from "@mui/icons-material";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall, selectChatById } from "./chatsSlice";
+import { store } from "../../app/store";
 import { v4 as uuid } from "uuid";
 import { useEffect, useState, useRef, memo } from "react";
 import { selectUser } from "../user/userSlice";
@@ -82,6 +85,7 @@ const CallModal = (props) => {
   const [readyRemoteStreamIds, setReadyRemoteStreamIds] = useState(
     () => new Set()
   );
+  const [videoEnabledMap, setVideoEnabledMap] = useState({});
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -97,8 +101,12 @@ const CallModal = (props) => {
   const remoteVideoRefsMap = useRef(new Map());
   // const timeoutStatusMsg = useRef(null);
   const isCleaningUpRef = useRef(false);
+  const dummyVideoTrackRef = useRef(null);
+  const isTogglingVideoRef = useRef(false);
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
+  const isLocalVideoEnabled = videoEnabledMap[user.uid] !== false;
+  const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
   const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) =>
     readyRemoteStreamIds.has(userId)
   );
@@ -140,6 +148,53 @@ const CallModal = (props) => {
     return callData.participantDetails[uid] || null;
   };
 
+  const getDummyVideoTrack = () => {
+    if (
+      dummyVideoTrackRef.current &&
+      dummyVideoTrackRef.current.readyState !== "ended"
+    ) {
+      return dummyVideoTrackRef.current;
+    }
+
+    const canvas = document.createElement("canvas");
+    canvas.width = 640;
+    canvas.height = 360;
+    const ctx = canvas.getContext("2d");
+    if (ctx) {
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    const stream = canvas.captureStream(5);
+    const track = stream.getVideoTracks()[0];
+    dummyVideoTrackRef.current = track;
+    return track;
+  };
+
+  const updateVideoEnabled = async (enabled) => {
+    if (!callData?.chatId) return;
+    setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: enabled }));
+    const currentCallState = store.getState().chats.call;
+    dispatch(
+      setCall({
+        ...currentCallState,
+        callData: {
+          ...currentCallState.callData,
+          videoEnabled: {
+            ...(currentCallState.callData?.videoEnabled || {}),
+            [user.uid]: enabled,
+          },
+        },
+      })
+    );
+    try {
+      await updateDoc(doc(db, "chats", callData.chatId), {
+        [`call.callData.videoEnabled.${user.uid}`]: enabled,
+      });
+    } catch (error) {
+      console.error("[CallModal] Failed to update videoEnabled:", error);
+    }
+  };
+
   const markRemoteStreamReady = (userId) => {
     if (!userId) return;
     setReadyRemoteStreamIds((prev) => {
@@ -155,6 +210,7 @@ const CallModal = (props) => {
 
   useEffect(() => {
     setReadyRemoteStreamIds(new Set());
+    setVideoEnabledMap({});
   }, [callData?.chatId]);
 
   // Update remote streams array when streams change (for group calls)
@@ -331,6 +387,8 @@ const CallModal = (props) => {
         }
         const screenSharingUidsFromFirestore =
           callDataFromFirestore.screenSharingUids || {};
+        const videoEnabledFromFirestore =
+          callDataFromFirestore?.callData?.videoEnabled || {};
 
         // If call ended in Firestore (isActive: false), close modal for remaining participants
         // Works for both 1:1 and group calls
@@ -399,6 +457,7 @@ const CallModal = (props) => {
             screenSharingUidsFromFirestore
           );
           setScreenSharingUids(screenSharingUidsFromFirestore);
+          setVideoEnabledMap(videoEnabledFromFirestore);
 
           // For 1:1 calls: Check if remote is sharing
           if (!callData?.isGroupCall) {
@@ -767,6 +826,60 @@ const CallModal = (props) => {
     }
   };
 
+  const toggleVideo = async () => {
+    if (!callData?.isVideoCall) return;
+    if (!localStreamRef.current) return;
+    if (isScreenSharing || isTogglingVideoRef.current) return;
+
+    isTogglingVideoRef.current = true;
+    try {
+      const audioTracks = localStreamRef.current.getAudioTracks();
+      if (isLocalVideoEnabled) {
+        if (localVideoRef.current) {
+          localVideoRef.current.style.display = "none";
+        }
+        await updateVideoEnabled(false);
+        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (videoTrack) {
+          videoTrack.stop();
+        }
+        const dummyTrack = getDummyVideoTrack();
+        peerConnectionsRef.current.forEach((pc) => {
+          const sender = pc
+            .getSenders()
+            .find((s) => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(dummyTrack);
+        });
+        localStreamRef.current = new MediaStream([dummyTrack, ...audioTracks]);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+        }
+      } else {
+        const cameraStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+        });
+        const cameraTrack = cameraStream.getVideoTracks()[0];
+        peerConnectionsRef.current.forEach((pc) => {
+          const sender = pc
+            .getSenders()
+            .find((s) => s.track && s.track.kind === "video");
+          if (sender) sender.replaceTrack(cameraTrack);
+        });
+        localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
+        localStreamRef.current = new MediaStream([cameraTrack, ...audioTracks]);
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = localStreamRef.current;
+          localVideoRef.current.style.display = "";
+        }
+        await updateVideoEnabled(true);
+      }
+    } catch (error) {
+      console.error("[CallModal] Error toggling video:", error);
+    } finally {
+      isTogglingVideoRef.current = false;
+    }
+  };
+
   const handleMouseDown = (e) => {
     dragging.current = true;
     dragOffset.current = {
@@ -946,6 +1059,8 @@ const CallModal = (props) => {
                     "Participant";
                   const isThisUserSharing = !!screenSharingUids[userId];
                   const isReady = readyRemoteStreamIds.has(userId);
+                  const isVideoEnabled =
+                    videoEnabledMap[userId] !== false || isThisUserSharing;
 
                   return (
                     <Box
@@ -992,26 +1107,60 @@ const CallModal = (props) => {
                           }
                         }}
                         style={{
-                          width: "100%",
-                          height: "100%",
+                          width: isVideoEnabled ? "100%" : "1px",
+                          height: isVideoEnabled ? "100%" : "1px",
                           objectFit: isThisUserSharing ? "contain" : "cover",
+                          opacity: isVideoEnabled ? 1 : 0,
+                          position: isVideoEnabled ? "static" : "absolute",
+                          pointerEvents: isVideoEnabled ? "auto" : "none",
                         }}
                       />
-                      <Box
-                        sx={{
-                          position: "absolute",
-                          bottom: 4,
-                          left: 4,
-                          bgcolor: "rgba(0, 0, 0, 0.5)",
-                          color: "white",
-                          px: 1,
-                          py: 0.5,
-                          borderRadius: "4px",
-                          fontSize: "0.75rem",
-                        }}
-                      >
-                        {displayName}
-                      </Box>
+                      {isVideoEnabled ? (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            bottom: 4,
+                            left: 4,
+                            bgcolor: "rgba(0, 0, 0, 0.5)",
+                            color: "white",
+                            px: 1,
+                            py: 0.5,
+                            borderRadius: "4px",
+                            fontSize: "0.75rem",
+                          }}
+                        >
+                          {displayName}
+                        </Box>
+                      ) : (
+                        <Box
+                          sx={{
+                            position: "absolute",
+                            inset: 0,
+                            display: "flex",
+                            flexDirection: "column",
+                            justifyContent: "center",
+                            alignItems: "center",
+                            gap: 1,
+                            color: "white",
+                            backgroundColor: "#2A2F3A",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            borderRadius: "12px",
+                          }}
+                        >
+                          <Avatar
+                            src={participantInfo?.photoURL || undefined}
+                            sx={{ width: 72, height: 72 }}
+                          >
+                            {displayName.charAt(0)}
+                          </Avatar>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontSize: "0.85rem" }}
+                          >
+                            {displayName}
+                          </Typography>
+                        </Box>
+                      )}
                     </Box>
                   );
                 })}
@@ -1039,70 +1188,157 @@ const CallModal = (props) => {
           {/* 1:1 Remote Video (Only if NOT Group Call) */}
           {!callData.isGroupCall && (
             <>
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "25px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  bgcolor: "rgba(0, 0, 0, 0.3)",
-                  backdropFilter: "blur(5px)",
-                  color: "white",
-                  fontSize: "0.875rem",
-                  borderRadius: "10px",
-                  px: 1.5,
-                  py: 0.5,
-                  display: isOngoingCall ? "flex" : "none",
-                  gap: 1,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  zIndex: 2,
-                }}
-              >
-                <span>
-                  {getPrimaryRemoteParticipant()?.displayName?.split(" ")[0] ||
-                    "Unknown"}
-                </span>
-                <span> | </span>
-                <span>
-                  <CallDuration
-                    startTime={startTimeRef.current}
-                    visible={isOngoingCall}
-                    formatCallDuration={formatCallDuration}
-                  />
-                </span>
-              </Box>
-              <video
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  left: 0,
-                  width: "100%",
-                  height: "100%",
-                  objectFit: isRemoteScreenSharing ? "contain" : "cover",
-                  transform: "scaleX(1)",
-                  borderRadius: 0,
-                  display: isOngoingCall ? "block" : "none",
-                  zIndex: 1,
-                }}
-                onPlaying={() => {
-                  console.log(
-                    `[CallModal][onPlaying][1:1] ${new Date().toISOString()} isCleaningUp=${
-                      isCleaningUpRef.current
-                    } localVideoSrc=${!!localVideoRef.current
-                      ?.srcObject} remoteVideoSrc=${!!remoteVideoRef.current
-                      ?.srcObject} callStatusBefore=${callState.status}`
-                  );
-                  ensureStartTime();
-                  if (!isCleaningUpRef.current) {
-                    dispatch(setCall({ ...callState, status: "Ongoing call" }));
-                  }
-                }}
-                ref={remoteVideoRef}
-                autoPlay
-                playsInline
-              />
+              {(() => {
+                const remoteUid = getOtherParticipants()[0];
+                const isRemoteVideoEnabled =
+                  videoEnabledMap[remoteUid] !== false ||
+                  !!screenSharingUids[remoteUid];
+                const remoteInfo = getParticipantInfo(remoteUid);
+                const remoteName =
+                  remoteInfo?.displayName?.split(" ")[0] || "Unknown";
+                return (
+                  <>
+                    <Box
+                      sx={{
+                        position: "absolute",
+                        top: "25px",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        bgcolor: "rgba(0, 0, 0, 0.3)",
+                        backdropFilter: "blur(5px)",
+                        color: "white",
+                        fontSize: "0.875rem",
+                        borderRadius: "10px",
+                        px: 1.5,
+                        py: 0.5,
+                        display: isOngoingCall ? "flex" : "none",
+                        gap: 1,
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        zIndex: 2,
+                      }}
+                    >
+                      <span>{remoteName}</span>
+                      <span> | </span>
+                      <span>
+                        <CallDuration
+                          startTime={startTimeRef.current}
+                          visible={isOngoingCall}
+                          formatCallDuration={formatCallDuration}
+                        />
+                      </span>
+                    </Box>
+                    {!isRemoteVideoEnabled && (
+                      <Box
+                        sx={{
+                          position: "absolute",
+                          top: 0,
+                          left: 0,
+                          width: "100%",
+                          height: "100%",
+                          display: isOngoingCall ? "flex" : "none",
+                          flexDirection: "column",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          gap: 1,
+                          zIndex: 1,
+                          color: "white",
+                          backgroundColor: "#2A2F3A",
+                          border: "1px solid rgba(255, 255, 255, 0.08)",
+                          borderRadius: "12px",
+                        }}
+                      >
+                        <Avatar
+                          src={remoteInfo?.photoURL || undefined}
+                          sx={{ width: 96, height: 96 }}
+                        >
+                          {remoteName.charAt(0)}
+                        </Avatar>
+                        <Typography variant="body2" sx={{ fontSize: "1rem" }}>
+                          {remoteName}
+                        </Typography>
+                      </Box>
+                    )}
+                    <video
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        width: "100%",
+                        height: "100%",
+                        objectFit: isRemoteScreenSharing ? "contain" : "cover",
+                        transform: "scaleX(1)",
+                        borderRadius: 0,
+                        display: isOngoingCall ? "block" : "none",
+                        opacity: isRemoteVideoEnabled ? 1 : 0,
+                        zIndex: 1,
+                      }}
+                      onPlaying={() => {
+                        console.log(
+                          `[CallModal][onPlaying][1:1] ${new Date().toISOString()} isCleaningUp=${
+                            isCleaningUpRef.current
+                          } localVideoSrc=${!!localVideoRef.current
+                            ?.srcObject} remoteVideoSrc=${!!remoteVideoRef
+                            .current?.srcObject} callStatusBefore=${
+                            callState.status
+                          }`
+                        );
+                        ensureStartTime();
+                        if (!isCleaningUpRef.current) {
+                          dispatch(
+                            setCall({ ...callState, status: "Ongoing call" })
+                          );
+                        }
+                      }}
+                      ref={remoteVideoRef}
+                      autoPlay
+                      playsInline
+                    />
+                  </>
+                );
+              })()}
             </>
+          )}
+
+          {callData.isVideoCall && !isLocalVideoActive && (
+            <Box
+              sx={{
+                position: "absolute",
+                left: "50%",
+                top: 250,
+                display: callState.status === "Call ended" ? "none" : "flex",
+                width: 248,
+                height: 185,
+                backgroundColor: "#2A2F3A",
+                border: "1px solid rgba(255, 255, 255, 0.08)",
+                borderRadius: "12px",
+                overflow: "hidden",
+                boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
+                transform: isOngoingCall
+                  ? isMobile
+                    ? `translate(0px, 60px) scale(0.5)`
+                    : `translate(140px, 120px) scale(0.7)`
+                  : `translateX(-50%) scale(1)`,
+                transition: "transform .3s ease-out",
+                zIndex: 3,
+                marginBottom: isOngoingCall ? "0" : ".625rem",
+                flexDirection: "column",
+                justifyContent: "center",
+                alignItems: "center",
+                gap: 1,
+                color: "white",
+              }}
+            >
+              <Avatar
+                src={user.photoURL || undefined}
+                sx={{ width: 72, height: 72 }}
+              >
+                {user.displayName?.charAt(0) || "Y"}
+              </Avatar>
+              <Typography variant="body2" sx={{ fontSize: "0.9rem" }}>
+                You
+              </Typography>
+            </Box>
           )}
 
           {/* Local Video - Rendered for BOTH modes (unification) */}
@@ -1111,7 +1347,10 @@ const CallModal = (props) => {
               position: "absolute",
               left: "50%",
               top: 250,
-              display: callState.status === "Call ended" ? "none" : "block",
+              display:
+                callState.status === "Call ended" || !isLocalVideoActive
+                  ? "none"
+                  : "block",
               width: 248,
               height: 185,
               backgroundColor: isScreenSharing ? "#1a1a1a" : "transparent",
@@ -1141,6 +1380,38 @@ const CallModal = (props) => {
         <>
           {callData.isGroupCall ? (
             <>
+              {/* Group Audio: Top status + timer */}
+              <Box
+                sx={{
+                  position: "absolute",
+                  top: "25px",
+                  left: "50%",
+                  transform: "translateX(-50%)",
+                  bgcolor: "rgba(0, 0, 0, 0.3)",
+                  backdropFilter: "blur(5px)",
+                  color: "white",
+                  fontSize: "0.875rem",
+                  borderRadius: "10px",
+                  px: 1.5,
+                  py: 0.5,
+                  display: isOngoingCall ? "flex" : "none",
+                  gap: 1,
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  zIndex: 2,
+                }}
+              >
+                <span>{remoteStreamsArray.length + 1} participant(s)</span>
+                <span> | </span>
+                <span>
+                  <CallDuration
+                    startTime={startTimeRef.current}
+                    visible={isOngoingCall}
+                    formatCallDuration={formatCallDuration}
+                  />
+                </span>
+              </Box>
+
               {/* Group Audio: Remote Participants Grid */}
               <Box
                 sx={{
@@ -1155,15 +1426,15 @@ const CallModal = (props) => {
                       ? "grid"
                       : "none",
                   gridTemplateColumns:
-                    remoteStreamsArray.length <= 1 ? "1fr" : "1fr 1fr",
-                  gridTemplateRows:
-                    remoteStreamsArray.length <= 2
-                      ? "1fr"
-                      : remoteStreamsArray.length <= 4
-                      ? "1fr 1fr"
+                    remoteStreamsArray.length <= 9
+                      ? "1fr 1fr 1fr"
                       : "1fr 1fr 1fr",
+                  gridTemplateRows:
+                    remoteStreamsArray.length <= 9
+                      ? "1fr 1fr 1fr"
+                      : "1fr 1fr 1fr 1fr",
                   gap: "8px",
-                  padding: "24px",
+                  padding: "72px 24px 24px",
                   zIndex: 1,
                 }}
               >
@@ -1180,10 +1451,13 @@ const CallModal = (props) => {
                         flexDirection: "column",
                         justifyContent: "center",
                         alignItems: "center",
-                        backgroundColor: "#1a1a1a",
+                        backgroundColor: "#2A2F3A",
                         borderRadius: "12px",
+                        border: "1px solid rgba(255, 255, 255, 0.08)",
                         overflow: "hidden",
                         gap: 1,
+                        width: "100%",
+                        height: "100%",
                       }}
                     >
                       <Avatar
@@ -1228,45 +1502,6 @@ const CallModal = (props) => {
                 />
               ))}
 
-              {/* Local Audio PiP */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  left: "50%",
-                  top: 250,
-                  display: callState.status === "Call ended" ? "none" : "flex",
-                  width: 248,
-                  height: 185,
-                  backgroundColor: "#1a1a1a",
-                  borderRadius: "10px",
-                  overflow: "hidden",
-                  boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
-                  transform: isOngoingCall
-                    ? isMobile
-                      ? "translate(0px, 60px) scale(0.5)"
-                      : "translate(140px, 120px) scale(0.7)"
-                    : "translateX(-50%) scale(1)",
-                  transition: "transform .3s ease-out",
-                  zIndex: 3,
-                  marginBottom: isOngoingCall ? "0" : ".625rem",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  gap: 1,
-                  color: "white",
-                }}
-              >
-                <Avatar
-                  src={user.photoURL || undefined}
-                  sx={{ width: 72, height: 72 }}
-                >
-                  {user.displayName?.charAt(0) || "Y"}
-                </Avatar>
-                <Typography variant="body2" sx={{ fontSize: "0.9rem" }}>
-                  You
-                </Typography>
-              </Box>
-
               <audio ref={localAudioRef} autoPlay muted />
             </>
           ) : (
@@ -1293,7 +1528,7 @@ const CallModal = (props) => {
           top: "86%",
           left: "50%",
           transform: "translateX(-50%)",
-          display: "flex",
+          display: callState.status === "Call ended" ? "none" : "flex",
           gap: 2,
           zIndex: 2,
         }}
@@ -1317,6 +1552,33 @@ const CallModal = (props) => {
             disableRipple
           >
             <Call sx={{ fontSize: "1.5rem" }} />
+          </IconButton>
+        )}
+
+        {callData.isVideoCall && (
+          <IconButton
+            onClick={toggleVideo}
+            disabled={!isOngoingCall || isScreenSharing}
+            sx={{
+              width: 48,
+              height: 48,
+              display: !isInitiator() && !isOngoingCall ? "none" : "flex",
+              bgcolor: isLocalVideoEnabled ? "rgba(0, 0, 0, 0.3)" : "#fff",
+              color: isLocalVideoEnabled ? "#fff" : "#20232A",
+              opacity: isOngoingCall ? 1 : 0.4,
+              boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+              "&.Mui-disabled": {
+                bgcolor: "rgba(255, 255, 255, 0.08)",
+                color: "#fff",
+              },
+            }}
+            disableRipple
+          >
+            {isLocalVideoEnabled ? (
+              <Videocam sx={{ fontSize: "1.5rem" }} />
+            ) : (
+              <VideocamOff sx={{ fontSize: "1.5rem" }} />
+            )}
           </IconButton>
         )}
 
@@ -1384,27 +1646,25 @@ const CallModal = (props) => {
           )}
         </IconButton>
 
-        {callState.status !== "Call ended" && (
-          <IconButton
-            onClick={hangUp}
-            sx={{
-              bgcolor: "error.main",
-              color: "#fff",
-              width: 48,
-              height: 48,
+        <IconButton
+          onClick={hangUp}
+          sx={{
+            bgcolor: "error.main",
+            color: "#fff",
+            width: 48,
+            height: 48,
 
-              "&:hover": {
-                bgcolor: "error.main",
-              },
-              "&.MuiButtonBase-root:hover": {
-                bgcolor: "error.main",
-              },
-            }}
-            disableRipple
-          >
-            <CallEnd sx={{ fontSize: "1.5rem" }} />
-          </IconButton>
-        )}
+            "&:hover": {
+              bgcolor: "error.main",
+            },
+            "&.MuiButtonBase-root:hover": {
+              bgcolor: "error.main",
+            },
+          }}
+          disableRipple
+        >
+          <CallEnd sx={{ fontSize: "1.5rem" }} />
+        </IconButton>
       </Box>
     </Box>
   );
