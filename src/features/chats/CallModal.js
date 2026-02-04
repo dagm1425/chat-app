@@ -30,12 +30,21 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall, selectChatById } from "./chatsSlice";
 import { store } from "../../app/store";
 import { v4 as uuid } from "uuid";
-import { useEffect, useState, useRef, memo } from "react";
+import { useEffect, useState, useRef, memo, useMemo } from "react";
 import { selectUser } from "../user/userSlice";
 
 const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
+  // Manage pre-join video preview as a single in-flight request:
+  // - starts preview only when needed,
+  // - drops stale getUserMedia responses from older runs,
+  // - and always stops preview tracks on dependency change/unmount to avoid camera leaks.
+  // Pre-join preview lifecycle:
+  // - starts preview only for incoming video calls before join,
+  // - enforces single in-flight getUserMedia request,
+  // - rejects stale async responses by requestId (stop returned stale stream),
+  // - and stops preview on dependency change/unmount to avoid camera leaks.
   useEffect(() => {
     if (!visible || !startTime) return;
 
@@ -86,6 +95,8 @@ const CallModal = (props) => {
     () => new Set()
   );
   const [videoEnabledMap, setVideoEnabledMap] = useState({});
+  const [preJoinVideoEnabled, setPreJoinVideoEnabled] = useState(true);
+  const [isPreviewing, setIsPreviewing] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -97,19 +108,42 @@ const CallModal = (props) => {
   const remoteVideoRef = useRef(null);
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
+  const previewStreamRef = useRef(null);
+  const previewRequestIdRef = useRef(0);
+  const previewRequestPendingRef = useRef(false);
   // For group calls: Map of userId -> video element ref
   const remoteVideoRefsMap = useRef(new Map());
   // const timeoutStatusMsg = useRef(null);
   const isCleaningUpRef = useRef(false);
   const dummyVideoTrackRef = useRef(null);
   const isTogglingVideoRef = useRef(false);
+  const pendingFrameReadyRef = useRef(new Set());
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
-  const isLocalVideoEnabled = videoEnabledMap[user.uid] !== false;
-  const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
-  const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) =>
-    readyRemoteStreamIds.has(userId)
+  const isUserInCall = callData?.participants?.includes(user.uid);
+  const hasLocalVideoFlag = Object.prototype.hasOwnProperty.call(
+    videoEnabledMap,
+    user.uid
   );
+  const isLocalVideoEnabled = isUserInCall
+    ? hasLocalVideoFlag
+      ? videoEnabledMap[user.uid] !== false
+      : preJoinVideoEnabled
+    : preJoinVideoEnabled;
+  const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
+  // Include video-off participants so group tiles render even without onPlaying.
+  // Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
+  const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) => {
+    const hasVideoFlag = Object.prototype.hasOwnProperty.call(
+      videoEnabledMap,
+      userId
+    );
+    const isVideoOff =
+      hasVideoFlag &&
+      videoEnabledMap[userId] === false &&
+      !screenSharingUids[userId];
+    return readyRemoteStreamIds.has(userId) || isVideoOff;
+  });
 
   // DEBUG: Track localVideoRef on every render
   useEffect(() => {
@@ -118,6 +152,29 @@ const CallModal = (props) => {
       isActive: callState.isActive,
     });
   });
+
+  useEffect(() => {
+    console.log(
+      "[debug speed] [CallModal][LocalTile]",
+      `status=${callState.status}`,
+      `isUserInCall=${isUserInCall}`,
+      `preJoinVideoEnabled=${preJoinVideoEnabled}`,
+      `localVideoFlag=${videoEnabledMap[user.uid]}`,
+      `isLocalVideoEnabled=${isLocalVideoEnabled}`,
+      `isLocalVideoActive=${isLocalVideoActive}`,
+      `isPreviewing=${isPreviewing}`,
+      `t=${new Date().toISOString()}`
+    );
+  }, [
+    callState.status,
+    isUserInCall,
+    preJoinVideoEnabled,
+    isLocalVideoEnabled,
+    isLocalVideoActive,
+    isPreviewing,
+    user.uid,
+    videoEnabledMap,
+  ]);
 
   // Helper functions for participant access
   const getOtherParticipants = () => {
@@ -142,10 +199,145 @@ const CallModal = (props) => {
   };
 
   const getParticipantInfo = (uid) => {
-    // Safely get participant info from participantDetails
-    // Returns null if not found, or participant object with { uid, displayName, photoURL }
     if (!uid || !callData?.participantDetails) return null;
     return callData.participantDetails[uid] || null;
+  };
+
+  const oneToOneRemote = useMemo(() => {
+    if (callData?.isGroupCall) {
+      return {
+        remoteUid: null,
+        hasRemoteVideoFlag: false,
+        isRemoteVideoEnabled: null,
+        hasRemoteStream: false,
+        isRemoteTileReady: false,
+      };
+    }
+
+    const remoteUid = callData?.participantDetails
+      ? Object.keys(callData.participantDetails).find((uid) => uid !== user.uid)
+      : null;
+
+    if (!remoteUid) {
+      return {
+        remoteUid: null,
+        hasRemoteVideoFlag: false,
+        isRemoteVideoEnabled: null,
+        hasRemoteStream: false,
+        isRemoteTileReady: false,
+      };
+    }
+
+    const hasRemoteVideoFlag = Object.prototype.hasOwnProperty.call(
+      videoEnabledMap,
+      remoteUid
+    );
+    const isRemoteVideoEnabled = hasRemoteVideoFlag
+      ? videoEnabledMap[remoteUid] !== false || !!screenSharingUids[remoteUid]
+      : null;
+    const hasRemoteStream = remoteStreamsArray.some(
+      ([userId]) => userId === remoteUid
+    );
+    const isRemoteTileReady =
+      hasRemoteStream &&
+      hasRemoteVideoFlag &&
+      (isRemoteVideoEnabled ? readyRemoteStreamIds.has(remoteUid) : true);
+
+    return {
+      remoteUid,
+      hasRemoteVideoFlag,
+      isRemoteVideoEnabled,
+      hasRemoteStream,
+      isRemoteTileReady,
+    };
+  }, [
+    callData?.isGroupCall,
+    callData?.participantDetails,
+    readyRemoteStreamIds,
+    remoteStreamsArray,
+    screenSharingUids,
+    user.uid,
+    videoEnabledMap,
+  ]);
+
+  const isOneToOneRemoteVideoStreaming =
+    !callData?.isGroupCall &&
+    !!oneToOneRemote.remoteUid &&
+    oneToOneRemote.isRemoteVideoEnabled === true &&
+    readyRemoteStreamIds.has(oneToOneRemote.remoteUid);
+  const isGroupTwoParticipantVideoStreaming = (() => {
+    if (!callData?.isGroupCall) return false;
+    if (remoteStreamsArray.length !== 1) return false;
+    const remoteUid = remoteStreamsArray[0]?.[0];
+    if (!remoteUid) return false;
+    const hasRemoteVideoFlag = Object.prototype.hasOwnProperty.call(
+      videoEnabledMap,
+      remoteUid
+    );
+    if (!hasRemoteVideoFlag) return false;
+    const isRemoteVideoEnabled =
+      videoEnabledMap[remoteUid] !== false || !!screenSharingUids[remoteUid];
+    if (!isRemoteVideoEnabled) return false;
+    return readyRemoteStreamIds.has(remoteUid);
+  })();
+  const isDarkControlBg =
+    isOngoingCall &&
+    (isOneToOneRemoteVideoStreaming || isGroupTwoParticipantVideoStreaming);
+  const controlButtonBg = isDarkControlBg
+    ? "rgba(0, 0, 0, 0.3)"
+    : "rgba(255, 255, 255, 0.08)";
+  const controlButtonColor = "#fff";
+  // const hideCenterHeaderForGroup =
+  //   callData?.isGroupCall &&
+  //   readyRemoteStreamsArray.length > 0 &&
+  //   callState.status !== "Call ended";
+  // const hideCenterHeaderForOneToOneVideo =
+  //   callData?.isVideoCall &&
+  //   !callData?.isGroupCall &&
+  //   isOngoingCall &&
+  //   oneToOneRemote.isRemoteTileReady;
+  // const centerHeaderDisplay =
+  //   hideCenterHeaderForGroup || hideCenterHeaderForOneToOneVideo
+  //     ? "none"
+  //     : "flex";
+
+  const stopPreviewStream = () => {
+    const stream = previewStreamRef.current;
+    if (!stream) {
+      console.log(
+        `[debug speed] [CameraRelease] stopPreviewStream: no preview stream @ ${new Date().toISOString()}`
+      );
+      return;
+    }
+    if (stream === localStreamRef.current) {
+      console.log(
+        `[debug speed] [CameraRelease] stopPreviewStream: preview is active local stream, not stopping tracks @ ${new Date().toISOString()}`
+      );
+      previewStreamRef.current = null;
+      setIsPreviewing(false);
+      return;
+    }
+    const tracks = stream.getTracks();
+    console.log(
+      `[debug speed] [CameraRelease] stopPreviewStream: stopping ${
+        tracks.length
+      } tracks @ ${new Date().toISOString()}`
+    );
+    tracks.forEach((track) => {
+      console.log(
+        `[debug speed] [CameraRelease] stopPreviewStream: stopping ${
+          track.kind
+        } id=${track.id} state=${track.readyState} enabled=${
+          track.enabled
+        } @ ${new Date().toISOString()}`
+      );
+    });
+    stream.getTracks().forEach((track) => track.stop());
+    previewStreamRef.current = null;
+    setIsPreviewing(false);
+    if (localVideoRef.current?.srcObject === stream) {
+      localVideoRef.current.srcObject = null;
+    }
   };
 
   const getDummyVideoTrack = () => {
@@ -205,13 +397,96 @@ const CallModal = (props) => {
     });
   };
 
+  // Wait for a truly renderable remote frame before marking the tile "ready".
+  // Why: `onPlaying` can fire slightly before the first visible frame is stable,
+  // which can cause header/timer/PiP UI to transition early and flash.
+  const markRemoteFrameReady = (userId, videoEl) => {
+    if (!userId || !videoEl) return;
+    if (pendingFrameReadyRef.current.has(userId)) return;
+    pendingFrameReadyRef.current.add(userId);
+
+    const checkFrameReady = () => {
+      if (!videoEl || !videoEl.srcObject) {
+        pendingFrameReadyRef.current.delete(userId);
+        return;
+      }
+      if (videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
+        markRemoteStreamReady(userId);
+        pendingFrameReadyRef.current.delete(userId);
+        return;
+      }
+      requestAnimationFrame(checkFrameReady);
+    };
+
+    requestAnimationFrame(checkFrameReady);
+  };
+
   // Track which streams we've already attached to video elements
   const attachedStreamsRef = useRef(new Set());
 
   useEffect(() => {
+    stopPreviewStream();
     setReadyRemoteStreamIds(new Set());
     setVideoEnabledMap({});
+    setPreJoinVideoEnabled(true);
+    setIsPreviewing(false);
+    previewStreamRef.current = null;
+    pendingFrameReadyRef.current = new Set();
   }, [callData?.chatId]);
+
+  useEffect(() => {
+    const shouldPreview =
+      callData?.isVideoCall &&
+      !isUserInCall &&
+      callState.status !== "Call ended";
+
+    if (!shouldPreview) {
+      stopPreviewStream();
+      previewRequestPendingRef.current = false;
+      return;
+    }
+
+    if (previewStreamRef.current || previewRequestPendingRef.current) return;
+
+    previewRequestPendingRef.current = true;
+    const requestId = ++previewRequestIdRef.current;
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true, audio: true })
+      .then((stream) => {
+        // If a newer request started, discard this stale stream immediately.
+        if (requestId !== previewRequestIdRef.current) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        console.log(
+          `[debug speed] [CameraRelease] preview getUserMedia streamId=${
+            stream.id
+          } tracks=${stream
+            .getTracks()
+            .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+            .join(", ")}`
+        );
+        previewStreamRef.current = stream;
+        setIsPreviewing(true);
+        setPreJoinVideoEnabled((prev) => (prev === false ? false : true));
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+      })
+      .catch((error) => {
+        console.error("[CallModal] Error starting preview stream:", error);
+      })
+      .finally(() => {
+        if (requestId === previewRequestIdRef.current) {
+          previewRequestPendingRef.current = false;
+        }
+      });
+
+    return () => {
+      stopPreviewStream();
+    };
+  }, [callData?.isVideoCall, callState.status, isUserInCall]);
 
   // Update remote streams array when streams change (for group calls)
   // streamsVersion increments when streams are added/removed, triggering this effect
@@ -230,6 +505,7 @@ const CallModal = (props) => {
       if (!currentUserIds.has(userId)) {
         remoteVideoRefsMap.current.delete(userId);
         attachedStreamsRef.current.delete(userId);
+        pendingFrameReadyRef.current.delete(userId);
       }
     });
 
@@ -245,6 +521,72 @@ const CallModal = (props) => {
       return changed ? next : prev;
     });
   }, [streamsVersion, callState, dispatch]); // Only runs when streams actually change
+
+  useEffect(() => {
+    if (!callData?.isVideoCall || callData?.isGroupCall) return;
+    if (isCleaningUpRef.current) return;
+    if (
+      callState.status === "Ongoing call" ||
+      callState.status === "Call ended"
+    )
+      return;
+    if (!oneToOneRemote.remoteUid) return;
+    if (!oneToOneRemote.hasRemoteStream) return;
+    if (!oneToOneRemote.isRemoteTileReady) return;
+
+    // 1:1 video: set "Ongoing call" only when the remote tile is ready.
+    // Example: callee joins with camera OFF -> we get a stream first, but must wait
+    // for videoEnabled=false before showing header/timer to avoid a brief flash.
+    console.log(
+      "[CallModal] 1:1 remote tile ready, setting status to Ongoing call"
+    );
+    ensureStartTime();
+    dispatch(setCall({ ...callState, status: "Ongoing call" }));
+  }, [callData?.isGroupCall, callData?.isVideoCall, callState, oneToOneRemote]);
+
+  useEffect(() => {
+    if (!callData?.isVideoCall || !callData?.isGroupCall) return;
+    if (isCleaningUpRef.current) return;
+    if (
+      callState.status === "Ongoing call" ||
+      callState.status === "Call ended"
+    )
+      return;
+    if (remoteStreamsArray.length === 0) return;
+
+    const anyTileReady = remoteStreamsArray.some(([userId]) => {
+      const hasVideoFlag = Object.prototype.hasOwnProperty.call(
+        videoEnabledMap,
+        userId
+      );
+      const isVideoEnabled = hasVideoFlag
+        ? videoEnabledMap[userId] !== false || !!screenSharingUids[userId]
+        : null;
+
+      if (isVideoEnabled === false) {
+        return true;
+      }
+      return readyRemoteStreamIds.has(userId);
+    });
+
+    if (!anyTileReady) return;
+
+    // Group video: end "Waiting..." once any remote tile is ready
+    // (e.g., a joiner has camera OFF, so no onPlaying until we receive videoEnabled=false).
+    console.log(
+      "[CallModal] group remote tile ready, setting status to Ongoing call"
+    );
+    ensureStartTime();
+    dispatch(setCall({ ...callState, status: "Ongoing call" }));
+  }, [
+    callData?.isGroupCall,
+    callData?.isVideoCall,
+    callState,
+    remoteStreamsArray,
+    readyRemoteStreamIds,
+    screenSharingUids,
+    videoEnabledMap,
+  ]);
 
   // Update local and remote video/audio elements
   // Attach streams once when they become available - browser handles new tracks automatically
@@ -569,10 +911,6 @@ const CallModal = (props) => {
   }, [peerConnectionsRef]);
 
   useEffect(() => {
-    console.log("localVideoRef.current", localVideoRef.current);
-  }, []);
-
-  useEffect(() => {
     if (!callState.isActive) {
       startTimeRef.current = null;
     }
@@ -732,6 +1070,28 @@ const CallModal = (props) => {
     // (useEffect re-attaching streams, onPlaying resetting status)
     isCleaningUpRef.current = true;
 
+    const previewTracks = previewStreamRef.current?.getTracks() || [];
+    const localTracks = localStreamRef.current?.getTracks() || [];
+    console.log(
+      `[debug speed] [CameraRelease] hangUp() media snapshot @ ${new Date().toISOString()} previewTracks=${
+        previewTracks.length
+      } localTracks=${localTracks.length}`
+    );
+    previewTracks.forEach((track) => {
+      console.log(
+        `[debug speed] [CameraRelease] hangUp() preview ${track.kind} id=${track.id} state=${track.readyState} enabled=${track.enabled}`
+      );
+    });
+    localTracks.forEach((track) => {
+      console.log(
+        `[debug speed] [CameraRelease] hangUp() local ${track.kind} id=${track.id} state=${track.readyState} enabled=${track.enabled}`
+      );
+    });
+
+    if (!isUserInCall) {
+      stopPreviewStream();
+    }
+
     console.log("[CallModal] Current call state:", {
       isActive: callState.isActive,
       status: callState.status,
@@ -828,50 +1188,90 @@ const CallModal = (props) => {
 
   const toggleVideo = async () => {
     if (!callData?.isVideoCall) return;
-    if (!localStreamRef.current) return;
     if (isScreenSharing || isTogglingVideoRef.current) return;
 
     isTogglingVideoRef.current = true;
     try {
-      const audioTracks = localStreamRef.current.getAudioTracks();
+      const activeStream = isUserInCall
+        ? localStreamRef.current
+        : previewStreamRef.current;
+      if (!activeStream) return;
+
+      const audioTracks = activeStream.getAudioTracks();
       if (isLocalVideoEnabled) {
         if (localVideoRef.current) {
           localVideoRef.current.style.display = "none";
         }
-        await updateVideoEnabled(false);
-        const videoTrack = localStreamRef.current.getVideoTracks()[0];
+        if (isUserInCall) {
+          await updateVideoEnabled(false);
+        } else {
+          setPreJoinVideoEnabled(false);
+        }
+        const videoTrack = activeStream.getVideoTracks()[0];
         if (videoTrack) {
           videoTrack.stop();
         }
         const dummyTrack = getDummyVideoTrack();
-        peerConnectionsRef.current.forEach((pc) => {
-          const sender = pc
-            .getSenders()
-            .find((s) => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(dummyTrack);
-        });
-        localStreamRef.current = new MediaStream([dummyTrack, ...audioTracks]);
+        if (isUserInCall) {
+          peerConnectionsRef.current.forEach((pc) => {
+            const sender = pc
+              .getSenders()
+              .find((s) => s.track && s.track.kind === "video");
+            if (sender) sender.replaceTrack(dummyTrack);
+          });
+          localStreamRef.current = new MediaStream([
+            dummyTrack,
+            ...audioTracks,
+          ]);
+        } else {
+          previewStreamRef.current = new MediaStream([
+            dummyTrack,
+            ...audioTracks,
+          ]);
+        }
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = localStreamRef.current;
+          localVideoRef.current.srcObject = isUserInCall
+            ? localStreamRef.current
+            : previewStreamRef.current;
         }
       } else {
         const cameraStream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
         const cameraTrack = cameraStream.getVideoTracks()[0];
-        peerConnectionsRef.current.forEach((pc) => {
-          const sender = pc
-            .getSenders()
-            .find((s) => s.track && s.track.kind === "video");
-          if (sender) sender.replaceTrack(cameraTrack);
-        });
-        localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
-        localStreamRef.current = new MediaStream([cameraTrack, ...audioTracks]);
+        console.log(
+          `[debug speed] [CameraRelease] toggleVideo getUserMedia streamId=${cameraStream.id} track=${cameraTrack.id}:${cameraTrack.readyState}`
+        );
+        if (isUserInCall) {
+          peerConnectionsRef.current.forEach((pc) => {
+            const sender = pc
+              .getSenders()
+              .find((s) => s.track && s.track.kind === "video");
+            if (sender) sender.replaceTrack(cameraTrack);
+          });
+          localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
+          localStreamRef.current = new MediaStream([
+            cameraTrack,
+            ...audioTracks,
+          ]);
+        } else {
+          activeStream.getVideoTracks().forEach((t) => t.stop());
+          previewStreamRef.current = new MediaStream([
+            cameraTrack,
+            ...audioTracks,
+          ]);
+        }
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = localStreamRef.current;
+          localVideoRef.current.srcObject = isUserInCall
+            ? localStreamRef.current
+            : previewStreamRef.current;
           localVideoRef.current.style.display = "";
         }
-        await updateVideoEnabled(true);
+        if (isUserInCall) {
+          await updateVideoEnabled(true);
+        } else {
+          setPreJoinVideoEnabled(true);
+        }
       }
     } catch (error) {
       console.error("[CallModal] Error toggling video:", error);
@@ -932,11 +1332,15 @@ const CallModal = (props) => {
             readyRemoteStreamsArray.length > 0 &&
             callState.status !== "Call ended"
               ? "none"
+              : callData?.isVideoCall && !callData?.isGroupCall && isOngoingCall
+              ? "none"
               : "flex",
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
           pt: 2,
+          position: "relative",
+          zIndex: 3,
           visibility:
             isRemoteScreenSharing && isOngoingCall ? "hidden" : "visible",
         }}
@@ -1058,9 +1462,15 @@ const CallModal = (props) => {
                     participantInfo?.displayName?.split(" ")[0] ||
                     "Participant";
                   const isThisUserSharing = !!screenSharingUids[userId];
-                  const isReady = readyRemoteStreamIds.has(userId);
+                  const hasVideoFlag = Object.prototype.hasOwnProperty.call(
+                    videoEnabledMap,
+                    userId
+                  );
                   const isVideoEnabled =
                     videoEnabledMap[userId] !== false || isThisUserSharing;
+                  const isVideoOff = hasVideoFlag && !isVideoEnabled;
+                  const isReady =
+                    readyRemoteStreamIds.has(userId) || isVideoOff;
 
                   return (
                     <Box
@@ -1098,13 +1508,7 @@ const CallModal = (props) => {
                               isCleaningUpRef.current
                             } callStatusBefore=${callState.status}`
                           );
-                          markRemoteStreamReady(userId);
-                          ensureStartTime();
-                          if (!isCleaningUpRef.current) {
-                            dispatch(
-                              setCall({ ...callState, status: "Ongoing call" })
-                            );
-                          }
+                          markRemoteFrameReady(userId, videoRef?.current);
                         }}
                         style={{
                           width: isVideoEnabled ? "100%" : "1px",
@@ -1189,10 +1593,9 @@ const CallModal = (props) => {
           {!callData.isGroupCall && (
             <>
               {(() => {
-                const remoteUid = getOtherParticipants()[0];
+                const remoteUid = oneToOneRemote.remoteUid;
                 const isRemoteVideoEnabled =
-                  videoEnabledMap[remoteUid] !== false ||
-                  !!screenSharingUids[remoteUid];
+                  oneToOneRemote.isRemoteVideoEnabled;
                 const remoteInfo = getParticipantInfo(remoteUid);
                 const remoteName =
                   remoteInfo?.displayName?.split(" ")[0] || "Unknown";
@@ -1228,7 +1631,7 @@ const CallModal = (props) => {
                         />
                       </span>
                     </Box>
-                    {!isRemoteVideoEnabled && (
+                    {isRemoteVideoEnabled === false && (
                       <Box
                         sx={{
                           position: "absolute",
@@ -1269,8 +1672,15 @@ const CallModal = (props) => {
                         objectFit: isRemoteScreenSharing ? "contain" : "cover",
                         transform: "scaleX(1)",
                         borderRadius: 0,
-                        display: isOngoingCall ? "block" : "none",
-                        opacity: isRemoteVideoEnabled ? 1 : 0,
+                        display:
+                          isOngoingCall && isRemoteVideoEnabled
+                            ? "block"
+                            : "none",
+                        // opacity:
+                        //   isRemoteVideoEnabled === true &&
+                        //   oneToOneRemote.isRemoteTileReady
+                        //     ? 1
+                        //     : 0,
                         zIndex: 1,
                       }}
                       onPlaying={() => {
@@ -1283,10 +1693,10 @@ const CallModal = (props) => {
                             callState.status
                           }`
                         );
-                        ensureStartTime();
-                        if (!isCleaningUpRef.current) {
-                          dispatch(
-                            setCall({ ...callState, status: "Ongoing call" })
+                        if (remoteUid) {
+                          markRemoteFrameReady(
+                            remoteUid,
+                            remoteVideoRef.current
                           );
                         }
                       }}
@@ -1535,7 +1945,9 @@ const CallModal = (props) => {
       >
         {!isInitiator() && callState?.status === "" && (
           <IconButton
-            onClick={joinCall}
+            onClick={() =>
+              joinCall(previewStreamRef.current, preJoinVideoEnabled)
+            }
             sx={{
               bgcolor: "success.main",
               color: "#fff",
@@ -1558,19 +1970,20 @@ const CallModal = (props) => {
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleVideo}
-            disabled={!isOngoingCall || isScreenSharing}
             sx={{
               width: 48,
               height: 48,
-              display: !isInitiator() && !isOngoingCall ? "none" : "flex",
-              bgcolor: isLocalVideoEnabled ? "rgba(0, 0, 0, 0.3)" : "#fff",
-              color: isLocalVideoEnabled ? "#fff" : "#20232A",
-              opacity: isOngoingCall ? 1 : 0.4,
+              display: "flex",
+              pointerEvents:
+                isScreenSharing || (!isOngoingCall && !isPreviewing)
+                  ? "none"
+                  : "auto",
+              bgcolor: controlButtonBg,
+              color: controlButtonColor,
+              opacity:
+                isScreenSharing || (!isOngoingCall && !isPreviewing) ? 0.4 : 1,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              "&.Mui-disabled": {
-                bgcolor: "rgba(255, 255, 255, 0.08)",
-                color: "#fff",
-              },
+              transition: "opacity 0.2s ease, background-color 0.2s ease",
             }}
             disableRipple
           >
@@ -1590,13 +2003,14 @@ const CallModal = (props) => {
               width: 48,
               height: 48,
               display: !isInitiator() && !isOngoingCall ? "none" : "flex",
-              bgcolor: isScreenSharing ? "#fff" : "rgba(0, 0, 0, 0.3)",
-              color: isScreenSharing ? "#20232A" : "#fff",
+              bgcolor: controlButtonBg,
+              color: controlButtonColor,
               opacity: isOngoingCall ? 1 : 0.4,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+              transition: "background-color 0.2s ease",
               "&.Mui-disabled": {
-                bgcolor: "rgba(255, 255, 255, 0.08)",
-                color: "#fff",
+                bgcolor: controlButtonBg,
+                color: controlButtonColor,
               },
             }}
             disableRipple
@@ -1615,26 +2029,15 @@ const CallModal = (props) => {
             width: 48,
             height: 48,
             display: !isInitiator() && !isOngoingCall ? "none" : "flex",
-            bgcolor: isMuted
-              ? "#fff"
-              : callData.isVideoCall && isOngoingCall
-              ? "rgba(0, 0, 0, 0.3)"
-              : "rgba(255, 255, 255, 0.08)",
-            color: isMuted ? "#20232A" : "#fff",
+            bgcolor: controlButtonBg,
+            color: controlButtonColor,
             boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+            transition: "background-color 0.2s ease",
             "&:hover": {
-              bgcolor: isMuted
-                ? "#fff"
-                : callData.isVideoCall && isOngoingCall
-                ? "rgba(0, 0, 0, 0.3)"
-                : "rgba(255, 255, 255, 0.08)",
+              bgcolor: controlButtonBg,
             },
             "&.MuiButtonBase-root:hover": {
-              bgcolor: isMuted
-                ? "#fff"
-                : callData.isVideoCall && isOngoingCall
-                ? "rgba(0, 0, 0, 0.3)"
-                : "rgba(255, 255, 255, 0.08)",
+              bgcolor: controlButtonBg,
             },
           }}
           disableRipple

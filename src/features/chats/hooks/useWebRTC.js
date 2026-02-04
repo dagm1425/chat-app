@@ -175,6 +175,14 @@ const useWebRTC = (db) => {
       });
       localStreamRef.current = localStream;
       console.log(
+        `[debug speed] [CameraRelease] startCall getUserMedia streamId=${
+          localStream.id
+        } tracks=${localStream
+          .getTracks()
+          .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+          .join(", ")}`
+      );
+      console.log(
         `[L123] Local stream obtained, tracks: ${localStream
           .getTracks()
           .map((t) => t.kind)
@@ -490,7 +498,7 @@ const useWebRTC = (db) => {
     return unsubscribe;
   };
 
-  const joinCall = async () => {
+  const joinCall = async (previewStream = null, initialVideoEnabled = true) => {
     // Get chatId from Redux state (populated by App.js from Firestore)
     console.log(`[L306] joinCall called`);
     const chatId = callState.callData?.chatId;
@@ -521,15 +529,48 @@ const useWebRTC = (db) => {
       const isVideoCall = callData.isVideoCall || false;
       console.log(`[L324] Call type: ${isVideoCall ? "VIDEO" : "AUDIO"}`);
 
-      // Get stream based on call type
-      console.log(
-        `[L327] Requesting user media: video=${isVideoCall}, audio=true`
-      );
-      const localStream = await navigator.mediaDevices.getUserMedia({
-        video: isVideoCall,
-        audio: true,
-      });
+      // Get stream based on call type (reuse preview stream if available)
+      const hasLivePreview =
+        previewStream &&
+        previewStream.getTracks().some((track) => track.readyState === "live");
+      let localStream;
+      if (hasLivePreview) {
+        console.log("[L327] Using preview stream for joinCall");
+        localStream = previewStream;
+        console.log(
+          `[debug speed] [CameraRelease] joinCall using preview streamId=${
+            localStream.id
+          } tracks=${localStream
+            .getTracks()
+            .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+            .join(", ")}`
+        );
+      } else {
+        // Fallback: no usable preview (voice call or preview missing after refresh/denied permissions)
+        console.log(
+          `[L327] Requesting user media: video=${isVideoCall}, audio=true`
+        );
+        localStream = await navigator.mediaDevices.getUserMedia({
+          video: isVideoCall && initialVideoEnabled,
+          audio: true,
+        });
+        console.log(
+          `[debug speed] [CameraRelease] joinCall getUserMedia streamId=${
+            localStream.id
+          } tracks=${localStream
+            .getTracks()
+            .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+            .join(", ")}`
+        );
+        if (isVideoCall && !initialVideoEnabled) {
+          const dummyTrack = getDummyVideoTrack();
+          localStream.addTrack(dummyTrack);
+        }
+      }
       localStreamRef.current = localStream;
+      console.log(
+        `[debug speed] [CameraRelease] joinCall localStreamRef set streamId=${localStream.id}`
+      );
       console.log(
         `[L331] Local stream obtained, tracks: ${localStream
           .getTracks()
@@ -575,10 +616,15 @@ const useWebRTC = (db) => {
         console.log(`[L343] Self already present in participants: ${user.uid}`);
       }
 
-      if (isVideoCall && !callData.videoEnabled?.[user.uid]) {
-        await updateDoc(chatRef, {
-          [`call.callData.videoEnabled.${user.uid}`]: true,
-        });
+      if (isVideoCall) {
+        const desiredVideoEnabled = !!initialVideoEnabled;
+        const currentVideoEnabled = callData.videoEnabled?.[user.uid];
+        // Only write if currentVideoEnabled differs (e.g., refresh/reconnect/other tab could already set it to true).
+        if (currentVideoEnabled !== desiredVideoEnabled) {
+          await updateDoc(chatRef, {
+            [`call.callData.videoEnabled.${user.uid}`]: desiredVideoEnabled,
+          });
+        }
       }
 
       // Construct updated callData for Redux (mirror Firestore)
@@ -639,6 +685,53 @@ const useWebRTC = (db) => {
     const cleanupStart = Date.now();
     try {
       console.log("[useWebRTC] cleanupLocalCall() called");
+
+      // 0. Stop local tracks early so camera/mic release isn't blocked by Firestore latency
+      console.log(
+        "[debug speed] [CameraRelease] Step 0: Stopping local tracks early"
+      );
+      if (localStreamRef.current) {
+        const localTracks = localStreamRef.current.getTracks();
+        console.log(
+          `[debug speed] [CameraRelease] Early stop of ${
+            localTracks.length
+          } local tracks @ ${new Date().toISOString()}`
+        );
+        localTracks.forEach((track) => {
+          console.log(
+            `[debug speed] [CameraRelease] Early stopping local ${
+              track.kind
+            } track id=${track.id} state=${track.readyState} enabled=${
+              track.enabled
+            } @ ${new Date().toISOString()}`
+          );
+          if (!track.onended) {
+            track.onended = () => {
+              console.log(
+                `[debug speed] [CameraRelease] Local ${
+                  track.kind
+                } track ended id=${track.id} @ ${new Date().toISOString()}`
+              );
+            };
+          }
+          track.stop();
+          console.log(
+            `[debug speed] [CameraRelease] Local ${
+              track.kind
+            } track stop() called id=${track.id} state=${
+              track.readyState
+            } @ ${new Date().toISOString()}`
+          );
+        });
+        localStreamRef.current = null;
+        console.log(
+          "[debug speed] [CameraRelease] Local stream cleared (early)"
+        );
+      } else {
+        console.log(
+          `[debug speed] [CameraRelease] No local stream to stop early @ ${new Date().toISOString()}`
+        );
+      }
 
       // 2. Set "Call ended" status for UI feedback MAY NOT BE NEEDED SINCE WE HAVE IT IN LISTENER AND ()
       console.log("[useWebRTC] Step 2: Setting 'Call ended' status");
@@ -951,6 +1044,9 @@ const useWebRTC = (db) => {
           video: true,
         });
         nextVideoTrack = cameraStream.getVideoTracks()[0];
+        console.log(
+          `[debug speed] [CameraRelease] stopScreenShare getUserMedia streamId=${cameraStream.id} track=${nextVideoTrack.id}:${nextVideoTrack.readyState}`
+        );
       }
 
       peerConnectionsRef.current.forEach((pc) => {
