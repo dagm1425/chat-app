@@ -1238,7 +1238,7 @@ const CallModal = (props) => {
       localVideoSwapInFlightRef.current = true;
       fadeLocalVideo(true);
       try {
-        const stream = await stopScreenShare();
+        const stream = await stopScreenShare(!isLocalVideoEnabled);
         if (!stream) {
           return;
         }
@@ -1279,7 +1279,7 @@ const CallModal = (props) => {
         const previousStream = localStreamRef.current;
         localVideoSwapInFlightRef.current = true;
         fadeLocalVideo(true);
-        const restoredStream = await stopScreenShare();
+        const restoredStream = await stopScreenShare(!isLocalVideoEnabled);
         if (restoredStream && localVideoRef.current) {
           localVideoRef.current.srcObject = restoredStream;
         }

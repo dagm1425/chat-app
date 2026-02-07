@@ -1041,16 +1041,16 @@ const useWebRTC = (db) => {
     }
   };
 
-  const stopScreenShare = async () => {
+  const stopScreenShare = async (forceDummyTrack = null) => {
     try {
       const shouldUseDummyTrack =
-        callState.callData?.videoEnabled?.[user.uid] === false;
-      let nextVideoTrack;
+        typeof forceDummyTrack === "boolean"
+          ? forceDummyTrack
+          : callState.callData?.videoEnabled?.[user.uid] === false;
+      let nextVideoTrack = null;
       const previousLocalStream = localStreamRef.current;
 
-      if (shouldUseDummyTrack) {
-        nextVideoTrack = getDummyVideoTrack();
-      } else {
+      if (!shouldUseDummyTrack) {
         const cameraStream = await navigator.mediaDevices.getUserMedia({
           video: true,
         });
@@ -1059,9 +1059,7 @@ const useWebRTC = (db) => {
 
       peerConnectionsRef.current.forEach((pc) => {
         const senders = pc.getSenders();
-        const videoSender = senders.find(
-          (s) => s.track && s.track.kind === "video"
-        );
+        const videoSender = senders.find((s) => s.track?.kind === "video");
         if (videoSender) {
           videoSender.replaceTrack(nextVideoTrack);
         }
@@ -1071,7 +1069,9 @@ const useWebRTC = (db) => {
         ? previousLocalStream.getAudioTracks()
         : [];
       const audioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
-      const newStream = new MediaStream([nextVideoTrack]);
+      const newStream = nextVideoTrack
+        ? new MediaStream([nextVideoTrack])
+        : new MediaStream();
       if (audioTrack) newStream.addTrack(audioTrack);
 
       localStreamRef.current = newStream;
