@@ -98,6 +98,7 @@ const CallModal = (props) => {
   const [preJoinVideoEnabled, setPreJoinVideoEnabled] = useState(true);
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
+  const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -113,6 +114,7 @@ const CallModal = (props) => {
   const localVideoSwapInFlightRef = useRef(false);
   const manualScreenShareStopRef = useRef(false);
   const localVideoFadeTimeoutRef = useRef(null);
+  const localVideoIntroDoneRef = useRef(false);
   const previewRequestIdRef = useRef(0);
   const previewRequestPendingRef = useRef(false);
   // For group calls: Map of userId -> video element ref
@@ -188,6 +190,36 @@ const CallModal = (props) => {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!callState.isActive) {
+      console.log(
+        `[debug speed] [LocalVideoIntro] reset (call inactive) t=${new Date().toISOString()}`
+      );
+      localVideoIntroDoneRef.current = false;
+      setIsLocalVideoIntro(false);
+      return;
+    }
+    if (localVideoIntroDoneRef.current || !isLocalVideoActive) {
+      console.log(
+        `[debug speed] [LocalVideoIntro] skip done=${
+          localVideoIntroDoneRef.current
+        } localActive=${isLocalVideoActive} t=${new Date().toISOString()}`
+      );
+      return;
+    }
+    console.log(
+      `[debug speed] [LocalVideoIntro] start localActive=${isLocalVideoActive} t=${new Date().toISOString()}`
+    );
+    localVideoIntroDoneRef.current = true;
+    setIsLocalVideoIntro(true);
+  }, [callState.isActive, isLocalVideoActive]);
+
+  useEffect(() => {
+    console.log(
+      `[debug speed] [LocalVideoIntro] state intro=${isLocalVideoIntro} fading=${isLocalVideoFading} t=${new Date().toISOString()}`
+    );
+  }, [isLocalVideoIntro, isLocalVideoFading]);
 
   // Helper functions for participant access
   const getOtherParticipants = () => {
@@ -1852,7 +1884,7 @@ const CallModal = (props) => {
                     })`
                 : `translateX(-50%) scale(1) scaleX(-1)`,
               transition: "transform .3s ease-out, opacity .2s ease",
-              opacity: isLocalVideoFading ? 0 : 1,
+              opacity: isLocalVideoFading || isLocalVideoIntro ? 0 : 1,
               zIndex: 3, // Higher Z-Index than remote content
               marginBottom: isOngoingCall ? "0" : ".625rem",
             }}
@@ -1860,6 +1892,14 @@ const CallModal = (props) => {
             autoPlay
             playsInline
             muted
+            onPlaying={() => {
+              if (isLocalVideoIntro) {
+                console.log(
+                  `[debug speed] [LocalVideoIntro] local video onPlaying -> end t=${new Date().toISOString()}`
+                );
+                setIsLocalVideoIntro(false);
+              }
+            }}
           />
         </>
       ) : (
