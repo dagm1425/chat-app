@@ -132,6 +132,12 @@ const useWebRTC = (db) => {
             );
             remoteStream.addTrack(track);
           }
+          track.onended = () => {
+            if (remoteStream.getTracks().find((t) => t.id === track.id)) {
+              remoteStream.removeTrack(track);
+              forceRender();
+            }
+          };
         });
 
         forceRender(); // Trigger re-render to show new video

@@ -1298,6 +1298,13 @@ const CallModal = (props) => {
     if (isScreenSharing || isTogglingVideoRef.current) return;
 
     isTogglingVideoRef.current = true;
+    const getVideoSender = (pc) => {
+      const transceiver = pc
+        .getTransceivers?.()
+        ?.find((t) => t.receiver?.track?.kind === "video");
+      if (transceiver?.sender) return transceiver.sender;
+      return pc.getSenders().find((s) => s.track?.kind === "video");
+    };
     try {
       const activeStream = isUserInCall
         ? localStreamRef.current
@@ -1321,9 +1328,7 @@ const CallModal = (props) => {
         const dummyTrack = getDummyVideoTrack();
         if (isUserInCall) {
           peerConnectionsRef.current.forEach((pc) => {
-            const sender = pc
-              .getSenders()
-              .find((s) => s.track && s.track.kind === "video");
+            const sender = getVideoSender(pc);
             if (sender) sender.replaceTrack(dummyTrack);
           });
           localStreamRef.current = new MediaStream([
@@ -1351,9 +1356,7 @@ const CallModal = (props) => {
         );
         if (isUserInCall) {
           peerConnectionsRef.current.forEach((pc) => {
-            const sender = pc
-              .getSenders()
-              .find((s) => s.track && s.track.kind === "video");
+            const sender = getVideoSender(pc);
             if (sender) sender.replaceTrack(cameraTrack);
           });
           localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
