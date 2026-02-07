@@ -97,6 +97,7 @@ const CallModal = (props) => {
   const [videoEnabledMap, setVideoEnabledMap] = useState({});
   const [preJoinVideoEnabled, setPreJoinVideoEnabled] = useState(true);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -109,6 +110,9 @@ const CallModal = (props) => {
   const localAudioRef = useRef(null);
   const remoteAudioRef = useRef(null);
   const previewStreamRef = useRef(null);
+  const localVideoSwapInFlightRef = useRef(false);
+  const manualScreenShareStopRef = useRef(false);
+  const localVideoFadeTimeoutRef = useRef(null);
   const previewRequestIdRef = useRef(0);
   const previewRequestPendingRef = useRef(false);
   // For group calls: Map of userId -> video element ref
@@ -175,6 +179,15 @@ const CallModal = (props) => {
     user.uid,
     videoEnabledMap,
   ]);
+
+  useEffect(() => {
+    return () => {
+      if (localVideoFadeTimeoutRef.current) {
+        clearTimeout(localVideoFadeTimeoutRef.current);
+        localVideoFadeTimeoutRef.current = null;
+      }
+    };
+  }, []);
 
   // Helper functions for participant access
   const getOtherParticipants = () => {
@@ -603,6 +616,7 @@ const CallModal = (props) => {
     if (
       localVideoRef.current &&
       localStreamRef.current &&
+      !localVideoSwapInFlightRef.current &&
       localVideoRef.current.srcObject !== localStreamRef.current
     ) {
       console.log(
@@ -1169,20 +1183,81 @@ const CallModal = (props) => {
     setIsMuted((prev) => !prev);
   };
 
+  const fadeLocalVideo = (fadeOut) => {
+    if (localVideoFadeTimeoutRef.current) {
+      clearTimeout(localVideoFadeTimeoutRef.current);
+      localVideoFadeTimeoutRef.current = null;
+    }
+    if (fadeOut) {
+      setIsLocalVideoFading(true);
+      return;
+    }
+    // Slight delay lets the new stream paint before fading back in.
+    localVideoFadeTimeoutRef.current = setTimeout(() => {
+      setIsLocalVideoFading(false);
+      localVideoFadeTimeoutRef.current = null;
+    }, 150);
+  };
+
   const toggleScreenShare = async () => {
     if (isScreenSharing) {
-      await stopScreenShare();
-      setIsScreenSharing(false);
-    } else {
-      const stream = await startScreenShare();
-      if (stream) {
-        setIsScreenSharing(true);
-
-        stream.getVideoTracks()[0].onended = async () => {
-          await stopScreenShare();
-          setIsScreenSharing(false);
-        };
+      const previousLocalStream = localStreamRef.current;
+      manualScreenShareStopRef.current = true;
+      localVideoSwapInFlightRef.current = true;
+      fadeLocalVideo(true);
+      try {
+        const stream = await stopScreenShare();
+        if (!stream) {
+          return;
+        }
+        if (stream && localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        if (previousLocalStream && previousLocalStream !== stream) {
+          previousLocalStream.getVideoTracks().forEach((t) => t.stop());
+        }
+        setIsScreenSharing(false);
+      } finally {
+        localVideoSwapInFlightRef.current = false;
+        manualScreenShareStopRef.current = false;
+        fadeLocalVideo(false);
       }
+    } else {
+      const previousLocalStream = localStreamRef.current;
+      localVideoSwapInFlightRef.current = true;
+      fadeLocalVideo(true);
+      const stream = await startScreenShare();
+      if (!stream) {
+        localVideoSwapInFlightRef.current = false;
+        fadeLocalVideo(false);
+        return;
+      }
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      if (previousLocalStream && previousLocalStream !== stream) {
+        previousLocalStream.getVideoTracks().forEach((t) => t.stop());
+      }
+      localVideoSwapInFlightRef.current = false;
+      setIsScreenSharing(true);
+      fadeLocalVideo(false);
+
+      stream.getVideoTracks()[0].onended = async () => {
+        if (manualScreenShareStopRef.current) return;
+        const previousStream = localStreamRef.current;
+        localVideoSwapInFlightRef.current = true;
+        fadeLocalVideo(true);
+        const restoredStream = await stopScreenShare();
+        if (restoredStream && localVideoRef.current) {
+          localVideoRef.current.srcObject = restoredStream;
+        }
+        if (previousStream && previousStream !== restoredStream) {
+          previousStream.getVideoTracks().forEach((t) => t.stop());
+        }
+        localVideoSwapInFlightRef.current = false;
+        setIsScreenSharing(false);
+        fadeLocalVideo(false);
+      };
     }
   };
 
@@ -1776,7 +1851,8 @@ const CallModal = (props) => {
                       isScreenSharing ? 1 : -1
                     })`
                 : `translateX(-50%) scale(1) scaleX(-1)`,
-              transition: "transform .3s ease-out",
+              transition: "transform .3s ease-out, opacity .2s ease",
+              opacity: isLocalVideoFading ? 0 : 1,
               zIndex: 3, // Higher Z-Index than remote content
               marginBottom: isOngoingCall ? "0" : ".625rem",
             }}

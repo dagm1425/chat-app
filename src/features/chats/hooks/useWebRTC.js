@@ -32,6 +32,7 @@ const useWebRTC = (db) => {
   const remoteStreamsRef = useRef(new Map());
   const localStreamRef = useRef(null);
   const dummyVideoTrackRef = useRef(null);
+  const screenTrackRef = useRef(null);
 
   // Store unsubscribe functions for Firestore listeners
   const unsubscribeSignalsRef = useRef(null);
@@ -994,6 +995,8 @@ const useWebRTC = (db) => {
         video: true,
       });
       const screenTrack = screenStream.getVideoTracks()[0];
+      screenTrackRef.current = screenTrack;
+      const previousLocalStream = localStreamRef.current;
 
       // Replace video track in ALL peer connections
       peerConnectionsRef.current.forEach((pc) => {
@@ -1001,28 +1004,35 @@ const useWebRTC = (db) => {
         const videoSender = senders.find(
           (s) => s.track && s.track.kind === "video"
         );
-        if (videoSender) videoSender.replaceTrack(screenTrack);
+        if (videoSender) {
+          videoSender.replaceTrack(screenTrack);
+        }
       });
 
       // Update local stream ref for preview
-      const audioTracks = localStreamRef.current.getAudioTracks();
+      const audioTracks = previousLocalStream
+        ? previousLocalStream.getAudioTracks()
+        : [];
       const audioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
       const newStream = new MediaStream([screenTrack]);
       if (audioTrack) newStream.addTrack(audioTrack);
 
-      localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
       localStreamRef.current = newStream;
       forceRender();
 
-      // Update Firestore to notify others
+      // Update Firestore without blocking local UI swap.
       if (callState.callData?.chatId) {
         const chatRef = doc(db, "chats", callState.callData.chatId);
-        await updateDoc(chatRef, {
+        updateDoc(chatRef, {
           [`call.screenSharingUids.${user.uid}`]: true,
+        }).catch((error) => {
+          console.error("[useWebRTC] Error setting screenSharingUids:", error);
         });
       }
 
-      screenTrack.onended = () => stopScreenShare();
+      screenTrack.onended = () => {
+        stopScreenShare();
+      };
 
       return newStream;
     } catch (e) {
@@ -1036,6 +1046,7 @@ const useWebRTC = (db) => {
       const shouldUseDummyTrack =
         callState.callData?.videoEnabled?.[user.uid] === false;
       let nextVideoTrack;
+      const previousLocalStream = localStreamRef.current;
 
       if (shouldUseDummyTrack) {
         nextVideoTrack = getDummyVideoTrack();
@@ -1044,9 +1055,6 @@ const useWebRTC = (db) => {
           video: true,
         });
         nextVideoTrack = cameraStream.getVideoTracks()[0];
-        console.log(
-          `[debug speed] [CameraRelease] stopScreenShare getUserMedia streamId=${cameraStream.id} track=${nextVideoTrack.id}:${nextVideoTrack.readyState}`
-        );
       }
 
       peerConnectionsRef.current.forEach((pc) => {
@@ -1054,25 +1062,29 @@ const useWebRTC = (db) => {
         const videoSender = senders.find(
           (s) => s.track && s.track.kind === "video"
         );
-        if (videoSender) videoSender.replaceTrack(nextVideoTrack);
+        if (videoSender) {
+          videoSender.replaceTrack(nextVideoTrack);
+        }
       });
 
-      // Stop old screen track before replacing
-      localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
-
-      const audioTracks = localStreamRef.current.getAudioTracks();
+      const audioTracks = previousLocalStream
+        ? previousLocalStream.getAudioTracks()
+        : [];
       const audioTrack = audioTracks.length > 0 ? audioTracks[0] : null;
       const newStream = new MediaStream([nextVideoTrack]);
       if (audioTrack) newStream.addTrack(audioTrack);
 
       localStreamRef.current = newStream;
+
       forceRender();
 
-      // Update Firestore
+      // Update Firestore without blocking local UI swap.
       if (callState.callData?.chatId) {
         const chatRef = doc(db, "chats", callState.callData.chatId);
-        await updateDoc(chatRef, {
+        updateDoc(chatRef, {
           [`call.screenSharingUids.${user.uid}`]: deleteField(),
+        }).catch((error) => {
+          console.error("[useWebRTC] Error clearing screenSharingUids:", error);
         });
       }
 
