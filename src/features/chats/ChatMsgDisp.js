@@ -29,7 +29,7 @@ import {
   DialogTitle,
   IconButton,
   Modal,
-  CircularProgress,
+  Skeleton,
   useMediaQuery,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -72,6 +72,7 @@ function ChatMsgDisp({
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
   const isMobile = useMediaQuery("(max-width:600px)");
+  const skeletonWidths = [180, 140, 210, 160];
 
   const showScrollToBottomBtn = () => {
     setIsScrollToBottomBtnActive(true);
@@ -565,8 +566,56 @@ function ChatMsgDisp({
       }}
     >
       {isChatsLoading ? (
-        <Box sx={{ height: "100vh", display: "grid", placeItems: "center" }}>
-          <CircularProgress />
+        <Box
+          sx={{
+            position: "absolute",
+            left: "4rem",
+            right: "4rem",
+            bottom: "6rem",
+            display: "flex",
+            flexDirection: "column",
+            gap: "0.75rem",
+            px: { xs: "0.75rem", sm: 0 },
+          }}
+        >
+          {["other", "other", "local", "local"].map((side, idx) => {
+            const isLocal = side === "local";
+            return (
+              <Box
+                key={`skeleton-${idx}`}
+                sx={{
+                  display: "flex",
+                  justifyContent: isLocal ? "flex-end" : "flex-start",
+                }}
+              >
+                <Box
+                  width={skeletonWidths[idx % skeletonWidths.length]}
+                  height={38}
+                  sx={{
+                    borderRadius: isLocal
+                      ? "1.125rem 1.125rem 0 1.125rem"
+                      : "1.125rem 1.125rem 1.125rem 0",
+                    boxShadow:
+                      "rgba(0, 0, 0, 0.12) 0px 1px 3px, rgba(0, 0, 0, 0.24) 0px 1px 2px",
+                  }}
+                >
+                  <Skeleton
+                    variant="rounded"
+                    width="100%"
+                    height="100%"
+                    animation="wave"
+                    sx={{
+                      bgcolor: (theme) =>
+                        isLocal
+                          ? theme.palette.primary.light
+                          : theme.palette.background.default,
+                      borderRadius: "inherit",
+                    }}
+                  />
+                </Box>
+              </Box>
+            );
+          })}
         </Box>
       ) : msgList.length > 0 ? (
         msgList
