@@ -437,6 +437,16 @@ const useWebRTC = (db) => {
           console.log(
             `[debug speed] [RejoinFlow] [Signals] added docId=${change.doc.id} type=${type} from=${senderUid} createdAt=${createdAt}`
           );
+          const consumeSignalDoc = async (reason) => {
+            try {
+              await deleteDoc(change.doc.ref);
+            } catch (error) {
+              console.error(
+                `[useWebRTC] Failed to delete consumed signal ${change.doc.id} (${reason}):`,
+                error
+              );
+            }
+          };
 
           // Process signal
           let pc = peerConnectionsRef.current.get(senderUid);
@@ -483,6 +493,7 @@ const useWebRTC = (db) => {
 
           if (!pc) {
             console.log(`[L274] No PC available, skipping signal processing`);
+            await consumeSignalDoc("no-pc");
             continue;
           }
 
@@ -491,113 +502,158 @@ const useWebRTC = (db) => {
           );
 
           if (type === "offer") {
-            console.log(`[L277] Handling OFFER from ${senderUid}`);
-            const remoteDesc = new RTCSessionDescription(payload);
-            const offerId = data.offerId;
-            if (!offerId) {
-              console.log(
-                `[debug speed] [RejoinFlow] Missing offerId on OFFER from ${senderUid}, skipping`
-              );
-              continue;
-            }
-            pc.__offerId = offerId;
-            console.log(
-              `[L278] Setting remote description (offer). Current signalingState: ${pc.signalingState}`
-            );
-            await pc.setRemoteDescription(remoteDesc);
-            console.log(
-              `[L278] Remote description (offer) set. New signalingState: ${pc.signalingState}`
-            );
-
-            console.log(`[L280] Creating answer`);
-            const answer = await pc.createAnswer();
-            console.log(
-              `[L281] Answer created, setting local description. Current signalingState: ${pc.signalingState}`
-            );
-            await pc.setLocalDescription(answer);
-            console.log(
-              `[L281] Local description (answer) set. New signalingState: ${pc.signalingState}`
-            );
-
-            // Send Answer
-            console.log(`[L284] Sending answer to Firestore for ${senderUid}`);
-            await addDoc(signalsRef, {
-              type: "answer",
-              from: user.uid,
-              to: senderUid,
-              offerId,
-              payload: { type: answer.type, sdp: answer.sdp },
-            });
-            console.log(`[L289] Answer sent to Firestore for ${senderUid}`);
-          } else if (type === "answer") {
-            // We are the OFFERER receiving answer
-            console.log(
-              `[L290] Handling ANSWER from ${senderUid}. Current signalingState: ${pc.signalingState}`
-            );
-            const offerId = data.offerId;
-            if (!offerId || pc.__offerId !== offerId) {
-              console.log(
-                `[debug speed] [RejoinFlow] Ignoring ANSWER (offerId=${
-                  offerId || "none"
-                }, expected=${pc.__offerId || "none"})`
-              );
-              continue;
-            }
-            // Ignore late/duplicate answers (e.g., after refresh/rejoin).
-            if (pc.signalingState !== "have-local-offer") {
-              console.log(
-                `[L292] Ignoring ANSWER (state=${
-                  pc.signalingState
-                }, remoteDesc=${pc.remoteDescription?.type || "none"})`
-              );
-              continue;
-            }
-            const remoteDesc = new RTCSessionDescription(payload);
-            console.log(
-              `[L293] Setting remote description (answer). Current signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}`
-            );
             try {
+              console.log(`[L277] Handling OFFER from ${senderUid}`);
+              const remoteDesc = new RTCSessionDescription(payload);
+              const offerId = data.offerId;
+              if (!offerId) {
+                console.log(
+                  `[debug speed] [RejoinFlow] Missing offerId on OFFER from ${senderUid}, skipping`
+                );
+                await consumeSignalDoc("offer-missing-offerid");
+                continue;
+              }
+              // Accept incoming offers only in stable state.
+              // Any non-stable state means this PC is already negotiating.
+              if (pc.signalingState !== "stable") {
+                const reason =
+                  pc.signalingState === "have-local-offer"
+                    ? "offer-ignored-local-offer-in-flight"
+                    : "offer-ignored-non-stable";
+                console.log(
+                  `[debug speed] [RejoinFlow] Ignoring OFFER in non-stable state (${pc.signalingState}) from ${senderUid}`
+                );
+                await consumeSignalDoc(reason);
+                continue;
+              }
+              pc.__offerId = offerId;
+              console.log(
+                `[L278] Setting remote description (offer). Current signalingState: ${pc.signalingState}`
+              );
               await pc.setRemoteDescription(remoteDesc);
               console.log(
-                `[L293] Remote description (answer) set successfully. New signalingState: ${pc.signalingState}`
+                `[L278] Remote description (offer) set. New signalingState: ${pc.signalingState}`
               );
+
+              console.log(`[L280] Creating answer`);
+              const answer = await pc.createAnswer();
+              console.log(
+                `[L281] Answer created, setting local description. Current signalingState: ${pc.signalingState}`
+              );
+              await pc.setLocalDescription(answer);
+              console.log(
+                `[L281] Local description (answer) set. New signalingState: ${pc.signalingState}`
+              );
+
+              // Send Answer
+              console.log(
+                `[L284] Sending answer to Firestore for ${senderUid}`
+              );
+              await addDoc(signalsRef, {
+                type: "answer",
+                from: user.uid,
+                to: senderUid,
+                offerId,
+                payload: { type: answer.type, sdp: answer.sdp },
+              });
+              console.log(`[L289] Answer sent to Firestore for ${senderUid}`);
+              await consumeSignalDoc("offer-handled");
             } catch (error) {
               console.error(
-                `[L293] ERROR setting remote description (answer):`,
+                `[L277] Error handling OFFER from ${senderUid}:`,
                 error
               );
-              console.error(
-                `[L293] PC state at error - signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}, localDescription: ${pc.localDescription?.type}, remoteDescription: ${pc.remoteDescription?.type}`
+              await consumeSignalDoc("offer-handle-error");
+            }
+          } else if (type === "answer") {
+            // We are the OFFERER receiving answer
+            try {
+              console.log(
+                `[L290] Handling ANSWER from ${senderUid}. Current signalingState: ${pc.signalingState}`
               );
+              const offerId = data.offerId;
+              if (!offerId || pc.__offerId !== offerId) {
+                console.log(
+                  `[debug speed] [RejoinFlow] Ignoring ANSWER (offerId=${
+                    offerId || "none"
+                  }, expected=${pc.__offerId || "none"})`
+                );
+                await consumeSignalDoc("answer-ignored-offerid-mismatch");
+                continue;
+              }
+              // Ignore late/duplicate answers (e.g., after refresh/rejoin).
+              if (pc.signalingState !== "have-local-offer") {
+                console.log(
+                  `[L292] Ignoring ANSWER (state=${
+                    pc.signalingState
+                  }, remoteDesc=${pc.remoteDescription?.type || "none"})`
+                );
+                await consumeSignalDoc("answer-ignored-state");
+                continue;
+              }
+              const remoteDesc = new RTCSessionDescription(payload);
+              console.log(
+                `[L293] Setting remote description (answer). Current signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}`
+              );
+              try {
+                await pc.setRemoteDescription(remoteDesc);
+                console.log(
+                  `[L293] Remote description (answer) set successfully. New signalingState: ${pc.signalingState}`
+                );
+                await consumeSignalDoc("answer-handled");
+              } catch (error) {
+                console.error(
+                  `[L293] ERROR setting remote description (answer):`,
+                  error
+                );
+                console.error(
+                  `[L293] PC state at error - signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}, localDescription: ${pc.localDescription?.type}, remoteDescription: ${pc.remoteDescription?.type}`
+                );
+                await consumeSignalDoc("answer-set-remote-error");
+              }
+            } catch (error) {
+              console.error(
+                `[L290] Error handling ANSWER from ${senderUid}:`,
+                error
+              );
+              await consumeSignalDoc("answer-handle-error");
             }
           } else if (type === "candidate") {
             console.log(`[L295] Handling ICE CANDIDATE from ${senderUid}`);
-            const offerId = data.offerId;
-            if (!offerId || pc.__offerId !== offerId) {
-              console.log(
-                `[debug speed] [RejoinFlow] Ignoring CANDIDATE (offerId=${
-                  offerId || "none"
-                }, expected=${pc.__offerId || "none"})`
-              );
-              continue;
-            }
-            const candidate = new RTCIceCandidate(payload);
-            console.log(
-              `[L296] Adding ICE candidate. Current signalingState: ${pc.signalingState}`
-            );
             try {
+              const offerId = data.offerId;
+              if (!offerId || pc.__offerId !== offerId) {
+                console.log(
+                  `[debug speed] [RejoinFlow] Ignoring CANDIDATE (offerId=${
+                    offerId || "none"
+                  }, expected=${pc.__offerId || "none"})`
+                );
+                await consumeSignalDoc("candidate-ignored-offerid-mismatch");
+                continue;
+              }
+              const candidate = new RTCIceCandidate(payload);
+              console.log(
+                `[L296] Adding ICE candidate. Current signalingState: ${pc.signalingState}`
+              );
               await pc.addIceCandidate(candidate);
               console.log(`[L296] ICE candidate added successfully`);
+              await consumeSignalDoc("candidate-handled");
             } catch (error) {
               // Ignore if remote description not set - new candidates will be generated
-              if (error.message.includes("remote description")) {
+              if ((error?.message || "").includes("remote description")) {
                 console.log(
                   `[L296] Skipping candidate - remote description not ready yet`
                 );
+                await consumeSignalDoc(
+                  "candidate-ignored-remote-description-not-ready"
+                );
               } else {
                 console.error(`[L296] Error adding ICE candidate:`, error);
+                await consumeSignalDoc("candidate-add-error");
               }
             }
+          } else {
+            await consumeSignalDoc("unknown-type");
           }
         }
       }
