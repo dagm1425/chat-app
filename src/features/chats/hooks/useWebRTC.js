@@ -681,6 +681,16 @@ const useWebRTC = (db) => {
       return;
     }
 
+    const latestCall = store.getState().chats.call;
+    if (latestCall.status === "") {
+      dispatch(
+        setCall({
+          ...latestCall,
+          status: "Connecting...",
+        })
+      );
+    }
+
     try {
       console.log(
         `[L316] Getting call data from Firestore for chatId: ${chatId}`
@@ -844,6 +854,15 @@ const useWebRTC = (db) => {
       );
     } catch (error) {
       console.error("Error joining call:", error);
+      const latestStatus = store.getState().chats.call.status;
+      if (latestStatus !== "Connecting...") return;
+      const latestCallState = store.getState().chats.call;
+      dispatch(
+        setCall({
+          ...latestCallState,
+          status: "",
+        })
+      );
     }
   };
 

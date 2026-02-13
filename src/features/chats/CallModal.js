@@ -104,6 +104,7 @@ const CallModal = (props) => {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewPermissionDenied, setPreviewPermissionDenied] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isJoinPending, setIsJoinPending] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
@@ -133,9 +134,11 @@ const CallModal = (props) => {
   const pendingFrameReadyRef = useRef(new Set());
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
+  const isConnectingCall = callState.status === "Connecting...";
   const isUserInCall = callData?.participants?.includes(user.uid);
-  const isRejoinCall =
-    callData?.initiator !== user.uid && callState.status === "" && isUserInCall;
+  // Rejoin applies to any participant (including initiator) after refresh/reopen
+  // while the call is still active but local media isn't connected yet.
+  const isRejoinCall = callState.status === "" && isUserInCall;
   const hasLocalVideoFlag = Object.prototype.hasOwnProperty.call(
     videoEnabledMap,
     user.uid
@@ -339,6 +342,7 @@ const CallModal = (props) => {
     ? "rgba(0, 0, 0, 0.3)"
     : "rgba(255, 255, 255, 0.08)";
   const controlButtonColor = "#fff";
+
   // const hideCenterHeaderForGroup =
   //   callData?.isGroupCall &&
   //   readyRemoteStreamsArray.length > 0 &&
@@ -483,6 +487,7 @@ const CallModal = (props) => {
     setPreJoinVideoEnabled(true);
     setIsPreviewing(false);
     setPreviewPermissionDenied(false);
+    setIsJoinPending(false);
     previewStreamRef.current = null;
     pendingFrameReadyRef.current = new Set();
     return () => {
@@ -987,10 +992,8 @@ const CallModal = (props) => {
   };
 
   const getCallStatusText = () => {
-    // If user is not the initiator, show "Incoming call" when status is empty
-    if (!isInitiator() && callState.status === "") {
-      const hasJoinedCall = callData?.participants?.includes(user.uid);
-      return hasJoinedCall ? "Rejoin call" : "Incoming call";
+    if (callState.status === "") {
+      return isRejoinCall ? "Rejoin call" : "Incoming call";
     }
     return callState.status;
   };
@@ -2179,12 +2182,20 @@ const CallModal = (props) => {
           zIndex: 2,
         }}
       >
-        {!isInitiator() && callState?.status === "" && (
+        {callState?.status === "" && (!isInitiator() || isRejoinCall) && (
           <IconButton
-            onClick={() =>
-              joinCall(previewStreamRef.current, isLocalVideoEnabled)
+            onClick={async () => {
+              if (isJoinPending) return;
+              setIsJoinPending(true);
+              try {
+                await joinCall(previewStreamRef.current, isLocalVideoEnabled);
+              } finally {
+                setIsJoinPending(false);
+              }
+            }}
+            disabled={
+              isJoinPending || (callData.isVideoCall && previewPermissionDenied)
             }
-            disabled={callData.isVideoCall && previewPermissionDenied}
             sx={{
               bgcolor: "success.main",
               color: "#fff",
@@ -2212,20 +2223,42 @@ const CallModal = (props) => {
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleVideo}
+            disabled={
+              isJoinPending ||
+              isConnectingCall ||
+              isScreenSharing ||
+              (!isOngoingCall && !isPreviewing)
+            }
             sx={{
               width: 48,
               height: 48,
               display: "flex",
               pointerEvents:
-                isScreenSharing || (!isOngoingCall && !isPreviewing)
+                isJoinPending ||
+                isConnectingCall ||
+                isScreenSharing ||
+                (!isOngoingCall && !isPreviewing)
                   ? "none"
                   : "auto",
               bgcolor: controlButtonBg,
               color: controlButtonColor,
               opacity:
-                isScreenSharing || (!isOngoingCall && !isPreviewing) ? 0.4 : 1,
+                isJoinPending ||
+                isConnectingCall ||
+                isScreenSharing ||
+                (!isOngoingCall && !isPreviewing)
+                  ? 0.4
+                  : 1,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              transition: "opacity 0.2s ease, background-color 0.2s ease",
+              transition:
+                isJoinPending || isConnectingCall
+                  ? "none"
+                  : "opacity 0.2s ease, background-color 0.2s ease",
+              "&.Mui-disabled": {
+                bgcolor: controlButtonBg,
+                color: controlButtonColor,
+                opacity: 0.4,
+              },
             }}
             disableRipple
           >
@@ -2240,11 +2273,15 @@ const CallModal = (props) => {
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleScreenShare}
-            disabled={!isOngoingCall}
+            disabled={isConnectingCall || !isOngoingCall}
             sx={{
               width: 48,
               height: 48,
-              display: !isInitiator() && !isOngoingCall ? "none" : "flex",
+              display:
+                callState.status === "" ||
+                (!isInitiator() && !isOngoingCall && !isConnectingCall)
+                  ? "none"
+                  : "flex",
               bgcolor: controlButtonBg,
               color: controlButtonColor,
               opacity: isOngoingCall ? 1 : 0.4,
@@ -2267,10 +2304,15 @@ const CallModal = (props) => {
 
         <IconButton
           onClick={toggleMute}
+          disabled={isConnectingCall}
           sx={{
             width: 48,
             height: 48,
-            display: !isInitiator() && !isOngoingCall ? "none" : "flex",
+            display:
+              callState.status === "" ||
+              (!isInitiator() && !isOngoingCall && !isConnectingCall)
+                ? "none"
+                : "flex",
             bgcolor: controlButtonBg,
             color: controlButtonColor,
             boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
@@ -2280,6 +2322,11 @@ const CallModal = (props) => {
             },
             "&.MuiButtonBase-root:hover": {
               bgcolor: controlButtonBg,
+            },
+            "&.Mui-disabled": {
+              bgcolor: controlButtonBg,
+              color: controlButtonColor,
+              opacity: 0.4,
             },
           }}
           disableRipple
