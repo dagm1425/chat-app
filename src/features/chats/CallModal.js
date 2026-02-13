@@ -96,6 +96,9 @@ const CallModal = (props) => {
   const [readyRemoteStreamIds, setReadyRemoteStreamIds] = useState(
     () => new Set()
   );
+  // Local user's key is typically absent pre-call/rejoin-preview.
+  // This map is populated from Firestore after joinCall writes call.callData.videoEnabled.<uid>.
+  // Until then, preJoinVideoEnabled is the source of truth for local pre-join video intent.
   const [videoEnabledMap, setVideoEnabledMap] = useState({});
   const [preJoinVideoEnabled, setPreJoinVideoEnabled] = useState(true);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -131,6 +134,8 @@ const CallModal = (props) => {
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
   const isUserInCall = callData?.participants?.includes(user.uid);
+  const isRejoinCall =
+    callData?.initiator !== user.uid && callState.status === "" && isUserInCall;
   const hasLocalVideoFlag = Object.prototype.hasOwnProperty.call(
     videoEnabledMap,
     user.uid
@@ -244,9 +249,6 @@ const CallModal = (props) => {
   const isInitiator = () => {
     return callData?.initiator === user.uid;
   };
-
-  const isRejoinCall =
-    !isInitiator() && callState.status === "" && isUserInCall;
 
   const getParticipantInfo = (uid) => {
     if (!uid || !callData?.participantDetails) return null;
@@ -493,11 +495,20 @@ const CallModal = (props) => {
       previewStreamRef.current ||
       previewRequestPendingRef.current ||
       previewPermissionDenied
-    )
+    ) {
+      console.log(
+        `[debug speed] [RejoinToggle] requestPreviewStream skip hasPreview=${!!previewStreamRef.current} pending=${
+          previewRequestPendingRef.current
+        } denied=${previewPermissionDenied} desiredVideo=${isLocalVideoEnabled}`
+      );
       return;
+    }
 
     previewRequestPendingRef.current = true;
     const requestId = ++previewRequestIdRef.current;
+    console.log(
+      `[debug speed] [RejoinToggle] requestPreviewStream start requestId=${requestId} desiredVideo=${isLocalVideoEnabled}`
+    );
 
     navigator.mediaDevices
       .getUserMedia({ video: isLocalVideoEnabled, audio: true })
@@ -510,6 +521,12 @@ const CallModal = (props) => {
         previewStreamRef.current = stream;
         setIsPreviewing(true);
         setPreJoinVideoEnabled(isLocalVideoEnabled);
+        console.log(
+          `[debug speed] [RejoinToggle] requestPreviewStream success requestId=${requestId} stream=${stream
+            .getTracks()
+            .map((t) => `${t.kind}:${t.readyState}`)
+            .join(",")} desiredVideo=${isLocalVideoEnabled}`
+        );
         setPreviewPermissionDenied(false);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -706,6 +723,11 @@ const CallModal = (props) => {
       !isLocalVideoActive &&
       localVideoRef.current.srcObject
     ) {
+      console.log(
+        `[debug speed] [RejoinToggle] local video cleared by attach-effect localActive=${isLocalVideoActive} localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
+          videoEnabledMap[user.uid]
+        }`
+      );
       localVideoRef.current.srcObject = null;
     }
     if (
@@ -1303,6 +1325,12 @@ const CallModal = (props) => {
     if (isScreenSharing || isTogglingVideoRef.current) return;
 
     isTogglingVideoRef.current = true;
+    const isConnectedToCallMedia = !!localStreamRef.current;
+    console.log(
+      `[debug speed] [RejoinToggle] toggle start inCall=${isUserInCall} rejoin=${isRejoinCall} connectedMedia=${isConnectedToCallMedia} localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
+        videoEnabledMap[user.uid]
+      } hasLocal=${!!localStreamRef.current} hasPreview=${!!previewStreamRef.current}`
+    );
     const getVideoSender = (pc) => {
       const transceiver = pc
         .getTransceivers?.()
@@ -1355,7 +1383,9 @@ const CallModal = (props) => {
           previewStreamRef.current
         )} ${describeStream(
           "active",
-          isUserInCall ? localStreamRef.current : previewStreamRef.current
+          isConnectedToCallMedia
+            ? localStreamRef.current
+            : previewStreamRef.current
         )} ${describeStream(
           "localVideoSrc",
           localVideoRef.current?.srcObject || null
@@ -1386,10 +1416,15 @@ const CallModal = (props) => {
       }
     };
     try {
-      const activeStream = isUserInCall
+      const activeStream = isConnectedToCallMedia
         ? localStreamRef.current
         : previewStreamRef.current;
-      if (!activeStream) return;
+      if (!activeStream) {
+        console.log(
+          `[debug speed] [RejoinToggle] toggle abort no-active-stream connectedMedia=${isConnectedToCallMedia}`
+        );
+        return;
+      }
 
       const stopLiveVideoTracks = (stream) => {
         if (!stream) return;
@@ -1407,6 +1442,12 @@ const CallModal = (props) => {
             console.log(
               `[debug speed] [CameraOffRelease] stop() called id=${track.id} readyStateNow=${track.readyState}`
             );
+            if (typeof stream.removeTrack === "function") {
+              stream.removeTrack(track);
+              console.log(
+                `[debug speed] [CameraOffRelease] removeTrack() called id=${track.id}`
+              );
+            }
           }
         });
       };
@@ -1418,7 +1459,7 @@ const CallModal = (props) => {
           localVideoRef.current.style.display = "none";
         }
         stopLiveVideoTracks(activeStream);
-        if (isUserInCall) {
+        if (isConnectedToCallMedia) {
           // Mid-call OFF: switch to a fresh audio-only capture session and send null video.
           // This reliably releases camera hardware while keeping mic live.
           let replacementAudioTrack = audioTracks[0] || null;
@@ -1516,10 +1557,17 @@ const CallModal = (props) => {
             }
           });
           setPreJoinVideoEnabled(false);
+          setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: false }));
           // Pre-join preview should be audio-only when video is off.
           // Join flow may add a dummy video track so remote frame readiness
           // logic can still advance to ongoing call state.
           previewStreamRef.current = nextPreviewStream;
+          console.log(
+            `[debug speed] [RejoinToggle] toggle prejoin->OFF previewTracks=${nextPreviewStream
+              .getTracks()
+              .map((t) => `${t.kind}:${t.readyState}`)
+              .join(",")}`
+          );
           logCameraOffState("after-toggle-off-prejoin");
         }
         if (localVideoRef.current) {
@@ -1544,7 +1592,7 @@ const CallModal = (props) => {
         console.log(
           `[debug speed] [CameraRelease] toggleVideo getUserMedia streamId=${cameraStream.id} track=${cameraTrack.id}:${cameraTrack.readyState}`
         );
-        if (isUserInCall) {
+        if (isConnectedToCallMedia) {
           peerConnectionsRef.current.forEach((pc) => {
             const sender = getVideoSender(pc);
             if (sender) sender.replaceTrack(cameraTrack);
@@ -1562,20 +1610,32 @@ const CallModal = (props) => {
           ]);
         }
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = isUserInCall
+          localVideoRef.current.srcObject = isConnectedToCallMedia
             ? localStreamRef.current
             : previewStreamRef.current;
           localVideoRef.current.style.display = "";
         }
-        if (isUserInCall) {
+        if (isConnectedToCallMedia) {
           await updateVideoEnabled(true);
         } else {
           setPreJoinVideoEnabled(true);
+          setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: true }));
+          console.log(
+            `[debug speed] [RejoinToggle] toggle prejoin->ON previewTracks=${previewStreamRef.current
+              ?.getTracks()
+              ?.map((t) => `${t.kind}:${t.readyState}`)
+              ?.join(",")}`
+          );
         }
       }
     } catch (error) {
       console.error("[CallModal] Error toggling video:", error);
     } finally {
+      console.log(
+        `[debug speed] [RejoinToggle] toggle end localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
+          videoEnabledMap[user.uid]
+        } hasPreview=${!!previewStreamRef.current} hasLocal=${!!localStreamRef.current}`
+      );
       isTogglingVideoRef.current = false;
     }
   };
