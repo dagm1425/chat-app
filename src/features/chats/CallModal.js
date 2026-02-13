@@ -495,20 +495,11 @@ const CallModal = (props) => {
       previewStreamRef.current ||
       previewRequestPendingRef.current ||
       previewPermissionDenied
-    ) {
-      console.log(
-        `[debug speed] [RejoinToggle] requestPreviewStream skip hasPreview=${!!previewStreamRef.current} pending=${
-          previewRequestPendingRef.current
-        } denied=${previewPermissionDenied} desiredVideo=${isLocalVideoEnabled}`
-      );
+    )
       return;
-    }
 
     previewRequestPendingRef.current = true;
     const requestId = ++previewRequestIdRef.current;
-    console.log(
-      `[debug speed] [RejoinToggle] requestPreviewStream start requestId=${requestId} desiredVideo=${isLocalVideoEnabled}`
-    );
 
     navigator.mediaDevices
       .getUserMedia({ video: isLocalVideoEnabled, audio: true })
@@ -521,12 +512,6 @@ const CallModal = (props) => {
         previewStreamRef.current = stream;
         setIsPreviewing(true);
         setPreJoinVideoEnabled(isLocalVideoEnabled);
-        console.log(
-          `[debug speed] [RejoinToggle] requestPreviewStream success requestId=${requestId} stream=${stream
-            .getTracks()
-            .map((t) => `${t.kind}:${t.readyState}`)
-            .join(",")} desiredVideo=${isLocalVideoEnabled}`
-        );
         setPreviewPermissionDenied(false);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
@@ -723,11 +708,6 @@ const CallModal = (props) => {
       !isLocalVideoActive &&
       localVideoRef.current.srcObject
     ) {
-      console.log(
-        `[debug speed] [RejoinToggle] local video cleared by attach-effect localActive=${isLocalVideoActive} localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
-          videoEnabledMap[user.uid]
-        }`
-      );
       localVideoRef.current.srcObject = null;
     }
     if (
@@ -1326,11 +1306,6 @@ const CallModal = (props) => {
 
     isTogglingVideoRef.current = true;
     const isConnectedToCallMedia = !!localStreamRef.current;
-    console.log(
-      `[debug speed] [RejoinToggle] toggle start inCall=${isUserInCall} rejoin=${isRejoinCall} connectedMedia=${isConnectedToCallMedia} localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
-        videoEnabledMap[user.uid]
-      } hasLocal=${!!localStreamRef.current} hasPreview=${!!previewStreamRef.current}`
-    );
     const getVideoSender = (pc) => {
       const transceiver = pc
         .getTransceivers?.()
@@ -1345,108 +1320,19 @@ const CallModal = (props) => {
       if (transceiver?.sender) return transceiver.sender;
       return pc.getSenders().find((s) => s.track?.kind === "audio");
     };
-    const describeTrack = (track) => {
-      if (!track) return "none";
-      const settings = track.getSettings ? track.getSettings() : {};
-      return `${track.kind}:${track.id}:${track.readyState}:enabled=${
-        track.enabled
-      }:muted=${track.muted}:label=${track.label || "none"}:deviceId=${
-        settings.deviceId || "none"
-      }`;
-    };
-    const describeStream = (name, stream) =>
-      stream
-        ? `${name}#${stream.id}[${stream
-            .getTracks()
-            .map((t) => describeTrack(t))
-            .join(" | ")}]`
-        : `${name}=none`;
-    const logCameraOffState = (label) => {
-      const senderTracks = [];
-      peerConnectionsRef.current.forEach((pc, uid) => {
-        const senders = pc.getSenders();
-        senderTracks.push(
-          `${uid}=[${senders
-            .map(
-              (sender) =>
-                `${sender.track?.kind || "none"}:${describeTrack(sender.track)}`
-            )
-            .join(" || ")}]`
-        );
-      });
-      console.log(
-        `[debug speed] [CameraOffRelease] ${label} ${describeStream(
-          "local",
-          localStreamRef.current
-        )} ${describeStream(
-          "preview",
-          previewStreamRef.current
-        )} ${describeStream(
-          "active",
-          isConnectedToCallMedia
-            ? localStreamRef.current
-            : previewStreamRef.current
-        )} ${describeStream(
-          "localVideoSrc",
-          localVideoRef.current?.srcObject || null
-        )} senders=[${senderTracks.join("; ")}]`
-      );
-      if (navigator.mediaDevices?.enumerateDevices) {
-        navigator.mediaDevices
-          .enumerateDevices()
-          .then((devices) => {
-            const relevant = devices
-              .filter((d) => d.kind === "videoinput" || d.kind === "audioinput")
-              .map(
-                (d) =>
-                  `${d.kind}:${d.deviceId}:${d.label || "no-label"}:${
-                    d.groupId || "no-group"
-                  }`
-              )
-              .join(" || ");
-            console.log(
-              `[debug speed] [CameraOffRelease] ${label} devices=[${relevant}]`
-            );
-          })
-          .catch((error) => {
-            console.log(
-              `[debug speed] [CameraOffRelease] ${label} enumerateDevices failed: ${error?.message}`
-            );
-          });
-      }
-    };
     try {
       const activeStream = isConnectedToCallMedia
         ? localStreamRef.current
         : previewStreamRef.current;
-      if (!activeStream) {
-        console.log(
-          `[debug speed] [RejoinToggle] toggle abort no-active-stream connectedMedia=${isConnectedToCallMedia}`
-        );
-        return;
-      }
+      if (!activeStream) return;
 
       const stopLiveVideoTracks = (stream) => {
         if (!stream) return;
         stream.getVideoTracks().forEach((track) => {
           if (track.readyState === "live") {
-            track.onended = () => {
-              console.log(
-                `[debug speed] [CameraOffRelease] onended kind=${track.kind} id=${track.id} readyState=${track.readyState}`
-              );
-            };
-            console.log(
-              `[debug speed] [CameraOffRelease] stopping track id=${track.id} readyState=${track.readyState} enabled=${track.enabled}`
-            );
             track.stop();
-            console.log(
-              `[debug speed] [CameraOffRelease] stop() called id=${track.id} readyStateNow=${track.readyState}`
-            );
             if (typeof stream.removeTrack === "function") {
               stream.removeTrack(track);
-              console.log(
-                `[debug speed] [CameraOffRelease] removeTrack() called id=${track.id}`
-              );
             }
           }
         });
@@ -1454,7 +1340,6 @@ const CallModal = (props) => {
 
       const audioTracks = activeStream.getAudioTracks();
       if (isLocalVideoEnabled) {
-        logCameraOffState("before-toggle-off");
         if (localVideoRef.current) {
           localVideoRef.current.style.display = "none";
         }
@@ -1480,27 +1365,10 @@ const CallModal = (props) => {
           }
 
           const replacePromises = [];
-          peerConnectionsRef.current.forEach((pc, uid) => {
+          peerConnectionsRef.current.forEach((pc) => {
             const videoSender = getVideoSender(pc);
             if (videoSender) {
-              console.log(
-                `[debug speed] [CameraOffRelease] replaceTrack(null) start uid=${uid} senderTrackBefore=${
-                  videoSender.track
-                    ? `${videoSender.track.id}:${videoSender.track.readyState}:enabled=${videoSender.track.enabled}`
-                    : "null"
-                }`
-              );
-              replacePromises.push(
-                videoSender.replaceTrack(null).then(() => {
-                  console.log(
-                    `[debug speed] [CameraOffRelease] replaceTrack(null) done uid=${uid} senderTrackAfter=${
-                      videoSender.track
-                        ? `${videoSender.track.id}:${videoSender.track.readyState}:enabled=${videoSender.track.enabled}`
-                        : "null"
-                    }`
-                  );
-                })
-              );
+              replacePromises.push(videoSender.replaceTrack(null));
             }
             const audioSender = getAudioSender(pc);
             if (audioSender && replacementAudioTrack) {
@@ -1526,10 +1394,6 @@ const CallModal = (props) => {
             : new MediaStream();
           // Don't block local camera release on Firestore latency.
           updateVideoEnabled(false);
-          logCameraOffState("after-toggle-off-in-call");
-          setTimeout(() => {
-            logCameraOffState("after-toggle-off-in-call-500ms");
-          }, 500);
         } else {
           // Pre-join OFF: rebuild preview with a fresh audio-only stream so camera
           // capture session is released immediately.
@@ -1562,13 +1426,6 @@ const CallModal = (props) => {
           // Join flow may add a dummy video track so remote frame readiness
           // logic can still advance to ongoing call state.
           previewStreamRef.current = nextPreviewStream;
-          console.log(
-            `[debug speed] [RejoinToggle] toggle prejoin->OFF previewTracks=${nextPreviewStream
-              .getTracks()
-              .map((t) => `${t.kind}:${t.readyState}`)
-              .join(",")}`
-          );
-          logCameraOffState("after-toggle-off-prejoin");
         }
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = null;
@@ -1589,9 +1446,6 @@ const CallModal = (props) => {
           return;
         }
         const cameraTrack = cameraStream.getVideoTracks()[0];
-        console.log(
-          `[debug speed] [CameraRelease] toggleVideo getUserMedia streamId=${cameraStream.id} track=${cameraTrack.id}:${cameraTrack.readyState}`
-        );
         if (isConnectedToCallMedia) {
           peerConnectionsRef.current.forEach((pc) => {
             const sender = getVideoSender(pc);
@@ -1620,22 +1474,11 @@ const CallModal = (props) => {
         } else {
           setPreJoinVideoEnabled(true);
           setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: true }));
-          console.log(
-            `[debug speed] [RejoinToggle] toggle prejoin->ON previewTracks=${previewStreamRef.current
-              ?.getTracks()
-              ?.map((t) => `${t.kind}:${t.readyState}`)
-              ?.join(",")}`
-          );
         }
       }
     } catch (error) {
       console.error("[CallModal] Error toggling video:", error);
     } finally {
-      console.log(
-        `[debug speed] [RejoinToggle] toggle end localEnabled=${isLocalVideoEnabled} preJoinEnabled=${preJoinVideoEnabled} videoFlag=${
-          videoEnabledMap[user.uid]
-        } hasPreview=${!!previewStreamRef.current} hasLocal=${!!localStreamRef.current}`
-      );
       isTogglingVideoRef.current = false;
     }
   };
