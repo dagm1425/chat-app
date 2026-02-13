@@ -165,6 +165,7 @@ const useWebRTC = (db) => {
       // Handle connection state changes (cleanup if disconnected)
       pc.onconnectionstatechange = () => {
         const pcAgeMs = pc.__createdAt ? Date.now() - pc.__createdAt : null;
+        const mappedPc = peerConnectionsRef.current.get(targetUserId);
         console.log(
           `[debug speed] [RejoinFlow] [L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}, ageMs=${pcAgeMs}`
         );
@@ -173,6 +174,12 @@ const useWebRTC = (db) => {
           pc.connectionState === "failed" ||
           pc.connectionState === "closed"
         ) {
+          // Guard against stale callbacks from older RTCPeerConnection instances.
+          // Without this, a late event from an old PC can delete the current active
+          // connection/stream for the same userId and trigger false "reconnecting" UI.
+          if (mappedPc !== pc) {
+            return;
+          }
           console.log(
             `[debug speed] [RejoinFlow] [Reconnect] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}, ageMs=${pcAgeMs}`
           );
