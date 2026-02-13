@@ -47,6 +47,26 @@ export function formatDurationMinutes(seconds) {
   return `${minutes} min`;
 }
 
+export function getMediaPermissionMessage({ error, isAudioCall }) {
+  const name = error?.name || "";
+  if (name === "NotAllowedError") {
+    return isAudioCall
+      ? "Microphone permission denied. Check site permissions."
+      : "Camera/Mic permission denied. Check site permissions.";
+  }
+  if (name === "NotReadableError") {
+    return isAudioCall
+      ? "Microphone is in use by another app."
+      : "Camera is in use by another app.";
+  }
+  if (name === "NotFoundError") {
+    return isAudioCall ? "No microphone found." : "No camera/microphone found.";
+  }
+  return isAudioCall
+    ? "Unable to access microphone."
+    : "Unable to access camera/microphone.";
+}
+
 export function isLink(text) {
   try {
     new URL(text);

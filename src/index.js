@@ -6,6 +6,7 @@ import App from "./app/App";
 import "./index.css";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
+import ToastProvider from "./common/toast/ToastProvider";
 
 const container = document.getElementById("root");
 const root = createRoot(container);
@@ -57,7 +58,9 @@ const CustomThemeProvider = () => {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <ColorModeContext.Provider value={colorMode}>
-        <App />
+        <ToastProvider>
+          <App />
+        </ToastProvider>
       </ColorModeContext.Provider>
     </ThemeProvider>
   );

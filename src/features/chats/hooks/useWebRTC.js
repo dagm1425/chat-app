@@ -19,7 +19,11 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall } from "../chatsSlice";
 import { selectUser } from "../../user/userSlice";
 import { store } from "../../../app/store";
-import { formatDurationMinutes } from "../../../common/utils";
+import {
+  formatDurationMinutes,
+  getMediaPermissionMessage,
+} from "../../../common/utils";
+import { notifyUser } from "../../../common/toast/ToastProvider";
 
 const useWebRTC = (db) => {
   const dispatch = useDispatch();
@@ -65,17 +69,24 @@ const useWebRTC = (db) => {
   const createPeerConnection = useCallback(
     async (targetUserId, chatId, stream) => {
       if (peerConnectionsRef.current.has(targetUserId)) {
-        console.warn(`[L48] Already have a connection for ${targetUserId}`);
-        return peerConnectionsRef.current.get(targetUserId);
+        const existingPc = peerConnectionsRef.current.get(targetUserId);
+        const existingAgeMs = existingPc?.__createdAt
+          ? Date.now() - existingPc.__createdAt
+          : null;
+        console.warn(
+          `[debug speed] [RejoinFlow] [L48] Already have a connection for ${targetUserId} state=${existingPc?.connectionState} signaling=${existingPc?.signalingState} ageMs=${existingAgeMs}`
+        );
+        return existingPc;
       }
 
       console.log(
         `[L53] Creating new RTCPeerConnection for targetUserId: ${targetUserId}`
       );
       const pc = new RTCPeerConnection(configuration);
+      pc.__createdAt = Date.now();
       peerConnectionsRef.current.set(targetUserId, pc);
       console.log(
-        `[L55] PeerConnection created and stored. Current PC count: ${peerConnectionsRef.current.size}`
+        `[debug speed] [RejoinFlow] [L55] PeerConnection created and stored. Current PC count: ${peerConnectionsRef.current.size} createdAt=${pc.__createdAt}`
       );
 
       // Add local tracks to this new connection
@@ -88,6 +99,13 @@ const useWebRTC = (db) => {
       // Handle ICE candidates
       pc.onicecandidate = async (event) => {
         if (event.candidate) {
+          const offerId = pc.__offerId;
+          if (!offerId) {
+            console.log(
+              `[debug speed] [RejoinFlow] [ICE] Missing offerId for ${targetUserId}, skipping candidate`
+            );
+            return;
+          }
           console.log(
             `[L67] ICE candidate generated for ${targetUserId}, sending to Firestore`
           );
@@ -96,6 +114,7 @@ const useWebRTC = (db) => {
             type: "candidate",
             from: user.uid,
             to: targetUserId,
+            offerId,
             payload: event.candidate.toJSON(),
           });
           console.log(
@@ -145,8 +164,9 @@ const useWebRTC = (db) => {
 
       // Handle connection state changes (cleanup if disconnected)
       pc.onconnectionstatechange = () => {
+        const pcAgeMs = pc.__createdAt ? Date.now() - pc.__createdAt : null;
         console.log(
-          `[L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}`
+          `[debug speed] [RejoinFlow] [L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}, ageMs=${pcAgeMs}`
         );
         if (
           pc.connectionState === "disconnected" ||
@@ -154,7 +174,7 @@ const useWebRTC = (db) => {
           pc.connectionState === "closed"
         ) {
           console.log(
-            `[L105] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}`
+            `[debug speed] [RejoinFlow] [Reconnect] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}, ageMs=${pcAgeMs}`
           );
           remoteStreamsRef.current.delete(targetUserId);
           peerConnectionsRef.current.delete(targetUserId);
@@ -171,89 +191,100 @@ const useWebRTC = (db) => {
     console.log(
       `[L116] startCall called: isAudioCall=${isAudioCall}, chatId=${chat.chatId}`
     );
+    // 1. Get Local Stream
+    console.log(
+      `[L119] Requesting user media: video=${!isAudioCall}, audio=true`
+    );
+    let localStream;
     try {
-      // 1. Get Local Stream
-      console.log(
-        `[L119] Requesting user media: video=${!isAudioCall}, audio=true`
-      );
-      const localStream = await navigator.mediaDevices.getUserMedia({
+      localStream = await navigator.mediaDevices.getUserMedia({
         video: !isAudioCall,
         audio: true,
       });
-      localStreamRef.current = localStream;
-      console.log(
-        `[debug speed] [CameraRelease] startCall getUserMedia streamId=${
-          localStream.id
-        } tracks=${localStream
-          .getTracks()
-          .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
-          .join(", ")}`
-      );
-      console.log(
-        `[L123] Local stream obtained, tracks: ${localStream
-          .getTracks()
-          .map((t) => t.kind)
-          .join(", ")}`
-      );
+    } catch (error) {
+      console.error("[L120] getUserMedia failed:", error);
+      notifyUser(getMediaPermissionMessage({ error, isAudioCall }), "error");
+      return;
+    }
 
-      // 2. Build participantDetails map (uid → user info)
-      // Include all chat members so callee info is available immediately
-      const participantDetails = {};
-      chat.members.forEach((member) => {
-        participantDetails[member.uid] = member;
-      });
+    localStreamRef.current = localStream;
+    console.log(
+      `[debug speed] [CameraRelease] startCall getUserMedia streamId=${
+        localStream.id
+      } tracks=${localStream
+        .getTracks()
+        .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+        .join(", ")}`
+    );
+    console.log(
+      `[L123] Local stream obtained, tracks: ${localStream
+        .getTracks()
+        .map((t) => t.kind)
+        .join(", ")}`
+    );
 
-      const isGroupCall = chat.members.length > 2;
+    // 2. Build participantDetails map (uid → user info)
+    // Include all chat members so callee info is available immediately
+    const participantDetails = {};
+    chat.members.forEach((member) => {
+      participantDetails[member.uid] = member;
+    });
 
-      // 3. Create Call Data (stored directly in chat document)
-      const callId = uuid(); // Generate ID for reference if needed
-      const isVideoCall = !isAudioCall;
+    const isGroupCall = chat.members.length > 2;
 
-      const callData = {
-        id: callId,
-        participants: [user.uid], // Only I am active initially
-        participantDetails,
-        initiator: user.uid,
-        isVideoCall, // Only store isVideoCall, derive isAudioCall as !isVideoCall
-        isGroupCall,
-        chatId: chat.chatId,
-        ...(isVideoCall ? { videoEnabled: { [user.uid]: true } } : {}),
-      };
+    // 3. Create Call Data (stored directly in chat document)
+    const callId = uuid(); // Generate ID for reference if needed
+    const isVideoCall = !isAudioCall;
 
-      // 4. Update Redux State (Optimistic update to prevent App.js listener from overriding status)
-      dispatch(
-        setCall({
-          isActive: true,
-          status: "Calling...",
-          callData: callData,
-        })
-      );
+    const callData = {
+      id: callId,
+      participants: [user.uid], // Only I am active initially
+      participantDetails,
+      initiator: user.uid,
+      isVideoCall, // Only store isVideoCall, derive isAudioCall as !isVideoCall
+      isGroupCall,
+      chatId: chat.chatId,
+      ...(isVideoCall ? { videoEnabled: { [user.uid]: true } } : {}),
+    };
 
-      // 5. Update Chat Document (single source of truth)
-      const chatRef = doc(db, "chats", chat.chatId);
+    // 4. Update Redux State (Optimistic update to prevent App.js listener from overriding status)
+    dispatch(
+      setCall({
+        isActive: true,
+        status: "Calling...",
+        callData: callData,
+      })
+    );
+
+    // 5. Update Chat Document (single source of truth)
+    const chatRef = doc(db, "chats", chat.chatId);
+    try {
       await updateDoc(chatRef, {
         "call.isActive": true,
         "call.status": "Calling...",
         "call.callData": callData,
       });
-
-      // 6. Subscribe to signaling
-      console.log(
-        `[L162] Setting up signal subscriptions for chatId: ${chat.chatId}`
-      );
-      subscribeToSignals(chat.chatId);
-      subscribeToParticipants(chat.chatId, localStream);
-      console.log(`[L163] startCall completed successfully`);
     } catch (error) {
-      console.error("[L165] Error starting call:", error);
+      console.error("[L165] Failed to update call doc:", error);
+      localStream.getTracks().forEach((track) => track.stop());
+      localStreamRef.current = null;
       dispatch(
         setCall({
           isActive: false,
-          status: "Error starting call",
+          status: "",
           callData: {},
         })
       );
+      return;
     }
+
+    // 6. Subscribe to signaling
+    console.log(
+      `[L162] Setting up signal subscriptions for chatId: ${chat.chatId}`
+    );
+    subscribeToSignals(chat.chatId);
+    subscribeToParticipants(chat.chatId, localStream);
+    console.log(`[L163] startCall completed successfully`);
   };
 
   // eslint-disable-next-line no-unused-vars
@@ -338,6 +369,8 @@ const useWebRTC = (db) => {
 
       // Create Offer
       console.log(`[L229] Creating offer for ${pUid}`);
+      const offerId = uuid();
+      pc.__offerId = offerId;
       const offer = await pc.createOffer();
       console.log(
         `[L230] Offer created, type: ${offer.type}, setting local description. Current signalingState: ${pc.signalingState}`
@@ -354,6 +387,7 @@ const useWebRTC = (db) => {
         type: "offer",
         from: user.uid,
         to: pUid,
+        offerId,
         payload: { type: offer.type, sdp: offer.sdp },
       });
       console.log(`[L239] Offer sent to Firestore for ${pUid}`);
@@ -380,6 +414,13 @@ const useWebRTC = (db) => {
           snapshot.docChanges().length
         }`
       );
+      console.log(
+        `[debug speed] [RejoinFlow] [Signals] snapshot @ ${new Date().toISOString()} chatId=${chatId} size=${
+          snapshot.size
+        } fromCache=${snapshot.metadata.fromCache} hasPendingWrites=${
+          snapshot.metadata.hasPendingWrites
+        }`
+      );
       // Process signals sequentially to avoid race conditions
       // (e.g., ICE candidate processed before offer/answer)
       for (const change of snapshot.docChanges()) {
@@ -387,8 +428,14 @@ const useWebRTC = (db) => {
           const data = change.doc.data();
           const senderUid = data.from;
           const { type, payload } = data;
+          const createdAt = change.doc.createTime
+            ? change.doc.createTime.toDate().toISOString()
+            : "unknown";
           console.log(
             `[L256] Processing ${change.type} signal: type=${type}, from=${senderUid}, docId=${change.doc.id}`
+          );
+          console.log(
+            `[debug speed] [RejoinFlow] [Signals] added docId=${change.doc.id} type=${type} from=${senderUid} createdAt=${createdAt}`
           );
 
           // Process signal
@@ -396,6 +443,19 @@ const useWebRTC = (db) => {
           console.log(
             `[L262] PC lookup for ${senderUid}: ${pc ? "EXISTS" : "NOT FOUND"}`
           );
+          if (pc) {
+            const pcAgeMs = pc.__createdAt ? Date.now() - pc.__createdAt : null;
+            console.log(
+              `[debug speed] [RejoinFlow] [Signals] pc state for ${senderUid}: signaling=${
+                pc.signalingState
+              } connection=${pc.connectionState} localDesc=${
+                pc.localDescription?.type || "none"
+              } remoteDesc=${pc.remoteDescription?.type || "none"}`
+            );
+            console.log(
+              `[debug speed] [RejoinFlow] pc reuse candidate for ${senderUid} ageMs=${pcAgeMs}`
+            );
+          }
 
           if (!pc && type === "offer") {
             // We received an offer from someone we don't have a PC with yet.
@@ -411,6 +471,14 @@ const useWebRTC = (db) => {
             console.log(
               `[L271] PC created, signalingState: ${pc.signalingState}`
             );
+          } else if (pc && type === "offer") {
+            console.log(
+              `[debug speed] [RejoinFlow] received OFFER for existing PC from ${senderUid} signaling=${
+                pc.signalingState
+              } connection=${pc.connectionState} localDesc=${
+                pc.localDescription?.type || "none"
+              } remoteDesc=${pc.remoteDescription?.type || "none"}`
+            );
           }
 
           if (!pc) {
@@ -425,6 +493,14 @@ const useWebRTC = (db) => {
           if (type === "offer") {
             console.log(`[L277] Handling OFFER from ${senderUid}`);
             const remoteDesc = new RTCSessionDescription(payload);
+            const offerId = data.offerId;
+            if (!offerId) {
+              console.log(
+                `[debug speed] [RejoinFlow] Missing offerId on OFFER from ${senderUid}, skipping`
+              );
+              continue;
+            }
+            pc.__offerId = offerId;
             console.log(
               `[L278] Setting remote description (offer). Current signalingState: ${pc.signalingState}`
             );
@@ -449,6 +525,7 @@ const useWebRTC = (db) => {
               type: "answer",
               from: user.uid,
               to: senderUid,
+              offerId,
               payload: { type: answer.type, sdp: answer.sdp },
             });
             console.log(`[L289] Answer sent to Firestore for ${senderUid}`);
@@ -457,6 +534,24 @@ const useWebRTC = (db) => {
             console.log(
               `[L290] Handling ANSWER from ${senderUid}. Current signalingState: ${pc.signalingState}`
             );
+            const offerId = data.offerId;
+            if (!offerId || pc.__offerId !== offerId) {
+              console.log(
+                `[debug speed] [RejoinFlow] Ignoring ANSWER (offerId=${
+                  offerId || "none"
+                }, expected=${pc.__offerId || "none"})`
+              );
+              continue;
+            }
+            // Ignore late/duplicate answers (e.g., after refresh/rejoin).
+            if (pc.signalingState !== "have-local-offer") {
+              console.log(
+                `[L292] Ignoring ANSWER (state=${
+                  pc.signalingState
+                }, remoteDesc=${pc.remoteDescription?.type || "none"})`
+              );
+              continue;
+            }
             const remoteDesc = new RTCSessionDescription(payload);
             console.log(
               `[L293] Setting remote description (answer). Current signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}`
@@ -474,10 +569,18 @@ const useWebRTC = (db) => {
               console.error(
                 `[L293] PC state at error - signalingState: ${pc.signalingState}, connectionState: ${pc.connectionState}, localDescription: ${pc.localDescription?.type}, remoteDescription: ${pc.remoteDescription?.type}`
               );
-              throw error;
             }
           } else if (type === "candidate") {
             console.log(`[L295] Handling ICE CANDIDATE from ${senderUid}`);
+            const offerId = data.offerId;
+            if (!offerId || pc.__offerId !== offerId) {
+              console.log(
+                `[debug speed] [RejoinFlow] Ignoring CANDIDATE (offerId=${
+                  offerId || "none"
+                }, expected=${pc.__offerId || "none"})`
+              );
+              continue;
+            }
             const candidate = new RTCIceCandidate(payload);
             console.log(
               `[L296] Adding ICE candidate. Current signalingState: ${pc.signalingState}`
@@ -541,6 +644,16 @@ const useWebRTC = (db) => {
         previewStream &&
         previewStream.getTracks().some((track) => track.readyState === "live");
       let localStream;
+      console.log(
+        `[debug speed] [JoinOffPreview] joinCall preflight isVideoCall=${isVideoCall} initialVideoEnabled=${initialVideoEnabled} hasLivePreview=${hasLivePreview} previewTracks=${
+          previewStream
+            ? previewStream
+                .getTracks()
+                .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
+                .join(", ")
+            : "none"
+        }`
+      );
       if (hasLivePreview) {
         console.log("[L327] Using preview stream for joinCall");
         localStream = previewStream;
@@ -557,10 +670,19 @@ const useWebRTC = (db) => {
         console.log(
           `[L327] Requesting user media: video=${isVideoCall}, audio=true`
         );
-        localStream = await navigator.mediaDevices.getUserMedia({
-          video: isVideoCall && initialVideoEnabled,
-          audio: true,
-        });
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({
+            video: isVideoCall && initialVideoEnabled,
+            audio: true,
+          });
+        } catch (error) {
+          console.error("[L328] joinCall getUserMedia failed:", error);
+          notifyUser(
+            getMediaPermissionMessage({ error, isAudioCall: !isVideoCall }),
+            "error"
+          );
+          return;
+        }
         console.log(
           `[debug speed] [CameraRelease] joinCall getUserMedia streamId=${
             localStream.id
@@ -569,10 +691,17 @@ const useWebRTC = (db) => {
             .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
             .join(", ")}`
         );
-        if (isVideoCall && !initialVideoEnabled) {
-          const dummyTrack = getDummyVideoTrack();
-          localStream.addTrack(dummyTrack);
-        }
+      }
+      // On join we still need a video sender so remote frame/onPlaying readiness
+      // logic (used to transition call UI to "Ongoing call", especially in group)
+      // can proceed predictably.
+      if (
+        isVideoCall &&
+        !initialVideoEnabled &&
+        localStream.getVideoTracks().length === 0
+      ) {
+        const dummyTrack = getDummyVideoTrack();
+        localStream.addTrack(dummyTrack);
       }
       localStreamRef.current = localStream;
       console.log(
@@ -1042,7 +1171,13 @@ const useWebRTC = (db) => {
 
       return newStream;
     } catch (e) {
+      const name = e?.name || "";
+      const message =
+        name === "NotAllowedError"
+          ? "Screen share permission denied. Check site permissions."
+          : "Unable to start screen sharing.";
       console.error("Error sharing screen", e);
+      notifyUser(message, "error");
       return null;
     }
   };
@@ -1057,10 +1192,22 @@ const useWebRTC = (db) => {
       const previousLocalStream = localStreamRef.current;
 
       if (!shouldUseDummyTrack) {
-        const cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
-        nextVideoTrack = cameraStream.getVideoTracks()[0];
+        try {
+          const cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+          nextVideoTrack = cameraStream.getVideoTracks()[0];
+        } catch (error) {
+          console.error(
+            "[useWebRTC] stopScreenShare getUserMedia failed:",
+            error
+          );
+          notifyUser(
+            getMediaPermissionMessage({ error, isAudioCall: false }),
+            "error"
+          );
+          return null;
+        }
       }
 
       peerConnectionsRef.current.forEach((pc) => {

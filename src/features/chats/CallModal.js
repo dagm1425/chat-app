@@ -32,6 +32,8 @@ import { store } from "../../app/store";
 import { v4 as uuid } from "uuid";
 import { useEffect, useState, useRef, memo, useMemo } from "react";
 import { selectUser } from "../user/userSlice";
+import { notifyUser } from "../../common/toast/ToastProvider";
+import { getMediaPermissionMessage } from "../../common/utils";
 
 const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -97,6 +99,8 @@ const CallModal = (props) => {
   const [videoEnabledMap, setVideoEnabledMap] = useState({});
   const [preJoinVideoEnabled, setPreJoinVideoEnabled] = useState(true);
   const [isPreviewing, setIsPreviewing] = useState(false);
+  const [previewPermissionDenied, setPreviewPermissionDenied] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
@@ -131,10 +135,8 @@ const CallModal = (props) => {
     videoEnabledMap,
     user.uid
   );
-  const isLocalVideoEnabled = isUserInCall
-    ? hasLocalVideoFlag
-      ? videoEnabledMap[user.uid] !== false
-      : preJoinVideoEnabled
+  const isLocalVideoEnabled = hasLocalVideoFlag
+    ? videoEnabledMap[user.uid] !== false
     : preJoinVideoEnabled;
   const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
   // Include video-off participants so group tiles render even without onPlaying.
@@ -242,6 +244,9 @@ const CallModal = (props) => {
   const isInitiator = () => {
     return callData?.initiator === user.uid;
   };
+
+  const isRejoinCall =
+    !isInitiator() && callState.status === "" && isUserInCall;
 
   const getParticipantInfo = (uid) => {
     if (!uid || !callData?.participantDetails) return null;
@@ -475,63 +480,77 @@ const CallModal = (props) => {
     setVideoEnabledMap({});
     setPreJoinVideoEnabled(true);
     setIsPreviewing(false);
+    setPreviewPermissionDenied(false);
     previewStreamRef.current = null;
     pendingFrameReadyRef.current = new Set();
+    return () => {
+      stopPreviewStream();
+    };
   }, [callData?.chatId]);
 
-  useEffect(() => {
-    const shouldPreview =
-      callData?.isVideoCall &&
-      !isUserInCall &&
-      callState.status !== "Call ended";
-
-    if (!shouldPreview) {
-      stopPreviewStream();
-      previewRequestPendingRef.current = false;
+  const requestPreviewStream = () => {
+    if (
+      previewStreamRef.current ||
+      previewRequestPendingRef.current ||
+      previewPermissionDenied
+    )
       return;
-    }
-
-    if (previewStreamRef.current || previewRequestPendingRef.current) return;
 
     previewRequestPendingRef.current = true;
     const requestId = ++previewRequestIdRef.current;
 
     navigator.mediaDevices
-      .getUserMedia({ video: true, audio: true })
+      .getUserMedia({ video: isLocalVideoEnabled, audio: true })
       .then((stream) => {
         // If a newer request started, discard this stale stream immediately.
         if (requestId !== previewRequestIdRef.current) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
-        console.log(
-          `[debug speed] [CameraRelease] preview getUserMedia streamId=${
-            stream.id
-          } tracks=${stream
-            .getTracks()
-            .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
-            .join(", ")}`
-        );
         previewStreamRef.current = stream;
         setIsPreviewing(true);
-        setPreJoinVideoEnabled((prev) => (prev === false ? false : true));
+        setPreJoinVideoEnabled(isLocalVideoEnabled);
+        setPreviewPermissionDenied(false);
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
       })
       .catch((error) => {
         console.error("[CallModal] Error starting preview stream:", error);
+        if (error?.name === "NotAllowedError") {
+          setPreviewPermissionDenied(true);
+        }
+        notifyUser(
+          getMediaPermissionMessage({ error, isAudioCall: false }),
+          "error"
+        );
       })
       .finally(() => {
         if (requestId === previewRequestIdRef.current) {
           previewRequestPendingRef.current = false;
         }
       });
+  };
 
-    return () => {
+  useEffect(() => {
+    const shouldPreview =
+      callData?.isVideoCall &&
+      callState.status !== "Call ended" &&
+      (!isUserInCall || isRejoinCall);
+
+    if (!shouldPreview) {
       stopPreviewStream();
-    };
-  }, [callData?.isVideoCall, callState.status, isUserInCall]);
+      return;
+    }
+
+    requestPreviewStream();
+  }, [
+    callData?.isVideoCall,
+    callState.status,
+    isUserInCall,
+    isRejoinCall,
+    isLocalVideoEnabled,
+  ]);
 
   // Update remote streams array when streams change (for group calls)
   // streamsVersion increments when streams are added/removed, triggering this effect
@@ -588,6 +607,30 @@ const CallModal = (props) => {
     ensureStartTime();
     dispatch(setCall({ ...callState, status: "Ongoing call" }));
   }, [callData?.isGroupCall, callData?.isVideoCall, callState, oneToOneRemote]);
+
+  useEffect(() => {
+    if (callData?.isGroupCall) {
+      setIsReconnecting(false);
+      return;
+    }
+    if (!callState.isActive || callState.status === "Call ended") {
+      setIsReconnecting(false);
+      return;
+    }
+    if (!isOngoingCall) {
+      setIsReconnecting(false);
+      return;
+    }
+
+    const hasRemoteStream = remoteStreamsArray.length > 0;
+    setIsReconnecting(!hasRemoteStream);
+  }, [
+    callData?.isGroupCall,
+    callState.isActive,
+    callState.status,
+    isOngoingCall,
+    remoteStreamsArray.length,
+  ]);
 
   useEffect(() => {
     if (!callData?.isVideoCall || !callData?.isGroupCall) return;
@@ -647,6 +690,7 @@ const CallModal = (props) => {
     // Local stream
     if (
       localVideoRef.current &&
+      isLocalVideoActive &&
       localStreamRef.current &&
       !localVideoSwapInFlightRef.current &&
       localVideoRef.current.srcObject !== localStreamRef.current
@@ -656,6 +700,13 @@ const CallModal = (props) => {
         new Date().toISOString()
       );
       localVideoRef.current.srcObject = localStreamRef.current;
+    }
+    if (
+      localVideoRef.current &&
+      !isLocalVideoActive &&
+      localVideoRef.current.srcObject
+    ) {
+      localVideoRef.current.srcObject = null;
     }
     if (
       localAudioRef.current &&
@@ -726,6 +777,7 @@ const CallModal = (props) => {
     remoteStreamsRef,
     remoteStreamsArray, // This updates when streams are detected
     callData?.isGroupCall,
+    isLocalVideoActive,
   ]);
 
   useEffect(() => {
@@ -909,54 +961,6 @@ const CallModal = (props) => {
   // }, [callData?.chatId]);
 
   useEffect(() => {
-    if (!peerConnectionsRef.current || peerConnectionsRef.current.size === 0)
-      return;
-
-    let disconnectTimeouts = new Map();
-
-    // Monitor all peer connections
-    const handleConnectionChange = (userId, pc) => {
-      const state = pc.connectionState;
-
-      if (state === "disconnected") {
-        // Debounce short network hiccups (3 seconds)
-        const timeout = setTimeout(() => {
-          hangUp();
-        }, 3000);
-        disconnectTimeouts.set(userId, timeout);
-      } else if (state === "failed") {
-        // Cannot recover → hang up immediately
-        hangUp();
-      } else {
-        // Connection restored or ongoing
-        const timeout = disconnectTimeouts.get(userId);
-        if (timeout) {
-          clearTimeout(timeout);
-          disconnectTimeouts.delete(userId);
-        }
-      }
-    };
-
-    // Add listeners to all existing connections
-    const cleanupFunctions = [];
-    peerConnectionsRef.current.forEach((pc, userId) => {
-      const handler = () => handleConnectionChange(userId, pc);
-      pc.addEventListener("connectionstatechange", handler);
-      cleanupFunctions.push(() => {
-        pc.removeEventListener("connectionstatechange", handler);
-      });
-    });
-
-    return () => {
-      // Clear all timeouts
-      disconnectTimeouts.forEach((timeout) => clearTimeout(timeout));
-      disconnectTimeouts.clear();
-      // Remove all event listeners
-      cleanupFunctions.forEach((cleanup) => cleanup());
-    };
-  }, [peerConnectionsRef]);
-
-  useEffect(() => {
     if (!callState.isActive) {
       startTimeRef.current = null;
     }
@@ -983,7 +987,8 @@ const CallModal = (props) => {
   const getCallStatusText = () => {
     // If user is not the initiator, show "Incoming call" when status is empty
     if (!isInitiator() && callState.status === "") {
-      return "Incoming call";
+      const hasJoinedCall = callData?.participants?.includes(user.uid);
+      return hasJoinedCall ? "Rejoin call" : "Incoming call";
     }
     return callState.status;
   };
@@ -1305,51 +1310,236 @@ const CallModal = (props) => {
       if (transceiver?.sender) return transceiver.sender;
       return pc.getSenders().find((s) => s.track?.kind === "video");
     };
+    const getAudioSender = (pc) => {
+      const transceiver = pc
+        .getTransceivers?.()
+        ?.find((t) => t.receiver?.track?.kind === "audio");
+      if (transceiver?.sender) return transceiver.sender;
+      return pc.getSenders().find((s) => s.track?.kind === "audio");
+    };
+    const describeTrack = (track) => {
+      if (!track) return "none";
+      const settings = track.getSettings ? track.getSettings() : {};
+      return `${track.kind}:${track.id}:${track.readyState}:enabled=${
+        track.enabled
+      }:muted=${track.muted}:label=${track.label || "none"}:deviceId=${
+        settings.deviceId || "none"
+      }`;
+    };
+    const describeStream = (name, stream) =>
+      stream
+        ? `${name}#${stream.id}[${stream
+            .getTracks()
+            .map((t) => describeTrack(t))
+            .join(" | ")}]`
+        : `${name}=none`;
+    const logCameraOffState = (label) => {
+      const senderTracks = [];
+      peerConnectionsRef.current.forEach((pc, uid) => {
+        const senders = pc.getSenders();
+        senderTracks.push(
+          `${uid}=[${senders
+            .map(
+              (sender) =>
+                `${sender.track?.kind || "none"}:${describeTrack(sender.track)}`
+            )
+            .join(" || ")}]`
+        );
+      });
+      console.log(
+        `[debug speed] [CameraOffRelease] ${label} ${describeStream(
+          "local",
+          localStreamRef.current
+        )} ${describeStream(
+          "preview",
+          previewStreamRef.current
+        )} ${describeStream(
+          "active",
+          isUserInCall ? localStreamRef.current : previewStreamRef.current
+        )} ${describeStream(
+          "localVideoSrc",
+          localVideoRef.current?.srcObject || null
+        )} senders=[${senderTracks.join("; ")}]`
+      );
+      if (navigator.mediaDevices?.enumerateDevices) {
+        navigator.mediaDevices
+          .enumerateDevices()
+          .then((devices) => {
+            const relevant = devices
+              .filter((d) => d.kind === "videoinput" || d.kind === "audioinput")
+              .map(
+                (d) =>
+                  `${d.kind}:${d.deviceId}:${d.label || "no-label"}:${
+                    d.groupId || "no-group"
+                  }`
+              )
+              .join(" || ");
+            console.log(
+              `[debug speed] [CameraOffRelease] ${label} devices=[${relevant}]`
+            );
+          })
+          .catch((error) => {
+            console.log(
+              `[debug speed] [CameraOffRelease] ${label} enumerateDevices failed: ${error?.message}`
+            );
+          });
+      }
+    };
     try {
       const activeStream = isUserInCall
         ? localStreamRef.current
         : previewStreamRef.current;
       if (!activeStream) return;
 
+      const stopLiveVideoTracks = (stream) => {
+        if (!stream) return;
+        stream.getVideoTracks().forEach((track) => {
+          if (track.readyState === "live") {
+            track.onended = () => {
+              console.log(
+                `[debug speed] [CameraOffRelease] onended kind=${track.kind} id=${track.id} readyState=${track.readyState}`
+              );
+            };
+            console.log(
+              `[debug speed] [CameraOffRelease] stopping track id=${track.id} readyState=${track.readyState} enabled=${track.enabled}`
+            );
+            track.stop();
+            console.log(
+              `[debug speed] [CameraOffRelease] stop() called id=${track.id} readyStateNow=${track.readyState}`
+            );
+          }
+        });
+      };
+
       const audioTracks = activeStream.getAudioTracks();
       if (isLocalVideoEnabled) {
+        logCameraOffState("before-toggle-off");
         if (localVideoRef.current) {
           localVideoRef.current.style.display = "none";
         }
+        stopLiveVideoTracks(activeStream);
         if (isUserInCall) {
-          await updateVideoEnabled(false);
-        } else {
-          setPreJoinVideoEnabled(false);
-        }
-        const videoTrack = activeStream.getVideoTracks()[0];
-        if (videoTrack) {
-          videoTrack.stop();
-        }
-        const dummyTrack = getDummyVideoTrack();
-        if (isUserInCall) {
-          peerConnectionsRef.current.forEach((pc) => {
-            const sender = getVideoSender(pc);
-            if (sender) sender.replaceTrack(dummyTrack);
+          // Mid-call OFF: switch to a fresh audio-only capture session and send null video.
+          // This reliably releases camera hardware while keeping mic live.
+          let replacementAudioTrack = audioTracks[0] || null;
+          try {
+            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+            const freshAudioTrack = audioOnlyStream.getAudioTracks()[0];
+            if (freshAudioTrack) {
+              replacementAudioTrack = freshAudioTrack;
+            }
+          } catch (error) {
+            console.warn(
+              "[CallModal] toggleVideo OFF could not acquire fresh audio-only stream, reusing current audio track:",
+              error
+            );
+          }
+
+          const replacePromises = [];
+          peerConnectionsRef.current.forEach((pc, uid) => {
+            const videoSender = getVideoSender(pc);
+            if (videoSender) {
+              console.log(
+                `[debug speed] [CameraOffRelease] replaceTrack(null) start uid=${uid} senderTrackBefore=${
+                  videoSender.track
+                    ? `${videoSender.track.id}:${videoSender.track.readyState}:enabled=${videoSender.track.enabled}`
+                    : "null"
+                }`
+              );
+              replacePromises.push(
+                videoSender.replaceTrack(null).then(() => {
+                  console.log(
+                    `[debug speed] [CameraOffRelease] replaceTrack(null) done uid=${uid} senderTrackAfter=${
+                      videoSender.track
+                        ? `${videoSender.track.id}:${videoSender.track.readyState}:enabled=${videoSender.track.enabled}`
+                        : "null"
+                    }`
+                  );
+                })
+              );
+            }
+            const audioSender = getAudioSender(pc);
+            if (audioSender && replacementAudioTrack) {
+              replacePromises.push(
+                audioSender.replaceTrack(replacementAudioTrack)
+              );
+            }
           });
-          localStreamRef.current = new MediaStream([
-            dummyTrack,
-            ...audioTracks,
-          ]);
+          await Promise.all(replacePromises);
+
+          // Stop old capture tracks, but keep the replacement audio track alive.
+          activeStream.getTracks().forEach((track) => {
+            if (
+              track !== replacementAudioTrack &&
+              track.readyState === "live"
+            ) {
+              track.stop();
+            }
+          });
+
+          localStreamRef.current = replacementAudioTrack
+            ? new MediaStream([replacementAudioTrack])
+            : new MediaStream();
+          // Don't block local camera release on Firestore latency.
+          updateVideoEnabled(false);
+          logCameraOffState("after-toggle-off-in-call");
+          setTimeout(() => {
+            logCameraOffState("after-toggle-off-in-call-500ms");
+          }, 500);
         } else {
-          previewStreamRef.current = new MediaStream([
-            dummyTrack,
-            ...audioTracks,
-          ]);
+          // Pre-join OFF: rebuild preview with a fresh audio-only stream so camera
+          // capture session is released immediately.
+          let nextPreviewStream = null;
+          try {
+            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
+              audio: true,
+              video: false,
+            });
+            if (audioOnlyStream.getAudioTracks().length > 0) {
+              nextPreviewStream = audioOnlyStream;
+            }
+          } catch (error) {
+            console.warn(
+              "[CallModal] toggleVideo OFF pre-join audio-only getUserMedia failed, falling back to existing audio track:",
+              error
+            );
+          }
+          if (!nextPreviewStream) {
+            nextPreviewStream = new MediaStream([...audioTracks]);
+          }
+          activeStream.getTracks().forEach((track) => {
+            if (track.readyState === "live") {
+              track.stop();
+            }
+          });
+          setPreJoinVideoEnabled(false);
+          // Pre-join preview should be audio-only when video is off.
+          // Join flow may add a dummy video track so remote frame readiness
+          // logic can still advance to ongoing call state.
+          previewStreamRef.current = nextPreviewStream;
+          logCameraOffState("after-toggle-off-prejoin");
         }
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = isUserInCall
-            ? localStreamRef.current
-            : previewStreamRef.current;
+          localVideoRef.current.srcObject = null;
         }
       } else {
-        const cameraStream = await navigator.mediaDevices.getUserMedia({
-          video: true,
-        });
+        let cameraStream;
+        try {
+          cameraStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+          });
+        } catch (error) {
+          console.error("[CallModal] Error enabling camera:", error);
+          notifyUser(
+            getMediaPermissionMessage({ error, isAudioCall: false }),
+            "error"
+          );
+          isTogglingVideoRef.current = false;
+          return;
+        }
         const cameraTrack = cameraStream.getVideoTracks()[0];
         console.log(
           `[debug speed] [CameraRelease] toggleVideo getUserMedia streamId=${cameraStream.id} track=${cameraTrack.id}:${cameraTrack.readyState}`
@@ -1359,13 +1549,13 @@ const CallModal = (props) => {
             const sender = getVideoSender(pc);
             if (sender) sender.replaceTrack(cameraTrack);
           });
-          localStreamRef.current.getVideoTracks().forEach((t) => t.stop());
+          stopLiveVideoTracks(localStreamRef.current);
           localStreamRef.current = new MediaStream([
             cameraTrack,
             ...audioTracks,
           ]);
         } else {
-          activeStream.getVideoTracks().forEach((t) => t.stop());
+          stopLiveVideoTracks(activeStream);
           previewStreamRef.current = new MediaStream([
             cameraTrack,
             ...audioTracks,
@@ -1717,29 +1907,53 @@ const CallModal = (props) => {
                         top: "25px",
                         left: "50%",
                         transform: "translateX(-50%)",
-                        bgcolor: "rgba(0, 0, 0, 0.3)",
-                        backdropFilter: "blur(5px)",
-                        color: "white",
-                        fontSize: "0.875rem",
-                        borderRadius: "10px",
-                        px: 1.5,
-                        py: 0.5,
                         display: isOngoingCall ? "flex" : "none",
+                        flexDirection: "column",
                         gap: 1,
-                        justifyContent: "space-between",
                         alignItems: "center",
                         zIndex: 2,
                       }}
                     >
-                      <span>{remoteName}</span>
-                      <span> | </span>
-                      <span>
-                        <CallDuration
-                          startTime={startTimeRef.current}
-                          visible={isOngoingCall}
-                          formatCallDuration={formatCallDuration}
-                        />
-                      </span>
+                      <Box
+                        sx={{
+                          bgcolor: "rgba(0, 0, 0, 0.3)",
+                          backdropFilter: "blur(5px)",
+                          color: "white",
+                          fontSize: "0.875rem",
+                          borderRadius: "10px",
+                          px: 1.5,
+                          py: 0.5,
+                          display: "flex",
+                          gap: 1,
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <span>{remoteName}</span>
+                        <span> | </span>
+                        <span>
+                          <CallDuration
+                            startTime={startTimeRef.current}
+                            visible={isOngoingCall}
+                            formatCallDuration={formatCallDuration}
+                          />
+                        </span>
+                      </Box>
+                      {isReconnecting && (
+                        <Box
+                          sx={{
+                            bgcolor: "rgba(0, 0, 0, 0.3)",
+                            backdropFilter: "blur(5px)",
+                            color: "white",
+                            fontSize: "0.8rem",
+                            borderRadius: "10px",
+                            px: 1.5,
+                            py: 0.5,
+                          }}
+                        >
+                          Reconnecting...
+                        </Box>
+                      )}
                     </Box>
                     {isRemoteVideoEnabled === false && (
                       <Box
@@ -2065,8 +2279,9 @@ const CallModal = (props) => {
         {!isInitiator() && callState?.status === "" && (
           <IconButton
             onClick={() =>
-              joinCall(previewStreamRef.current, preJoinVideoEnabled)
+              joinCall(previewStreamRef.current, isLocalVideoEnabled)
             }
+            disabled={callData.isVideoCall && previewPermissionDenied}
             sx={{
               bgcolor: "success.main",
               color: "#fff",
@@ -2078,6 +2293,11 @@ const CallModal = (props) => {
               },
               "&.MuiButtonBase-root:hover": {
                 bgcolor: "success.main",
+              },
+              "&.Mui-disabled": {
+                bgcolor: controlButtonBg,
+                color: controlButtonColor,
+                opacity: 0.4,
               },
             }}
             disableRipple
