@@ -1124,6 +1124,14 @@ const useWebRTC = (db) => {
     return track;
   };
 
+  const getVideoSender = (pc) => {
+    const transceiver = pc
+      .getTransceivers?.()
+      ?.find((t) => t.receiver?.track?.kind === "video");
+    if (transceiver?.sender) return transceiver.sender;
+    return pc.getSenders().find((s) => s.track?.kind === "video");
+  };
+
   const startScreenShare = async () => {
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
@@ -1135,10 +1143,9 @@ const useWebRTC = (db) => {
 
       // Replace video track in ALL peer connections
       peerConnectionsRef.current.forEach((pc) => {
-        const senders = pc.getSenders();
-        const videoSender = senders.find(
-          (s) => s.track && s.track.kind === "video"
-        );
+        // sender.track can be null after camera OFF (replaceTrack(null)),
+        // so resolve via transceiver when available.
+        const videoSender = getVideoSender(pc);
         if (videoSender) {
           videoSender.replaceTrack(screenTrack);
         }
@@ -1211,8 +1218,7 @@ const useWebRTC = (db) => {
       }
 
       peerConnectionsRef.current.forEach((pc) => {
-        const senders = pc.getSenders();
-        const videoSender = senders.find((s) => s.track?.kind === "video");
+        const videoSender = getVideoSender(pc);
         if (videoSender) {
           videoSender.replaceTrack(nextVideoTrack);
         }
