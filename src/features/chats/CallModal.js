@@ -1691,11 +1691,7 @@ const CallModal = (props) => {
       <Box
         sx={{
           display:
-            callData?.isGroupCall &&
-            readyRemoteStreamsArray.length > 0 &&
-            callState.status !== "Call ended"
-              ? "none"
-              : callData?.isVideoCall && !callData?.isGroupCall && isOngoingCall
+            isOngoingCall && (callData?.isVideoCall || callData?.isGroupCall)
               ? "none"
               : "flex",
           flexDirection: "column",
