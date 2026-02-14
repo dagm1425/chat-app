@@ -66,6 +66,8 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 };
 
 const CallDuration = memo(CallDurationBase);
+const NO_ANSWER_AUTO_HANGUP_MS = 30000;
+const RECONNECT_AUTO_HANGUP_MS = 20i 000;
 
 CallDurationBase.propTypes = {
   startTime: PropTypes.instanceOf(Date),
@@ -122,6 +124,9 @@ const CallModal = (props) => {
   const localVideoSwapInFlightRef = useRef(false);
   const manualScreenShareStopRef = useRef(false);
   const localVideoFadeTimeoutRef = useRef(null);
+  const noAnswerHangupTimeoutRef = useRef(null);
+  const reconnectHangupTimeoutRef = useRef(null);
+  const latestHangUpRef = useRef(null);
   const localVideoIntroDoneRef = useRef(false);
   const previewRequestIdRef = useRef(0);
   const previewRequestPendingRef = useRef(false);
@@ -148,7 +153,7 @@ const CallModal = (props) => {
     : preJoinVideoEnabled;
   const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
   // Include video-off participants so group tiles render even without onPlaying.
-  // Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
+  // amend this comment because we're using dummy track to trigger ongoing call with callee starting with video off// Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
   const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) => {
     const hasVideoFlag = Object.prototype.hasOwnProperty.call(
       videoEnabledMap,
@@ -1216,6 +1221,135 @@ const CallModal = (props) => {
       );
     });
   };
+
+  // Keep a live reference to the latest hangUp implementation for timeout callbacks.
+  // Timeout handlers run later, so calling hangUp directly there would use a stale
+  // render closure (hangup will receive old states and props from the time the timeout was set).
+  useEffect(() => {
+    latestHangUpRef.current = hangUp;
+  }, [hangUp]);
+
+  // Auto-end unanswered outgoing call:
+  // initiator-only, armed once per call session, cleared as soon as any callee joins
+  // or call transitions to ongoing/ended.
+  useEffect(() => {
+    const participants = callData?.participants || [];
+    const isInitiatorUser = callData?.initiator === user.uid;
+    const hasAnyAnswerer = participants.some((uid) => uid !== user.uid);
+    const shouldArmNoAnswerTimeout =
+      callState.isActive &&
+      callState.status !== "Call ended" &&
+      callState.status !== "Ongoing call" &&
+      isInitiatorUser &&
+      !hasAnyAnswerer;
+
+    if (!shouldArmNoAnswerTimeout) {
+      if (noAnswerHangupTimeoutRef.current) {
+        clearTimeout(noAnswerHangupTimeoutRef.current);
+        noAnswerHangupTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    // This avoids resetting countdown on harmless re-renders/status changes
+    // (for example when status changes from "Calling..." to "Ringing...").
+    if (noAnswerHangupTimeoutRef.current) {
+      return;
+    }
+
+    noAnswerHangupTimeoutRef.current = setTimeout(() => {
+      noAnswerHangupTimeoutRef.current = null;
+
+      const latestCall = store.getState().chats.call;
+      const latestParticipants = latestCall.callData?.participants || [];
+      const stillUnanswered =
+        latestCall.isActive &&
+        latestCall.status !== "Call ended" &&
+        latestCall.status !== "Ongoing call" &&
+        latestCall.callData?.initiator === user.uid &&
+        latestParticipants.every((uid) => uid === user.uid);
+
+      if (!stillUnanswered) {
+        return;
+      }
+
+      latestHangUpRef.current?.();
+    }, NO_ANSWER_AUTO_HANGUP_MS);
+  }, [
+    callData?.initiator,
+    callData?.participants,
+    callState.isActive,
+    callState.status,
+    user.uid,
+  ]);
+
+  // Unmount-only timer cleanup for this modal instance.
+  // mount: registers the cleanup function.
+  // unmount: executes cleanup and clears any pending auto-hangup timers.
+  // Needed because setTimeout callbacks from an unmounted instance can still fire
+  // later unless we explicitly clear them.
+  useEffect(
+    () => () => {
+      if (noAnswerHangupTimeoutRef.current) {
+        clearTimeout(noAnswerHangupTimeoutRef.current);
+        noAnswerHangupTimeoutRef.current = null;
+      }
+      if (reconnectHangupTimeoutRef.current) {
+        clearTimeout(reconnectHangupTimeoutRef.current);
+        reconnectHangupTimeoutRef.current = null;
+      }
+    },
+    []
+  );
+
+  // Auto-end if reconnecting state persists too long.
+  // Starts only while reconnecting indicator is visible and clears immediately
+  // once remote media returns.
+  useEffect(() => {
+    const participants = callData?.participants || [];
+    const isTwoPartySession = participants.length <= 2;
+    const shouldArmReconnectTimeout =
+      isTwoPartySession &&
+      callState.isActive &&
+      callState.status === "Ongoing call" &&
+      isReconnecting;
+
+    if (!shouldArmReconnectTimeout) {
+      if (reconnectHangupTimeoutRef.current) {
+        clearTimeout(reconnectHangupTimeoutRef.current);
+        reconnectHangupTimeoutRef.current = null;
+      }
+      return;
+    }
+
+    if (reconnectHangupTimeoutRef.current) {
+      return;
+    }
+
+    reconnectHangupTimeoutRef.current = setTimeout(() => {
+      reconnectHangupTimeoutRef.current = null;
+
+      const latestCall = store.getState().chats.call;
+      const latestParticipants = latestCall.callData?.participants || [];
+      const stillReconnecting =
+        latestCall.isActive &&
+        latestCall.status === "Ongoing call" &&
+        latestParticipants.length <= 2 &&
+        (remoteStreamsRef.current?.size || 0) === 0;
+
+      if (!stillReconnecting) {
+        return;
+      }
+
+      latestHangUpRef.current?.();
+    }, RECONNECT_AUTO_HANGUP_MS);
+  }, [
+    callData?.participants,
+    callState.isActive,
+    callState.status,
+    isReconnecting,
+    remoteStreamsRef,
+  ]);
 
   const toggleMute = () => {
     if (!localStreamRef.current) return;
