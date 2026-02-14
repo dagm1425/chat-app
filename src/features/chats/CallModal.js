@@ -367,6 +367,36 @@ const CallModal = (props) => {
     ? "rgba(0, 0, 0, 0.3)"
     : "rgba(255, 255, 255, 0.08)";
   const controlButtonColor = "#fff";
+  const activeControlButtonBg = "#fff";
+  const activeControlButtonColor = "#111";
+  const isVideoControlDisabled =
+    isConnectingCall || isScreenSharing || (!isOngoingCall && !isPreviewing);
+  const isVideoDisabledByPreviewBootstrap =
+    !isConnectingCall && !isScreenSharing && !isOngoingCall && !isPreviewing;
+  const videoControlOpacity =
+    isVideoControlDisabled && !isVideoDisabledByPreviewBootstrap ? 0.4 : 1;
+  const videoControlBg = isLocalVideoEnabled
+    ? controlButtonBg
+    : activeControlButtonBg;
+  const videoControlColor = isLocalVideoEnabled
+    ? controlButtonColor
+    : activeControlButtonColor;
+  const isScreenShareControlDisabled = isConnectingCall || !isOngoingCall;
+  const screenShareControlBg = isScreenSharing
+    ? activeControlButtonBg
+    : controlButtonBg;
+  const screenShareControlColor = isScreenSharing
+    ? activeControlButtonColor
+    : controlButtonColor;
+  const screenShareControlOpacity = isScreenShareControlDisabled ? 0.4 : 1;
+  const isMuteControlDisabled = isConnectingCall;
+  const muteControlBg = isMuted ? activeControlButtonBg : controlButtonBg;
+  const muteControlColor = isMuted
+    ? activeControlButtonColor
+    : controlButtonColor;
+  const muteControlOpacity = isMuteControlDisabled ? 0.4 : 1;
+  const shouldShowVideoToggle =
+    !isInitiator() || isOngoingCall || isConnectingCall || isRejoinCall;
 
   // const hideCenterHeaderForGroup =
   //   callData?.isGroupCall &&
@@ -2399,37 +2429,30 @@ const CallModal = (props) => {
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleVideo}
-            disabled={
-              isConnectingCall ||
-              isScreenSharing ||
-              (!isOngoingCall && !isPreviewing)
-            }
+            disabled={isVideoControlDisabled}
             sx={{
               width: 48,
               height: 48,
-              display: "flex",
-              pointerEvents:
-                isConnectingCall ||
-                isScreenSharing ||
-                (!isOngoingCall && !isPreviewing)
-                  ? "none"
-                  : "auto",
-              bgcolor: controlButtonBg,
-              color: controlButtonColor,
-              opacity:
-                isConnectingCall ||
-                isScreenSharing ||
-                (!isOngoingCall && !isPreviewing)
-                  ? 0.4
-                  : 1,
+              display: shouldShowVideoToggle ? "flex" : "none",
+              pointerEvents: isVideoControlDisabled ? "none" : "auto",
+              bgcolor: videoControlBg,
+              color: videoControlColor,
+              opacity: videoControlOpacity,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              transition: isConnectingCall
-                ? "none"
-                : "opacity 0.2s ease, background-color 0.2s ease",
+              transition:
+                isConnectingCall || !isOngoingCall
+                  ? "none"
+                  : "opacity 0.2s ease, background-color 0.2s ease",
+              "&:hover": {
+                bgcolor: videoControlBg,
+              },
+              "&.MuiButtonBase-root:hover": {
+                bgcolor: videoControlBg,
+              },
               "&.Mui-disabled": {
-                bgcolor: controlButtonBg,
-                color: controlButtonColor,
-                opacity: 0.4,
+                bgcolor: `${videoControlBg} !important`,
+                color: `${videoControlColor} !important`,
+                opacity: `${videoControlOpacity} !important`,
               },
             }}
             disableRipple
@@ -2445,7 +2468,7 @@ const CallModal = (props) => {
         {callData.isVideoCall && (
           <IconButton
             onClick={toggleScreenShare}
-            disabled={isConnectingCall || !isOngoingCall}
+            disabled={isScreenShareControlDisabled}
             sx={{
               width: 48,
               height: 48,
@@ -2454,14 +2477,22 @@ const CallModal = (props) => {
                 (!isInitiator() && !isOngoingCall && !isConnectingCall)
                   ? "none"
                   : "flex",
-              bgcolor: controlButtonBg,
-              color: controlButtonColor,
-              opacity: isOngoingCall ? 1 : 0.4,
+              bgcolor: screenShareControlBg,
+              color: screenShareControlColor,
+              pointerEvents: isScreenShareControlDisabled ? "none" : "auto",
+              opacity: screenShareControlOpacity,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
               transition: "background-color 0.2s ease",
+              "&:hover": {
+                bgcolor: screenShareControlBg,
+              },
+              "&.MuiButtonBase-root:hover": {
+                bgcolor: screenShareControlBg,
+              },
               "&.Mui-disabled": {
-                bgcolor: controlButtonBg,
-                color: controlButtonColor,
+                bgcolor: `${screenShareControlBg} !important`,
+                color: `${screenShareControlColor} !important`,
+                opacity: `${screenShareControlOpacity} !important`,
               },
             }}
             disableRipple
@@ -2476,7 +2507,7 @@ const CallModal = (props) => {
 
         <IconButton
           onClick={toggleMute}
-          disabled={isConnectingCall}
+          disabled={isMuteControlDisabled}
           sx={{
             width: 48,
             height: 48,
@@ -2485,20 +2516,22 @@ const CallModal = (props) => {
               (!isInitiator() && !isOngoingCall && !isConnectingCall)
                 ? "none"
                 : "flex",
-            bgcolor: controlButtonBg,
-            color: controlButtonColor,
+            bgcolor: muteControlBg,
+            color: muteControlColor,
+            pointerEvents: isMuteControlDisabled ? "none" : "auto",
+            opacity: muteControlOpacity,
             boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
             transition: "background-color 0.2s ease",
             "&:hover": {
-              bgcolor: controlButtonBg,
+              bgcolor: muteControlBg,
             },
             "&.MuiButtonBase-root:hover": {
-              bgcolor: controlButtonBg,
+              bgcolor: muteControlBg,
             },
             "&.Mui-disabled": {
-              bgcolor: controlButtonBg,
-              color: controlButtonColor,
-              opacity: 0.4,
+              bgcolor: `${muteControlBg} !important`,
+              color: `${muteControlColor} !important`,
+              opacity: `${muteControlOpacity} !important`,
             },
           }}
           disableRipple
