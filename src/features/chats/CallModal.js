@@ -1064,6 +1064,9 @@ const CallModal = (props) => {
   };
 
   const getCallStatusText = () => {
+    if (!callData?.isVideoCall && !callData?.isGroupCall && isReconnecting) {
+      return "Reconnecting...";
+    }
     if (callState.status === "") {
       return isRejoinCall ? "Rejoin call" : "Incoming call";
     }
