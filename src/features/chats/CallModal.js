@@ -127,7 +127,6 @@ const CallModal = (props) => {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewPermissionDenied, setPreviewPermissionDenied] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const [isJoinPending, setIsJoinPending] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
@@ -513,7 +512,6 @@ const CallModal = (props) => {
     setPreJoinVideoEnabled(true);
     setIsPreviewing(false);
     setPreviewPermissionDenied(false);
-    setIsJoinPending(false);
     previewStreamRef.current = null;
     pendingFrameReadyRef.current = new Set();
     return () => {
@@ -577,7 +575,7 @@ const CallModal = (props) => {
       // During the join handoff we intentionally keep preview stream alive.
       // joinCall may reuse that same stream; stopping it here can tear down
       // local video and cause visible flicker before ongoing state settles.
-      if (isJoinPending || isConnectingCall) {
+      if (isConnectingCall) {
         return;
       }
       stopPreviewStream();
@@ -598,7 +596,6 @@ const CallModal = (props) => {
     isRejoinCall,
     hasLocalVideoFlag,
     isLocalVideoEnabled,
-    isJoinPending,
     isConnectingCall,
   ]);
 
@@ -2363,17 +2360,18 @@ const CallModal = (props) => {
         {callState?.status === "" && (!isInitiator() || isRejoinCall) && (
           <IconButton
             onClick={async () => {
-              if (isJoinPending) return;
-              setIsJoinPending(true);
-              try {
-                await joinCall(previewStreamRef.current, isLocalVideoEnabled);
-              } finally {
-                setIsJoinPending(false);
+              const latestCall = store.getState().chats.call;
+              if (latestCall.status === "") {
+                dispatch(
+                  setCall({
+                    ...latestCall,
+                    status: "Connecting...",
+                  })
+                );
               }
+              await joinCall(previewStreamRef.current, isLocalVideoEnabled);
             }}
-            disabled={
-              isJoinPending || (callData.isVideoCall && previewPermissionDenied)
-            }
+            disabled={callData.isVideoCall && previewPermissionDenied}
             sx={{
               bgcolor: "success.main",
               color: "#fff",
@@ -2402,7 +2400,6 @@ const CallModal = (props) => {
           <IconButton
             onClick={toggleVideo}
             disabled={
-              isJoinPending ||
               isConnectingCall ||
               isScreenSharing ||
               (!isOngoingCall && !isPreviewing)
@@ -2412,7 +2409,6 @@ const CallModal = (props) => {
               height: 48,
               display: "flex",
               pointerEvents:
-                isJoinPending ||
                 isConnectingCall ||
                 isScreenSharing ||
                 (!isOngoingCall && !isPreviewing)
@@ -2421,17 +2417,15 @@ const CallModal = (props) => {
               bgcolor: controlButtonBg,
               color: controlButtonColor,
               opacity:
-                isJoinPending ||
                 isConnectingCall ||
                 isScreenSharing ||
                 (!isOngoingCall && !isPreviewing)
                   ? 0.4
                   : 1,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              transition:
-                isJoinPending || isConnectingCall
-                  ? "none"
-                  : "opacity 0.2s ease, background-color 0.2s ease",
+              transition: isConnectingCall
+                ? "none"
+                : "opacity 0.2s ease, background-color 0.2s ease",
               "&.Mui-disabled": {
                 bgcolor: controlButtonBg,
                 color: controlButtonColor,

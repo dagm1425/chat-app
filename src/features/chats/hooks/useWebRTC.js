@@ -681,16 +681,6 @@ const useWebRTC = (db) => {
       return;
     }
 
-    const latestCall = store.getState().chats.call;
-    if (latestCall.status === "") {
-      dispatch(
-        setCall({
-          ...latestCall,
-          status: "Connecting...",
-        })
-      );
-    }
-
     try {
       console.log(
         `[L316] Getting call data from Firestore for chatId: ${chatId}`
