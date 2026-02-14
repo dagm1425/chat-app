@@ -570,6 +570,8 @@ const CallModal = (props) => {
       callData?.isVideoCall &&
       callState.status !== "Call ended" &&
       (!isUserInCall || isRejoinCall);
+    const shouldWaitForRejoinVideoFlag =
+      callData?.isVideoCall && isRejoinCall && !hasLocalVideoFlag;
 
     if (!shouldPreview) {
       // During the join handoff we intentionally keep preview stream alive.
@@ -582,12 +584,19 @@ const CallModal = (props) => {
       return;
     }
 
+    // Rejoin must use persisted local intent from Firestore, not preJoin default.
+    // Without this gate, preview can request camera before videoEnabled.<uid> hydrates.
+    if (shouldWaitForRejoinVideoFlag) {
+      return;
+    }
+
     requestPreviewStream();
   }, [
     callData?.isVideoCall,
     callState.status,
     isUserInCall,
     isRejoinCall,
+    hasLocalVideoFlag,
     isLocalVideoEnabled,
     isJoinPending,
     isConnectingCall,

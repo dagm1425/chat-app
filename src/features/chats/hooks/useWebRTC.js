@@ -711,22 +711,30 @@ const useWebRTC = (db) => {
 
       const isVideoCall = callData.isVideoCall || false;
       console.log(`[L324] Call type: ${isVideoCall ? "VIDEO" : "AUDIO"}`);
+      const wasMarkedScreenSharing =
+        !!chatSnapshot.data()?.call?.screenSharingUids?.[user.uid];
+      if (wasMarkedScreenSharing) {
+        // Refresh/rejoin scenario: OS/browser always ends display capture on refresh,
+        // so a persisted screenSharingUids.<uid>=true is stale and makes peers render
+        // the remote tile as "video/share on" instead of avatar when camera intent is off.
+        // Clear it before negotiation so remote UI state matches real media tracks.
+        try {
+          await updateDoc(chatRef, {
+            [`call.screenSharingUids.${user.uid}`]: deleteField(),
+          });
+        } catch (error) {
+          console.warn(
+            "[useWebRTC] joinCall failed to clear stale screenSharingUids flag:",
+            error
+          );
+        }
+      }
 
       // Get stream based on call type (reuse preview stream if available)
       const hasLivePreview =
         previewStream &&
         previewStream.getTracks().some((track) => track.readyState === "live");
       let localStream;
-      console.log(
-        `[debug speed] [JoinOffPreview] joinCall preflight isVideoCall=${isVideoCall} initialVideoEnabled=${initialVideoEnabled} hasLivePreview=${hasLivePreview} previewTracks=${
-          previewStream
-            ? previewStream
-                .getTracks()
-                .map((t) => `${t.kind}:${t.id}:${t.readyState}`)
-                .join(", ")
-            : "none"
-        }`
-      );
       if (hasLivePreview) {
         console.log("[L327] Using preview stream for joinCall");
         localStream = previewStream;
