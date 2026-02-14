@@ -572,6 +572,12 @@ const CallModal = (props) => {
       (!isUserInCall || isRejoinCall);
 
     if (!shouldPreview) {
+      // During the join handoff we intentionally keep preview stream alive.
+      // joinCall may reuse that same stream; stopping it here can tear down
+      // local video and cause visible flicker before ongoing state settles.
+      if (isJoinPending || isConnectingCall) {
+        return;
+      }
       stopPreviewStream();
       return;
     }
@@ -583,6 +589,8 @@ const CallModal = (props) => {
     isUserInCall,
     isRejoinCall,
     isLocalVideoEnabled,
+    isJoinPending,
+    isConnectingCall,
   ]);
 
   // Update remote streams array when streams change (for group calls)
