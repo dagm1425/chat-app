@@ -67,12 +67,33 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 
 const CallDuration = memo(CallDurationBase);
 const NO_ANSWER_AUTO_HANGUP_MS = 30000;
-const RECONNECT_AUTO_HANGUP_MS = 20i 000;
+const RECONNECT_AUTO_HANGUP_MS = 20000;
+
+const ReconnectingBadge = ({ sx = {} }) => (
+  <Box
+    sx={{
+      bgcolor: "rgba(0, 0, 0, 0.3)",
+      backdropFilter: "blur(5px)",
+      color: "white",
+      fontSize: "0.8rem",
+      borderRadius: "10px",
+      px: 1.5,
+      py: 0.5,
+      ...sx,
+    }}
+  >
+    Reconnecting...
+  </Box>
+);
 
 CallDurationBase.propTypes = {
   startTime: PropTypes.instanceOf(Date),
   visible: PropTypes.bool.isRequired,
   formatCallDuration: PropTypes.func.isRequired,
+};
+
+ReconnectingBadge.propTypes = {
+  sx: PropTypes.object,
 };
 
 const CallModal = (props) => {
@@ -621,7 +642,9 @@ const CallModal = (props) => {
   }, [callData?.isGroupCall, callData?.isVideoCall, callState, oneToOneRemote]);
 
   useEffect(() => {
-    if (callData?.isGroupCall) {
+    const participants = callData?.participants || [];
+    const isTwoPartySession = participants.length <= 2;
+    if (!isTwoPartySession) {
       setIsReconnecting(false);
       return;
     }
@@ -637,7 +660,7 @@ const CallModal = (props) => {
     const hasRemoteStream = remoteStreamsArray.length > 0;
     setIsReconnecting(!hasRemoteStream);
   }, [
-    callData?.isGroupCall,
+    callData?.participants,
     callState.isActive,
     callState.status,
     isOngoingCall,
@@ -1760,6 +1783,17 @@ const CallModal = (props) => {
                   />
                 </span>
               </Box>
+              {isReconnecting && (
+                <ReconnectingBadge
+                  sx={{
+                    position: "absolute",
+                    top: "68px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    zIndex: 2,
+                  }}
+                />
+              )}
 
               {/* Grid Container (Remote Participants ONLY) */}
               <Box
@@ -1979,21 +2013,7 @@ const CallModal = (props) => {
                           />
                         </span>
                       </Box>
-                      {isReconnecting && (
-                        <Box
-                          sx={{
-                            bgcolor: "rgba(0, 0, 0, 0.3)",
-                            backdropFilter: "blur(5px)",
-                            color: "white",
-                            fontSize: "0.8rem",
-                            borderRadius: "10px",
-                            px: 1.5,
-                            py: 0.5,
-                          }}
-                        >
-                          Reconnecting...
-                        </Box>
-                      )}
+                      {isReconnecting && <ReconnectingBadge />}
                     </Box>
                     {isRemoteVideoEnabled === false && (
                       <Box
@@ -2194,6 +2214,17 @@ const CallModal = (props) => {
                   />
                 </span>
               </Box>
+              {isReconnecting && (
+                <ReconnectingBadge
+                  sx={{
+                    position: "absolute",
+                    top: "68px",
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    zIndex: 2,
+                  }}
+                />
+              )}
 
               {/* Group Audio: Remote Participants Grid */}
               <Box
