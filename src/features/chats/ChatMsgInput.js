@@ -22,6 +22,8 @@ import EmojiPicker from "emoji-picker-react";
 import EmojiEmotionsIcon from "@mui/icons-material/EmojiEmotions";
 import FileMsgDialogContent from "./FileMsgDialogContent";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
+import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
 
@@ -34,7 +36,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     userDraft,
     drafts: chat.drafts,
   });
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [emojiAnchorEl, setEmojiAnchorEl] = useState(null);
+  const [attachmentAnchorEl, setAttachmentAnchorEl] = useState(null);
   const fileInput = useRef(null);
   const msgInputForm = useRef(null);
   const [fileMsg, setFileMsg] = useState(null);
@@ -126,11 +129,11 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const openEmojiPicker = (e) => {
-    setAnchorEl(e.currentTarget);
+    setEmojiAnchorEl(e.currentTarget);
   };
 
   const closeEmojiPicker = () => {
-    setAnchorEl(null);
+    setEmojiAnchorEl(null);
   };
 
   const addEmoji = (emojiData) => {
@@ -138,7 +141,19 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     closeEmojiPicker();
   };
 
-  const handleFileSelectClick = () => {
+  const handleFileSelectClick = (e) => {
+    setAttachmentAnchorEl(e.currentTarget);
+  };
+
+  const closeAttachmentPicker = () => {
+    setAttachmentAnchorEl(null);
+  };
+
+  const triggerFilePicker = (accept) => {
+    closeAttachmentPicker();
+    if (!fileInput.current) return;
+    fileInput.current.accept = accept;
+    fileInput.current.multiple = false;
     fileInput.current.click();
   };
 
@@ -197,6 +212,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       e.preventDefault();
 
       const file = e.target.files[0];
+      if (!file) return;
 
       handleFileSize(file);
       const fileData = await getFileData(file);
@@ -287,11 +303,11 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           <EmojiEmotionsIcon />
         </IconButton>
 
-        {Boolean(anchorEl) && (
+        {Boolean(emojiAnchorEl) && (
           <Popover
-            anchorEl={anchorEl}
+            anchorEl={emojiAnchorEl}
             keepMounted
-            open={Boolean(anchorEl)}
+            open={Boolean(emojiAnchorEl)}
             onClose={closeEmojiPicker}
           >
             <EmojiPicker onEmojiClick={addEmoji} lazyLoadEmojis={true} />
@@ -304,6 +320,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           onChange={reviewFileMsg}
           style={{ display: "none" }}
           ref={fileInput}
+          multiple={false}
         />
 
         <IconButton
@@ -316,6 +333,67 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         >
           <AttachmentIcon />
         </IconButton>
+
+        {Boolean(attachmentAnchorEl) && (
+          <Popover
+            anchorEl={attachmentAnchorEl}
+            keepMounted
+            open={Boolean(attachmentAnchorEl)}
+            onClose={closeAttachmentPicker}
+            anchorOrigin={{ vertical: "top", horizontal: "center" }}
+            transformOrigin={{ vertical: "bottom", horizontal: "left" }}
+            PaperProps={{
+              sx: {
+                mb: 1,
+                bgcolor: "background.paper",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                minWidth: 150,
+                p: 0.5,
+              },
+            }}
+          >
+            <Box
+              role="button"
+              onClick={() => triggerFilePicker("image/*")}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.25,
+                px: 1,
+                py: 0.75,
+                borderRadius: 1.25,
+                cursor: "pointer",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+            >
+              <PhotoLibraryOutlinedIcon fontSize="small" />
+              <Typography variant="body2">Photos</Typography>
+            </Box>
+            <Box
+              role="button"
+              onClick={() =>
+                triggerFilePicker(
+                  ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.rtf,.csv,.zip,.rar,application/*"
+                )
+              }
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1.25,
+                px: 1,
+                py: 0.75,
+                borderRadius: 1.25,
+                cursor: "pointer",
+                "&:hover": { bgcolor: "action.hover" },
+              }}
+            >
+              <DescriptionOutlinedIcon fontSize="small" />
+              <Typography variant="body2">Files</Typography>
+            </Box>
+          </Popover>
+        )}
 
         <Dialog
           open={isFileMsgDialogOpen}
