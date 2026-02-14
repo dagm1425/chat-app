@@ -1218,10 +1218,31 @@ const useWebRTC = (db) => {
 
   const startScreenShare = async () => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+      const captureController =
+        typeof window !== "undefined" &&
+        typeof window.CaptureController === "function"
+          ? new window.CaptureController()
+          : null;
+      const displayConstraints = {
         video: true,
-      });
+        ...(captureController ? { controller: captureController } : {}),
+      };
+      const screenStream = await navigator.mediaDevices.getDisplayMedia(
+        displayConstraints
+      );
       const screenTrack = screenStream.getVideoTracks()[0];
+
+      if (captureController) {
+        const displaySurface = screenTrack?.getSettings?.().displaySurface;
+        if (displaySurface === "browser" || displaySurface === "window") {
+          try {
+            captureController.setFocusBehavior("no-focus-change");
+          } catch (_) {
+            // Unsupported browser/runtime path; keep default focus behavior.
+          }
+        }
+      }
+
       screenTrackRef.current = screenTrack;
       const previousLocalStream = localStreamRef.current;
 
