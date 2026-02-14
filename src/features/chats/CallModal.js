@@ -22,7 +22,6 @@ import {
   CallEnd,
   Call,
   ScreenShare,
-  StopScreenShare,
   Videocam,
   VideocamOff,
 } from "@mui/icons-material";
@@ -2500,11 +2499,7 @@ const CallModal = (props) => {
             }}
             disableRipple
           >
-            {isScreenSharing ? (
-              <StopScreenShare sx={{ fontSize: "1.5rem" }} />
-            ) : (
-              <ScreenShare sx={{ fontSize: "1.5rem" }} />
-            )}
+            <ScreenShare sx={{ fontSize: "1.5rem" }} />
           </IconButton>
         )}
 
