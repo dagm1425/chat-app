@@ -1094,7 +1094,11 @@ const useWebRTC = (db) => {
       peerConnectionsRef.current.clear();
       console.log("[useWebRTC] All peer connections closed and cleared");
 
-      // 4. Stop all local tracks
+      // 4. Stop all local tracks (second pass).
+      // Scenario: user is screen sharing, hangUp triggers Step 0 stop(), which fires
+      // screenTrack.onended -> stopScreenShare(). That callback can rebuild
+      // localStreamRef.current (camera/dummy + audio) during cleanup. This pass
+      // sweeps that late stream so no local capture survives after call end.
       console.log("[useWebRTC] Step 4: Stopping local tracks");
       if (localStreamRef.current) {
         const localTracks = localStreamRef.current.getTracks();
