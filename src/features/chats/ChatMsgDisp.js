@@ -23,13 +23,12 @@ import {
   Box,
   Menu,
   MenuItem,
-  ListItemIcon,
-  ListItemText,
   Dialog,
   DialogTitle,
   IconButton,
   Modal,
   Skeleton,
+  Typography,
   useMediaQuery,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -68,6 +67,19 @@ function ChatMsgDisp({
   const [fileMsgId, setFileMsgId] = useState("");
   const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
     useState(false);
+  const msgOptionsItemSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.25,
+    px: 1,
+    py: 0.75,
+    minHeight: 0,
+    borderRadius: 1.25,
+    "&:hover": {
+      bgcolor: "action.hover",
+    },
+  };
+  const msgOptionsIconSx = { color: "action.active", fontSize: "1.15rem" };
   const msgDates = new Set();
   const imgURL =
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
@@ -655,24 +667,29 @@ function ChatMsgDisp({
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleMsgOptionsClose}
+        PaperProps={{
+          sx: {
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            minWidth: 140,
+            p: 0.5,
+          },
+        }}
+        MenuListProps={{ sx: { p: 0 } }}
       >
-        <MenuItem onClick={handleDeleteMsgOpen}>
-          <ListItemIcon>
-            <DeleteIcon />
-          </ListItemIcon>
-          <ListItemText primary="Delete" />
+        <MenuItem onClick={handleDeleteMsgOpen} sx={msgOptionsItemSx}>
+          <DeleteIcon sx={msgOptionsIconSx} />
+          <Typography variant="body2">Delete</Typography>
         </MenuItem>
-        <MenuItem onClick={handleMsgReply}>
-          <ListItemIcon>
-            <ReplyIcon />
-          </ListItemIcon>
-          <ListItemText primary="Reply" />
+        <MenuItem onClick={handleMsgReply} sx={msgOptionsItemSx}>
+          <ReplyIcon sx={msgOptionsIconSx} />
+          <Typography variant="body2">Reply</Typography>
         </MenuItem>
-        <MenuItem onClick={handleMsgForwardOpen}>
-          <ListItemIcon>
-            <ArrowForwardIcon />
-          </ListItemIcon>
-          <ListItemText primary="Forward" />
+        <MenuItem onClick={handleMsgForwardOpen} sx={msgOptionsItemSx}>
+          <ArrowForwardIcon sx={msgOptionsIconSx} />
+          <Typography variant="body2">Forward</Typography>
         </MenuItem>
       </Menu>
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>

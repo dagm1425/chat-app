@@ -7,8 +7,6 @@ import {
   Dialog,
   DialogTitle,
   IconButton,
-  ListItemIcon,
-  ListItemText,
   Menu,
   MenuItem,
   Typography,
@@ -46,6 +44,19 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
   const [isRenamePublicChatOpen, setIsRenamePublicChatOpen] = useState(false);
   const [isLeaveChatOpen, setIsLeaveChatOpen] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState([]);
+  const chatOptionsItemSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: 1.25,
+    px: 1,
+    py: 0.75,
+    minHeight: 0,
+    borderRadius: 1.25,
+    "&:hover": {
+      bgcolor: "action.hover",
+    },
+  };
+  const chatOptionsIconSx = { color: "action.active", fontSize: "1.15rem" };
   const publicChatMembers =
     chat.type === "private"
       ? null
@@ -106,48 +117,34 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
     setIsLeaveChatOpen(false);
   };
 
+  const renderChatOptionsItem = (IconComponent, label, onClick) => (
+    <MenuItem onClick={onClick} sx={chatOptionsItemSx}>
+      <IconComponent sx={chatOptionsIconSx} />
+      <Typography variant="body2">{label}</Typography>
+    </MenuItem>
+  );
+
   const privateChatMenuItems = () => {
-    return (
-      <MenuItem onClick={handleDeleteChatOpen}>
-        <ListItemIcon>
-          <DeleteIcon />
-        </ListItemIcon>
-        <ListItemText primary="Delete" />
-      </MenuItem>
-    );
+    return renderChatOptionsItem(DeleteIcon, "Delete", handleDeleteChatOpen);
   };
 
   const publicChatMenuItems = () => {
     return (
-      <Box>
-        <MenuItem onClick={handleAddPublicChatMembersOpen}>
-          <ListItemIcon>
-            <GroupAddIcon />
-          </ListItemIcon>
-          <ListItemText primary="Add members" />
-        </MenuItem>
-        <MenuItem onClick={handleRenamePublicChatOpen}>
-          <ListItemIcon>
-            <DriveFileRenameOutlineIcon />
-          </ListItemIcon>
-          <ListItemText primary="Rename" />
-        </MenuItem>
-        {chat.createdBy.uid === user.uid ? (
-          <MenuItem onClick={handleDeleteChatOpen}>
-            <ListItemIcon>
-              <DeleteIcon />
-            </ListItemIcon>
-            <ListItemText primary="Delete" />
-          </MenuItem>
-        ) : (
-          <MenuItem onClick={handleLeaveChatOpen}>
-            <ListItemIcon>
-              <ExitToAppIcon />
-            </ListItemIcon>
-            <ListItemText primary="Leave" />
-          </MenuItem>
+      <>
+        {renderChatOptionsItem(
+          GroupAddIcon,
+          "Add members",
+          handleAddPublicChatMembersOpen
         )}
-      </Box>
+        {renderChatOptionsItem(
+          DriveFileRenameOutlineIcon,
+          "Rename",
+          handleRenamePublicChatOpen
+        )}
+        {chat.createdBy.uid === user.uid
+          ? renderChatOptionsItem(DeleteIcon, "Delete", handleDeleteChatOpen)
+          : renderChatOptionsItem(ExitToAppIcon, "Leave", handleLeaveChatOpen)}
+      </>
     );
   };
 
@@ -294,6 +291,17 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
         keepMounted
         open={Boolean(anchorEl)}
         onClose={handleChatOptionsClose}
+        PaperProps={{
+          sx: {
+            bgcolor: "background.paper",
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            minWidth: 140,
+            p: 0.5,
+          },
+        }}
+        MenuListProps={{ sx: { p: 0 } }}
       >
         {MenuItems}
       </Menu>
