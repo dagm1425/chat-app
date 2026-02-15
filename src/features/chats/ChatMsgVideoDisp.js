@@ -5,11 +5,21 @@ import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 
+const toPositiveNumber = (value) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+};
+
 function ChatMsgVideoDisp({ videoData, downloadFile, onClose }) {
   const videoRef = useRef(null);
   const [isChromeVisible, setIsChromeVisible] = useState(true);
   const videoUrl = videoData?.url || "";
   const videoFileName = videoData?.fileName || "video";
+  const videoWidth = toPositiveNumber(videoData?.videoWidth);
+  const videoHeight = toPositiveNumber(videoData?.videoHeight);
+  const aspectRatio =
+    videoWidth && videoHeight ? videoWidth / videoHeight : 16 / 9;
+  const frameWidth = `min(92vw, calc(92vh * ${aspectRatio}))`;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -26,8 +36,12 @@ function ChatMsgVideoDisp({ videoData, downloadFile, onClose }) {
     <Box
       sx={{
         position: "relative",
+        width: frameWidth,
         maxWidth: "92vw",
         maxHeight: "92vh",
+        aspectRatio: `${aspectRatio}`,
+        bgcolor: "#000",
+        borderRadius: 2,
       }}
       onMouseEnter={() => setIsChromeVisible(true)}
       onMouseLeave={() => setIsChromeVisible(false)}
@@ -116,8 +130,9 @@ function ChatMsgVideoDisp({ videoData, downloadFile, onClose }) {
         onFocus={() => setIsChromeVisible(true)}
         style={{
           display: "block",
-          maxWidth: "92vw",
-          maxHeight: "92vh",
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",
           borderRadius: 8,
           backgroundColor: "#000",
         }}
@@ -132,6 +147,8 @@ ChatMsgVideoDisp.propTypes = {
   videoData: PropTypes.shape({
     fileName: PropTypes.string,
     url: PropTypes.string,
+    videoWidth: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    videoHeight: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
   }),
   downloadFile: PropTypes.func,
   onClose: PropTypes.func,

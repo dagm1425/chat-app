@@ -194,9 +194,15 @@ function VideoMsg({
 
   const handleOpenModal = () => {
     if (!hasVideoUrl || hasPlaybackError) return;
+    const modalVideoWidth =
+      parsedVideoWidth || toPositiveNumber(urlVideoMeta.width);
+    const modalVideoHeight =
+      parsedVideoHeight || toPositiveNumber(urlVideoMeta.height);
     openVideoModal({
       fileName: fileMsg.fileName,
       url: fileMsg.fileUrl,
+      videoWidth: modalVideoWidth,
+      videoHeight: modalVideoHeight,
     });
   };
 
