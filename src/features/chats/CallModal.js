@@ -1450,9 +1450,11 @@ const CallModal = (props) => {
       manualScreenShareStopRef.current = true;
       localVideoSwapInFlightRef.current = true;
       fadeLocalVideo(true);
+      setIsScreenSharing(false);
       try {
         const stream = await stopScreenShare(!isLocalVideoEnabled);
         if (!stream) {
+          setIsScreenSharing(true);
           return;
         }
         if (stream && localVideoRef.current) {
@@ -1461,7 +1463,6 @@ const CallModal = (props) => {
         if (previousLocalStream && previousLocalStream !== stream) {
           previousLocalStream.getVideoTracks().forEach((t) => t.stop());
         }
-        setIsScreenSharing(false);
       } finally {
         localVideoSwapInFlightRef.current = false;
         manualScreenShareStopRef.current = false;
@@ -1477,6 +1478,7 @@ const CallModal = (props) => {
         fadeLocalVideo(false);
         return;
       }
+      setIsScreenSharing(true);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
@@ -1484,7 +1486,6 @@ const CallModal = (props) => {
         previousLocalStream.getVideoTracks().forEach((t) => t.stop());
       }
       localVideoSwapInFlightRef.current = false;
-      setIsScreenSharing(true);
       fadeLocalVideo(false);
 
       stream.getVideoTracks()[0].onended = async () => {
@@ -1492,6 +1493,7 @@ const CallModal = (props) => {
         const previousStream = localStreamRef.current;
         localVideoSwapInFlightRef.current = true;
         fadeLocalVideo(true);
+        setIsScreenSharing(false);
         const restoredStream = await stopScreenShare(!isLocalVideoEnabled);
         if (restoredStream && localVideoRef.current) {
           localVideoRef.current.srcObject = restoredStream;
@@ -1500,7 +1502,6 @@ const CallModal = (props) => {
           previousStream.getVideoTracks().forEach((t) => t.stop());
         }
         localVideoSwapInFlightRef.current = false;
-        setIsScreenSharing(false);
         fadeLocalVideo(false);
       };
     }
