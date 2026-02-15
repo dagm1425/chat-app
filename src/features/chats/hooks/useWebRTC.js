@@ -1284,12 +1284,13 @@ const useWebRTC = (db) => {
       return newStream;
     } catch (e) {
       const name = e?.name || "";
-      const message =
-        name === "NotAllowedError"
-          ? "Screen share permission denied. Check site permissions."
-          : "Unable to start screen sharing.";
+      // User cancelled/closed the browser picker (or dismissed permission prompt):
+      // silently return without a toast.
+      if (name === "AbortError" || name === "NotAllowedError") {
+        return null;
+      }
       console.error("Error sharing screen", e);
-      notifyUser(message, "error");
+      notifyUser("Unable to start screen sharing.", "error");
       return null;
     }
   };
