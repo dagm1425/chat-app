@@ -11,7 +11,7 @@ import {
   useTheme,
 } from "@mui/material";
 import { doc, updateDoc } from "firebase/firestore";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
@@ -20,6 +20,7 @@ import { db } from "../../firebase";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
+  const location = useLocation();
   const chatId = chat.chatId;
   const recentMsg = chat.recentMsg;
   const unreadMsgCount = chat.unreadCounts[user.uid];
@@ -31,10 +32,13 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const recentMsgTimestamp = !recentMsg ? null : recentMsg.timestamp;
   const isMobile = useMediaQuery("(max-width: 600px)");
   const theme = useTheme();
+  const routeChatId = location.pathname.split("/").filter(Boolean)[0] || "";
+  const activeChatId = routeChatId || selectedChatId;
+  const isActiveChat = chatId === activeChatId;
 
   useEffect(() => {
-    if (selectedChatId === chatId && unreadMsgCount > 0) resetUnreadCount();
-  }, [unreadMsgCount]);
+    if (isActiveChat && unreadMsgCount > 0) resetUnreadCount();
+  }, [isActiveChat, unreadMsgCount]);
 
   const handleLinkClick = () => {
     setSelectedChatId(chatId);
@@ -78,7 +82,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
       style={{
         display: "block",
         backgroundColor:
-          chatId === selectedChatId && !isMobile
+          isActiveChat && !isMobile
             ? theme.palette.background.paper
             : theme.palette.background.default,
         textDecoration: "none",
@@ -224,7 +228,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                     </Typography>
                   )}
                 </Typography>
-                {unreadMsgCount > 0 && selectedChatId !== chatId && (
+                {unreadMsgCount > 0 && !isActiveChat && (
                   <Box
                     sx={{
                       display: "inline-block",
