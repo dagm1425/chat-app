@@ -91,6 +91,7 @@ function ChatMsg({
         {message.type === "image" && (
           <ImageMsg
             message={message}
+            chatId={chat.chatId}
             isMobile={isMobile}
             screen={screen}
             scroll={scroll}

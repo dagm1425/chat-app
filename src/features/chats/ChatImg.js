@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useLayoutEffect, useMemo, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { Box, Skeleton, useMediaQuery } from "@mui/material";
 
+const decodedSrcCache = new Set();
+
+const isPositiveNumber = (value) =>
+  typeof value === "number" && Number.isFinite(value) && value > 0;
+
 function ChatImg({
   src,
+  chatId,
   width,
   height,
   containerWidth,
@@ -11,55 +17,111 @@ function ChatImg({
   fileName,
   url,
 }) {
-  const [loading, setLoading] = useState(true);
   const isMobile = useMediaQuery("(max-width: 600px)");
-  const maxWidth = isMobile ? 0.75 : 0.45;
-  const padding = isMobile ? 40 : 144;
-  const maxContainerWidth = containerWidth * maxWidth - padding;
+  const imgRef = useRef(null);
 
-  const handleImageLoad = () => {
+  // ✅ ALWAYS start with placeholder; we’ll turn it off synchronously if the element is already ready.
+  const [loading, setLoading] = useState(true);
+
+  const everDecoded = !!(src && decodedSrcCache.has(src));
+
+  // Sync check before paint: if browser already has this element ready, skip placeholder instantly.
+  useLayoutEffect(() => {
+    if (!src) {
+      setLoading(false);
+      return;
+    }
+
+    const img = imgRef.current;
+    const elementReadyNow = !!img && img.complete && img.naturalWidth > 0;
+
+    if (elementReadyNow) {
+      // If it’s already ready, it will paint without the empty flash.
+      decodedSrcCache.add(src);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+  }, [src, chatId]);
+
+  const handleLoad = async () => {
+    const img = imgRef.current;
+    // Decode THIS element to avoid “loaded but not painted yet”
+    if (img && typeof img.decode === "function") {
+      try {
+        await img.decode();
+      } catch {
+        console.warn("Image decoding failed, but still showing the image", {
+          src,
+        });
+      }
+    }
+    if (src) decodedSrcCache.add(src);
     setLoading(false);
   };
 
-  const computeRenderedDimensions = () => {
-    const renderedWidth = Math.min(maxContainerWidth, width);
-    const renderedHeight = (renderedWidth / width) * height;
-    return {
-      width: `${renderedWidth}px`,
-      height: `${renderedHeight}px`,
-    };
-  };
+  const computeRenderedDimensions = useMemo(() => {
+    const safeContainerWidth = isPositiveNumber(containerWidth)
+      ? containerWidth
+      : isMobile
+      ? 360
+      : 720;
+
+    const maxWidthRatio = isMobile ? 0.75 : 0.45;
+    const horizontalPadding = isMobile ? 40 : 144;
+    const availableWidth = Math.max(
+      140,
+      safeContainerWidth * maxWidthRatio - horizontalPadding
+    );
+
+    const safeWidth = isPositiveNumber(width) ? width : availableWidth;
+    const safeHeight = isPositiveNumber(height) ? height : safeWidth * 0.75;
+
+    const renderedWidth = Math.max(140, Math.min(availableWidth, safeWidth));
+    const renderedHeight = Math.max(
+      100,
+      (renderedWidth / safeWidth) * safeHeight
+    );
+
+    return { width: `${renderedWidth}px`, height: `${renderedHeight}px` };
+  }, [containerWidth, height, isMobile, width]);
 
   return (
     <Box
-      sx={computeRenderedDimensions}
+      sx={{
+        ...computeRenderedDimensions,
+        overflow: "hidden",
+        borderRadius: "8px",
+        backgroundColor: "rgba(0,0,0,0.04)", // ✅ never looks empty even for 1 frame
+      }}
       mb="0.125rem"
-      onClick={() =>
-        openImgModal({
-          fileName,
-          url,
-        })
-      }
+      onClick={() => openImgModal({ fileName, url })}
     >
       {loading && (
         <Skeleton
           variant="rectangular"
-          animation="wave"
+          animation={everDecoded ? false : "wave"} // ✅ wave only on first time
           sx={{ width: "100%", height: "100%" }}
         />
       )}
+
       <img
+        ref={imgRef}
         src={src}
-        onLoad={handleImageLoad}
+        onLoad={handleLoad}
+        onError={() => setLoading(false)}
+        decoding="async"
+        loading="eager" // ✅ for in-viewport chat images
+        alt=""
         style={{
+          display: "block",
           width: "100%",
-          height: "auto",
+          height: "100%",
+          objectFit: "contain",
           opacity: loading ? 0 : 1,
-          transition: "opacity 0.3s ease-in-out",
+          transition: "opacity 120ms ease",
           cursor: "pointer",
         }}
-        loading="lazy"
-        alt=""
       />
     </Box>
   );
@@ -69,11 +131,11 @@ export default ChatImg;
 
 ChatImg.propTypes = {
   src: PropTypes.string,
+  chatId: PropTypes.string,
   width: PropTypes.number,
   height: PropTypes.number,
   containerWidth: PropTypes.number,
   openImgModal: PropTypes.func,
   fileName: PropTypes.string,
   url: PropTypes.string,
-  caption: PropTypes.string,
 };

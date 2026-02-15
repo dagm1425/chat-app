@@ -6,15 +6,19 @@ import ChatImg from "./ChatImg";
 
 const ImageMsg = ({
   message,
+  chatId,
   isMobile,
   screen,
   scroll,
   openImgModal,
   cancelUpload,
 }) => {
+  const fileMsg = message.fileMsg || {};
+  const hasImageUrl = !!fileMsg.fileUrl;
+
   return (
     <>
-      {message.fileMsg.progress != 100 ? (
+      {!hasImageUrl ? (
         <Box
           sx={{
             display: "grid",
@@ -35,15 +39,16 @@ const ImageMsg = ({
       ) : (
         <>
           <ChatImg
-            src={message.fileMsg.fileUrl}
-            width={message.fileMsg.imgWidth}
-            height={message.fileMsg.imgHeight}
+            src={fileMsg.fileUrl}
+            chatId={chatId}
+            width={fileMsg.imgWidth}
+            height={fileMsg.imgHeight}
             containerWidth={
-              isMobile ? screen.width : scroll.current.offsetWidth
+              isMobile ? screen.width : scroll?.current?.offsetWidth
             }
             openImgModal={openImgModal}
-            fileName={message.fileMsg.fileName}
-            url={message.fileMsg.fileUrl}
+            fileName={fileMsg.fileName}
+            url={fileMsg.fileUrl}
           />
         </>
       )}
@@ -56,6 +61,7 @@ const ImageMsg = ({
 
 ImageMsg.propTypes = {
   message: PropTypes.object.isRequired,
+  chatId: PropTypes.string,
   isMobile: PropTypes.bool.isRequired,
   screen: PropTypes.object.isRequired, // Assuming 'screen' is a window.screen object or similar
   scroll: PropTypes.oneOfType([
