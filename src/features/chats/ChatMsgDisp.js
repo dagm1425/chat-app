@@ -542,6 +542,8 @@ function ChatMsgDisp({
           );
         })
       : [];
+  const selectedMsg = chatMsg?.find((msg) => msg.msgId === msgId);
+  const isSelectedCallStatusMsg = selectedMsg?.type === "call";
 
   return (
     <Box
@@ -683,14 +685,18 @@ function ChatMsgDisp({
           <DeleteIcon sx={msgOptionsIconSx} />
           <Typography variant="body2">Delete</Typography>
         </MenuItem>
-        <MenuItem onClick={handleMsgReply} sx={msgOptionsItemSx}>
-          <ReplyIcon sx={msgOptionsIconSx} />
-          <Typography variant="body2">Reply</Typography>
-        </MenuItem>
-        <MenuItem onClick={handleMsgForwardOpen} sx={msgOptionsItemSx}>
-          <ArrowForwardIcon sx={msgOptionsIconSx} />
-          <Typography variant="body2">Forward</Typography>
-        </MenuItem>
+        {!isSelectedCallStatusMsg && (
+          <MenuItem onClick={handleMsgReply} sx={msgOptionsItemSx}>
+            <ReplyIcon sx={msgOptionsIconSx} />
+            <Typography variant="body2">Reply</Typography>
+          </MenuItem>
+        )}
+        {!isSelectedCallStatusMsg && (
+          <MenuItem onClick={handleMsgForwardOpen} sx={msgOptionsItemSx}>
+            <ArrowForwardIcon sx={msgOptionsIconSx} />
+            <Typography variant="body2">Forward</Typography>
+          </MenuItem>
+        )}
       </Menu>
       <Dialog open={isDeleteMsgOpen} onClose={handleDeleteMsgClose}>
         <DialogTitle sx={{ fontWeight: "normal" }}>Delete message?</DialogTitle>
