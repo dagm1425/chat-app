@@ -67,10 +67,14 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
   const calleeStatus = userStatuses[otherChatMember.uid];
 
   useEffect(() => {
-    if (calleeStatus === "online" && callState.status === "Calling...") {
+    if (callState.status === "Calling..." && calleeStatus === "online") {
       dispatch(setCall({ ...callState, status: "Ringing..." }));
+      return;
     }
-  }, [calleeStatus, callState.status]);
+    if (callState.status === "Ringing..." && calleeStatus !== "online") {
+      dispatch(setCall({ ...callState, status: "Calling..." }));
+    }
+  }, [calleeStatus, callState, dispatch]);
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);
