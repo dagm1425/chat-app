@@ -124,7 +124,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   fontSize: { xs: "1rem", sm: "inherit" },
                   display: "inline-block",
                   width: { xs: "67%", sm: "68%", lg: "67%" },
-                  fontWeight: "bold",
+                  fontWeight: 500,
                 }}
               >
                 {chat.type === "private"

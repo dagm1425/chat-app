@@ -254,7 +254,7 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
             </Avatar>
           )}
           <div>
-            <Typography variant="body1" sx={{ fontWeight: "bold" }}>
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
               {chat.type === "private"
                 ? otherChatMember.displayName
                 : chat.displayName}
