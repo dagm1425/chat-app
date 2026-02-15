@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
@@ -44,6 +44,8 @@ import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
 import { formatDate } from "../../common/utils";
 
+const savedScrollTopByChatId = new Map();
+
 function ChatMsgDisp({
   chat,
   uploadTask,
@@ -51,6 +53,7 @@ function ChatMsgDisp({
   userStatuses,
   scroll,
   makeCall,
+  isActive,
 }) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
@@ -67,6 +70,9 @@ function ChatMsgDisp({
   const [fileMsgId, setFileMsgId] = useState("");
   const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
     useState(false);
+  const isActiveRef = useRef(isActive);
+  const prevIsActiveRef = useRef(isActive);
+  const hasRestoredScrollRef = useRef(false);
   const msgOptionsItemSx = {
     display: "flex",
     alignItems: "center",
@@ -95,6 +101,7 @@ function ChatMsgDisp({
   };
 
   const resetUnreadCount = async () => {
+    if (!isActiveRef.current) return;
     const unreadCounts = chat.unreadCounts;
 
     if (unreadCounts[user.uid] === 0) return;
@@ -106,6 +113,7 @@ function ChatMsgDisp({
 
   // eslint-disable-next-line no-unused-vars
   const callback = (entries, observer) => {
+    if (!isActiveRef.current) return;
     entries.forEach((entry) => {
       if (entry.isIntersecting) {
         hideScrollToBottomBtn();
@@ -127,20 +135,30 @@ function ChatMsgDisp({
   const debouncedCallback = debounce(callback, 1000);
 
   useEffect(() => {
+    isActiveRef.current = isActive;
+  }, [isActive]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setIsScrollToBottomBtnActive(false);
+      return;
+    }
+
     setIsChatsLoading(chatMsg ? false : true);
     const unsub = subscribeChatMsg();
 
     return () => {
       unsub();
     };
-  }, [chatId]);
+  }, [chatId, isActive]);
 
   useEffect(() => {
+    if (!isActive || !chatMsg) return;
     updateUnreadMsg();
-  }, [chatMsg]);
+  }, [chatMsg, isActive]);
 
   useLayoutEffect(() => {
-    if (isMobile) return;
+    if (!isActive || isMobile || !scroll?.current) return;
 
     const list = scroll.current.children;
     const target = list.item(list.length - 2);
@@ -152,7 +170,77 @@ function ChatMsgDisp({
     observer.observe(target);
 
     return () => observer.disconnect();
-  }, [chatId]);
+  }, [chatId, isActive, isMobile, scroll]);
+
+  useLayoutEffect(() => {
+    const scrollNode = scroll?.current;
+    const wasActive = prevIsActiveRef.current;
+
+    if (wasActive && !isActive && scrollNode) {
+      const currentTop = scrollNode.scrollTop;
+      const previousSavedTop = savedScrollTopByChatId.get(chatId);
+      const isStillVisible = scrollNode.getClientRects().length > 0;
+      const shouldPreservePrevious =
+        !isStillVisible &&
+        typeof previousSavedTop === "number" &&
+        previousSavedTop > currentTop;
+      const nextSavedTop = shouldPreservePrevious
+        ? previousSavedTop
+        : currentTop;
+
+      savedScrollTopByChatId.set(chatId, nextSavedTop);
+      hasRestoredScrollRef.current = false;
+    }
+
+    if (!wasActive && isActive) {
+      hasRestoredScrollRef.current = false;
+    }
+
+    prevIsActiveRef.current = isActive;
+  }, [chatId, isActive, scroll]);
+
+  useLayoutEffect(() => {
+    if (
+      !isActive ||
+      isChatsLoading ||
+      hasRestoredScrollRef.current ||
+      !scroll?.current
+    ) {
+      return;
+    }
+
+    const savedTop = savedScrollTopByChatId.get(chatId);
+    let raf1;
+    let raf2;
+
+    if (typeof savedTop === "number") {
+      const maxTop = Math.max(
+        0,
+        scroll.current.scrollHeight - scroll.current.clientHeight
+      );
+      const appliedTop = Math.min(savedTop, maxTop);
+      scroll.current.scrollTop = appliedTop;
+
+      // Detect late layout shifts (e.g. image/layout reflow) that can drop scroll
+      // after initial restore, then apply once more.
+      raf1 = window.requestAnimationFrame(() => {
+        raf2 = window.requestAnimationFrame(() => {
+          if (!scroll?.current) return;
+          const currentTop = scroll.current.scrollTop;
+          if (appliedTop > 0 && currentTop + 2 < appliedTop) {
+            scroll.current.scrollTop = appliedTop;
+          }
+        });
+      });
+    }
+
+    hasRestoredScrollRef.current = true;
+
+    return () => {
+      if (raf1) window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+    };
+  }, [chatId, chatMsg?.length, isActive, isChatsLoading, scroll]);
 
   const subscribeChatMsg = () => {
     const q = query(
@@ -548,6 +636,10 @@ function ChatMsgDisp({
   return (
     <Box
       ref={scroll}
+      onScroll={() => {
+        if (!isActive || !scroll?.current) return;
+        savedScrollTopByChatId.set(chatId, scroll.current.scrollTop);
+      }}
       sx={{
         position: { xs: "fixed", sm: "initial" },
         top: { xs: 0, sm: "initial" },
@@ -745,4 +837,5 @@ ChatMsgDisp.propTypes = {
   ]),
   setSelectedChatId: PropTypes.func,
   makeCall: PropTypes.func,
+  isActive: PropTypes.bool.isRequired,
 };
