@@ -17,9 +17,12 @@ function ChatMsgVideoDisp({ videoData, downloadFile, onClose }) {
   const videoFileName = videoData?.fileName || "video";
   const videoWidth = toPositiveNumber(videoData?.videoWidth);
   const videoHeight = toPositiveNumber(videoData?.videoHeight);
+  const hasNativeDimensions = !!(videoWidth && videoHeight);
   const aspectRatio =
     videoWidth && videoHeight ? videoWidth / videoHeight : 16 / 9;
-  const frameWidth = `min(92vw, calc(92vh * ${aspectRatio}))`;
+  const frameWidth = hasNativeDimensions
+    ? `min(${videoWidth}px, 92vw, calc(92vh * ${aspectRatio}))`
+    : `min(92vw, calc(92vh * ${aspectRatio}))`;
 
   useEffect(() => {
     const video = videoRef.current;
