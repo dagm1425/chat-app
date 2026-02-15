@@ -27,6 +27,10 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
 
+const MAX_FILE_SIZE_BYTES = 5000000;
+const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+
 function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
@@ -166,6 +170,13 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     fileInput.current.value = "";
   };
 
+  const getReplyPreviewText = (replyMsg) => {
+    if (replyMsg.msg) return replyMsg.msg;
+    if (replyMsg.caption) return replyMsg.caption;
+    if (replyMsg.type === "video") return "Video";
+    return formatFilename(replyMsg.fileMsg.fileName);
+  };
+
   const getImageSize = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -185,9 +196,44 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     });
   };
 
+  const getVideoMetadata = (file) => {
+    return new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+
+      video.preload = "metadata";
+      video.onloadedmetadata = () => {
+        const width = video.videoWidth;
+        const height = video.videoHeight;
+        const durationSec = Number.isFinite(video.duration)
+          ? video.duration
+          : 0;
+        URL.revokeObjectURL(objectUrl);
+        resolve({ width, height, durationSec });
+      };
+      video.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error("Unable to read video metadata"));
+      };
+      video.src = objectUrl;
+    });
+  };
+
   const handleFileSize = (file) => {
-    const MAX_FILE_SIZE = 5000000;
-    if (file.size > MAX_FILE_SIZE) {
+    const isVideo = file.type.startsWith("video/");
+    if (isVideo && !ALLOWED_VIDEO_TYPES.has(file.type)) {
+      alert("Only MP4 and WebM videos are supported");
+      resetFileInput();
+      throw new Error("Unsupported video format");
+    }
+
+    if (isVideo && file.size > MAX_VIDEO_SIZE_BYTES) {
+      alert("Video size should not exceed 8 MB");
+      resetFileInput();
+      throw new Error("Video size exceeds the limit");
+    }
+
+    if (!isVideo && file.size > MAX_FILE_SIZE_BYTES) {
       alert("File size should not exceed 5 MB");
       resetFileInput();
       throw new Error("File size exceeds the limit");
@@ -202,6 +248,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     if (file.type.includes("image")) {
       const dimensions = await getImageSize(file);
       return { file, imgSize: dimensions };
+    } else if (ALLOWED_VIDEO_TYPES.has(file.type)) {
+      const metadata = await getVideoMetadata(file);
+      return { file, videoMeta: metadata };
     } else {
       return { file };
     }
@@ -356,7 +405,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           >
             <Box
               role="button"
-              onClick={() => triggerFilePicker("image/*")}
+              onClick={() => triggerFilePicker("image/*,video/mp4,video/webm")}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -372,7 +421,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 fontSize="small"
                 sx={{ color: "action.active" }}
               />
-              <Typography variant="body2">Photos</Typography>
+              <Typography variant="body2">Photos and videos</Typography>
             </Box>
             <Box
               role="button"
@@ -473,11 +522,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                     variant="body1"
                     sx={{ fontSize: "inherit", lineHeight: "1.125rem" }}
                   >
-                    {msgReply.msg
-                      ? msgReply.msg
-                      : msgReply.caption
-                      ? msgReply.caption
-                      : formatFilename(msgReply.fileMsg.fileName)}
+                    {getReplyPreviewText(msgReply)}
                   </Typography>
                 </div>
               </Box>

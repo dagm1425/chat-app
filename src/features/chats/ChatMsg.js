@@ -5,6 +5,7 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { formatFilename, formatTime } from "../../common/utils";
 import TextMsg from "./TextMsg";
 import ImageMsg from "./ImageMsg";
+import VideoMsg from "./VideoMsg";
 import FileMsg from "./FileMsg";
 import CallMsg from "./CallMsg";
 
@@ -18,11 +19,13 @@ function ChatMsg({
   renderReadSign,
   handleMsgClick,
   openImgModal,
+  openVideoModal,
   cancelUpload,
   downloadFile,
   scroll,
   scrollToMsg,
   makeCall,
+  isActive,
 }) {
   const isSentFromUser = message.from.uid === user.uid;
   const isMsgFromOtherPublicChatMembers =
@@ -99,6 +102,22 @@ function ChatMsg({
             cancelUpload={cancelUpload}
           />
         )}
+        {message.type === "video" && (
+          <VideoMsg
+            message={message}
+            isMobile={isMobile}
+            containerWidth={
+              isMobile
+                ? typeof window !== "undefined"
+                  ? window.innerWidth
+                  : 360
+                : scroll?.current?.offsetWidth
+            }
+            cancelUpload={cancelUpload}
+            openVideoModal={openVideoModal}
+            isActive={isActive}
+          />
+        )}
         {message.type === "file" && (
           <FileMsg
             message={message}
@@ -155,6 +174,7 @@ ChatMsg.propTypes = {
   renderReadSign: PropTypes.func,
   handleMsgClick: PropTypes.func,
   openImgModal: PropTypes.func,
+  openVideoModal: PropTypes.func,
   cancelUpload: PropTypes.func,
   downloadFile: PropTypes.func,
   scroll: PropTypes.oneOfType([
@@ -163,9 +183,18 @@ ChatMsg.propTypes = {
   ]),
   scrollToMsg: PropTypes.func,
   makeCall: PropTypes.func.isRequired,
+  isActive: PropTypes.bool.isRequired,
 };
 
 function MsgReply({ message, user, scrollToMsg }) {
+  const replyText = message.msgReply.msg
+    ? message.msgReply.msg
+    : message.msgReply.caption
+    ? message.msgReply.caption
+    : message.msgReply.type === "video"
+    ? "Video"
+    : formatFilename(message.msgReply.fileMsg.fileName);
+
   return (
     <Box
       sx={{
@@ -206,11 +235,7 @@ function MsgReply({ message, user, scrollToMsg }) {
             : message.msgReply.from.displayName}
         </Typography>
         <Typography variant="body2" sx={{ fontSize: "0.825rem" }}>
-          {message.msgReply.msg
-            ? message.msgReply.msg
-            : message.msgReply.caption
-            ? message.msgReply.caption
-            : formatFilename(message.msgReply.fileMsg.fileName)}
+          {replyText}
         </Typography>
       </Box>
     </Box>

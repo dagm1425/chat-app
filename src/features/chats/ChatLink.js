@@ -54,6 +54,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const returnRecentMsg = () => {
     if (recentMsg.msg) return recentMsg.msg;
     if (recentMsg.caption) return recentMsg.caption;
+    if (recentMsg.type === "video") return "Video";
     if (recentMsg.fileMsg) return formatFilename(recentMsg.fileMsg.fileName);
     if (recentMsg.type === "call-system") {
       const durationLabel = recentMsg.callData?.durationLabel || "0 min";

@@ -38,6 +38,7 @@ import ReplyIcon from "@mui/icons-material/Reply";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
+import ChatMsgVideoDisp from "./ChatMsgVideoDisp";
 import { selectChatMsgs, selectChats, setChatMsgs } from "./chatsSlice";
 import { v4 as uuid } from "uuid";
 import ChatMsg from "./ChatMsg";
@@ -65,7 +66,9 @@ function ChatMsgDisp({
   const [isDeleteMsgOpen, setIsDeleteMsgOpen] = useState(false);
   const [isForwardMsgOpen, setIsForwardMsgOpen] = useState(false);
   const [isImgModalOpen, setIsImgModalOpen] = useState(false);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
   const [imgData, setImgData] = useState(null);
+  const [videoData, setVideoData] = useState(null);
   const [msgId, setMsgId] = useState("");
   const [fileMsgId, setFileMsgId] = useState("");
   const [isScrollToBottomBtnActive, setIsScrollToBottomBtnActive] =
@@ -340,6 +343,16 @@ function ChatMsgDisp({
   const closeImgModal = () => {
     setIsImgModalOpen(false);
     setImgData(null);
+  };
+
+  const openVideoModal = (videoData) => {
+    setIsVideoModalOpen(true);
+    setVideoData(videoData);
+  };
+
+  const closeVideoModal = () => {
+    setIsVideoModalOpen(false);
+    setVideoData(null);
   };
 
   const renderMsgDate = (msgDate) => {
@@ -619,11 +632,13 @@ function ChatMsgDisp({
                   renderReadSign={renderReadSign}
                   handleMsgClick={handleMsgClick}
                   openImgModal={openImgModal}
+                  openVideoModal={openVideoModal}
                   cancelUpload={cancelUpload}
                   downloadFile={downloadFile}
                   scroll={scroll}
                   scrollToMsg={scrollToMsg}
                   makeCall={makeCall}
+                  isActive={isActive}
                 />
               )}
             </React.Fragment>
@@ -817,6 +832,20 @@ function ChatMsgDisp({
             imgData={imgData}
             downloadFile={downloadFile}
             onClose={closeImgModal}
+          />
+        </div>
+      </Modal>
+
+      <Modal
+        open={isVideoModalOpen}
+        onClose={closeVideoModal}
+        sx={{ display: "grid", placeItems: "center" }}
+      >
+        <div>
+          <ChatMsgVideoDisp
+            videoData={videoData}
+            downloadFile={downloadFile}
+            onClose={closeVideoModal}
           />
         </div>
       </Modal>

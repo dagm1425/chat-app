@@ -14,6 +14,8 @@ import {
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { formatFilename } from "../../common/utils";
 
+const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+
 function FileMsgDialogContent({
   chat,
   user,
@@ -57,6 +59,8 @@ function FileMsgDialogContent({
     const i = isMobile ? msgList.length - 1 : msgList.length - 2;
     const lastMmsg = msgList.item(i);
     let unreadCounts = { ...chat.unreadCounts };
+    const isImage = fileType.includes("image");
+    const isVideo = ALLOWED_VIDEO_TYPES.has(fileType);
     const message = {
       msgId,
       from: user,
@@ -64,7 +68,7 @@ function FileMsgDialogContent({
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
       msgReply,
-      type: fileType.includes("image") ? "image" : "file",
+      type: isImage ? "image" : isVideo ? "video" : "file",
       fileMsg: {
         fileName: file.name,
         fileType,
@@ -75,9 +79,13 @@ function FileMsgDialogContent({
       },
     };
 
-    if (fileType.includes("image")) {
+    if (isImage) {
       message.fileMsg.imgWidth = fileMsg.imgSize.width;
       message.fileMsg.imgHeight = fileMsg.imgSize.height;
+    } else if (isVideo && fileMsg.videoMeta) {
+      message.fileMsg.videoWidth = fileMsg.videoMeta.width;
+      message.fileMsg.videoHeight = fileMsg.videoMeta.height;
+      message.fileMsg.videoDurationSec = fileMsg.videoMeta.durationSec;
     }
 
     await setDoc(msgRef, message);
