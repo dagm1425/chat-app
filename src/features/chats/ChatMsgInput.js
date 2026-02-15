@@ -368,7 +368,10 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 "&:hover": { bgcolor: "action.hover" },
               }}
             >
-              <PhotoLibraryOutlinedIcon fontSize="small" />
+              <PhotoLibraryOutlinedIcon
+                fontSize="small"
+                sx={{ color: "action.active" }}
+              />
               <Typography variant="body2">Photos</Typography>
             </Box>
             <Box
@@ -389,7 +392,10 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 "&:hover": { bgcolor: "action.hover" },
               }}
             >
-              <DescriptionOutlinedIcon fontSize="small" />
+              <DescriptionOutlinedIcon
+                fontSize="small"
+                sx={{ color: "action.active" }}
+              />
               <Typography variant="body2">Files</Typography>
             </Box>
           </Popover>
