@@ -19,6 +19,11 @@ function ChatImg({
 }) {
   const isMobile = useMediaQuery("(max-width: 600px)");
   const imgRef = useRef(null);
+  const lastKnownContainerWidthRef = useRef(null);
+
+  if (isPositiveNumber(containerWidth)) {
+    lastKnownContainerWidthRef.current = containerWidth;
+  }
 
   // ✅ ALWAYS start with placeholder; we’ll turn it off synchronously if the element is already ready.
   const [loading, setLoading] = useState(true);
@@ -61,11 +66,18 @@ function ChatImg({
   };
 
   const computeRenderedDimensions = useMemo(() => {
+    const viewportWidth =
+      typeof window !== "undefined" && isPositiveNumber(window.innerWidth)
+        ? window.innerWidth
+        : 1024;
+    const fallbackContainerWidth = isMobile
+      ? viewportWidth
+      : viewportWidth * 0.7;
     const safeContainerWidth = isPositiveNumber(containerWidth)
       ? containerWidth
-      : isMobile
-      ? 360
-      : 720;
+      : isPositiveNumber(lastKnownContainerWidthRef.current)
+      ? lastKnownContainerWidthRef.current
+      : fallbackContainerWidth;
 
     const maxWidthRatio = isMobile ? 0.75 : 0.45;
     const horizontalPadding = isMobile ? 40 : 144;
@@ -86,6 +98,11 @@ function ChatImg({
     return { width: `${renderedWidth}px`, height: `${renderedHeight}px` };
   }, [containerWidth, height, isMobile, width]);
 
+  const hasResolvedContainerWidth =
+    isMobile ||
+    isPositiveNumber(containerWidth) ||
+    isPositiveNumber(lastKnownContainerWidthRef.current);
+  const shouldShowSkeleton = loading || !hasResolvedContainerWidth;
   return (
     <Box
       sx={{
@@ -97,7 +114,7 @@ function ChatImg({
       mb="0.125rem"
       onClick={() => openImgModal({ fileName, url })}
     >
-      {loading && (
+      {shouldShowSkeleton && (
         <Skeleton
           variant="rectangular"
           animation={everDecoded ? false : "wave"} // ✅ wave only on first time
@@ -118,7 +135,7 @@ function ChatImg({
           width: "100%",
           height: "100%",
           objectFit: "contain",
-          opacity: loading ? 0 : 1,
+          opacity: shouldShowSkeleton ? 0 : 1,
           transition: "opacity 120ms ease",
           cursor: "pointer",
         }}
