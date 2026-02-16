@@ -3,7 +3,6 @@ import PropTypes from "prop-types";
 import { Box, IconButton } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
-import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
 
 const toPositiveNumber = (value) => {
   const parsed = Number(value);
@@ -95,31 +94,6 @@ function ChatMsgVideoDisp({ videoData, downloadFile, onClose }) {
         >
           <CloseIcon sx={{ color: "#eee" }} />
         </IconButton>
-      </Box>
-
-      <Box
-        sx={{
-          position: "absolute",
-          top: 12,
-          left: 12,
-          zIndex: 2,
-          display: "flex",
-          alignItems: "center",
-          gap: 0.5,
-          px: 1,
-          py: 0.5,
-          borderRadius: "999px",
-          bgcolor: "rgba(0,0,0,0.5)",
-          color: "#eee",
-          opacity: isChromeVisible ? 1 : 0,
-          transition: "opacity 180ms ease",
-          pointerEvents: "none",
-        }}
-      >
-        <VolumeOffRoundedIcon sx={{ fontSize: 16 }} />
-        <Box component="span" sx={{ fontSize: 12 }}>
-          Muted
-        </Box>
       </Box>
 
       <video
