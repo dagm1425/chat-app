@@ -51,8 +51,8 @@ export function getMediaPermissionMessage({ error, isAudioCall }) {
   const name = error?.name || "";
   if (name === "NotAllowedError") {
     return isAudioCall
-      ? "Microphone permission denied. Check site permissions."
-      : "Camera/Mic permission denied. Check site permissions.";
+      ? "Microphone access is needed for audio calls."
+      : "Camera access is needed for video calls.";
   }
   if (name === "NotReadableError") {
     return isAudioCall

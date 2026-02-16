@@ -26,6 +26,7 @@ import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import { formatFilename } from "../../common/utils";
+import { notifyUser } from "../../common/toast/ToastProvider";
 
 const MAX_FILE_SIZE_BYTES = 5000000;
 const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
@@ -246,19 +247,19 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const handleFileSize = (file) => {
     const isVideo = file.type.startsWith("video/");
     if (isVideo && !ALLOWED_VIDEO_TYPES.has(file.type)) {
-      alert("Only MP4 and WebM videos are supported");
+      notifyUser("Only MP4 and WebM videos are supported", "info");
       resetFileInput();
       throw new Error("Unsupported video format");
     }
 
     if (isVideo && file.size > MAX_VIDEO_SIZE_BYTES) {
-      alert("Video size should not exceed 8 MB");
+      notifyUser("Video size should not exceed 8 MB", "info");
       resetFileInput();
       throw new Error("Video size exceeds the limit");
     }
 
     if (!isVideo && file.size > MAX_FILE_SIZE_BYTES) {
-      alert("File size should not exceed 5 MB");
+      notifyUser("File size should not exceed 5 MB", "info");
       resetFileInput();
       throw new Error("File size exceeds the limit");
     }

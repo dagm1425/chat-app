@@ -582,7 +582,7 @@ const CallModal = (props) => {
         }
         notifyUser(
           getMediaPermissionMessage({ error, isAudioCall: false }),
-          "error"
+          "info"
         );
       })
       .finally(() => {
@@ -1647,7 +1647,7 @@ const CallModal = (props) => {
           console.error("[CallModal] Error enabling camera:", error);
           notifyUser(
             getMediaPermissionMessage({ error, isAudioCall: false }),
-            "error"
+            "info"
           );
           isTogglingVideoRef.current = false;
           return;

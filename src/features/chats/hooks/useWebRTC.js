@@ -210,7 +210,7 @@ const useWebRTC = (db) => {
       });
     } catch (error) {
       console.error("[L120] getUserMedia failed:", error);
-      notifyUser(getMediaPermissionMessage({ error, isAudioCall }), "error");
+      notifyUser(getMediaPermissionMessage({ error, isAudioCall }), "info");
       return;
     }
 
@@ -750,7 +750,7 @@ const useWebRTC = (db) => {
           console.error("[L328] joinCall getUserMedia failed:", error);
           notifyUser(
             getMediaPermissionMessage({ error, isAudioCall: !isVideoCall }),
-            "error"
+            "info"
           );
           return;
         }
@@ -1317,7 +1317,7 @@ const useWebRTC = (db) => {
           );
           notifyUser(
             getMediaPermissionMessage({ error, isAudioCall: false }),
-            "error"
+            "info"
           );
           return null;
         }
