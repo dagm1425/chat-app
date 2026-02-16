@@ -40,8 +40,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     userDraft,
     drafts: chat.drafts,
   });
-  const [emojiAnchorEl, setEmojiAnchorEl] = useState(null);
+  const [isEmojiPopoverOpen, setIsEmojiPopoverOpen] = useState(false);
   const [attachmentAnchorEl, setAttachmentAnchorEl] = useState(null);
+  const emojiPickerContainerRef = useRef(null);
   const fileInput = useRef(null);
   const msgInputForm = useRef(null);
   const [fileMsg, setFileMsg] = useState(null);
@@ -90,6 +91,29 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     if (msgReply) inputRef.current.focus();
   }, [msgReply]);
 
+  useEffect(() => {
+    if (!isEmojiPopoverOpen) return;
+    const closeIfOutside = (event) => {
+      if (
+        emojiPickerContainerRef.current &&
+        !emojiPickerContainerRef.current.contains(event.target)
+      ) {
+        setIsEmojiPopoverOpen(false);
+      }
+    };
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsEmojiPopoverOpen(false);
+    };
+
+    document.addEventListener("mousedown", closeIfOutside);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("mousedown", closeIfOutside);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isEmojiPopoverOpen]);
+
   const handleSendMsg = async (e) => {
     e.preventDefault();
 
@@ -132,12 +156,12 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     resetDraft();
   };
 
-  const openEmojiPicker = (e) => {
-    setEmojiAnchorEl(e.currentTarget);
+  const openEmojiPicker = () => {
+    setIsEmojiPopoverOpen((prev) => !prev);
   };
 
   const closeEmojiPicker = () => {
-    setEmojiAnchorEl(null);
+    setIsEmojiPopoverOpen(false);
   };
 
   const addEmoji = (emojiData) => {
@@ -340,28 +364,82 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           gap: { xs: "0.25rem", sm: "0.75rem" },
         }}
       >
-        <IconButton
-          sx={{
-            mr: { xs: "-0.625rem", sm: "-0.75rem" },
-            "&.MuiButtonBase-root:hover": {
-              bgcolor: "transparent",
-            },
-          }}
-          onClick={openEmojiPicker}
+        <Box
+          ref={emojiPickerContainerRef}
+          sx={{ position: "relative", display: "flex", alignItems: "center" }}
         >
-          <EmojiEmotionsIcon />
-        </IconButton>
-
-        {Boolean(emojiAnchorEl) && (
-          <Popover
-            anchorEl={emojiAnchorEl}
-            keepMounted
-            open={Boolean(emojiAnchorEl)}
-            onClose={closeEmojiPicker}
+          <IconButton
+            sx={{
+              mr: { xs: "-0.625rem", sm: "-0.75rem" },
+              "&.MuiButtonBase-root:hover": {
+                bgcolor: "transparent",
+              },
+            }}
+            onClick={openEmojiPicker}
           >
-            <EmojiPicker onEmojiClick={addEmoji} lazyLoadEmojis={true} />
-          </Popover>
-        )}
+            <EmojiEmotionsIcon />
+          </IconButton>
+
+          <Box
+            aria-hidden={!isEmojiPopoverOpen}
+            sx={(theme) => ({
+              position: "absolute",
+              left: 0,
+              bottom: "calc(100% + 8px)",
+              width: { xs: "min(94vw, 360px)", sm: 360 },
+              height: { xs: "min(56vh, 420px)", sm: 420 },
+              maxHeight: "calc(100dvh - 120px)",
+              zIndex: 1300,
+              bgcolor: "background.paper",
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              overflow: "hidden",
+              boxShadow: theme.shadows[8],
+              opacity: isEmojiPopoverOpen ? 1 : 0,
+              pointerEvents: isEmojiPopoverOpen ? "auto" : "none",
+              transformOrigin: "bottom right",
+              transform: isEmojiPopoverOpen
+                ? "translateY(0) scale(1)"
+                : "translateY(8px) scale(0.985)",
+              transition:
+                "opacity 140ms ease, transform 140ms cubic-bezier(0.22, 1, 0.36, 1)",
+              "& .epr-body": {
+                scrollbarWidth: "thin",
+                scrollbarColor: `${theme.palette.action.disabled} transparent`,
+              },
+              "& .epr-body::-webkit-scrollbar": {
+                width: 8,
+              },
+              "& .epr-body::-webkit-scrollbar-track": {
+                backgroundColor: "transparent",
+              },
+              "& .epr-body::-webkit-scrollbar-thumb": {
+                backgroundColor: theme.palette.action.disabled,
+                borderRadius: "8px",
+              },
+              "& .epr-body::-webkit-scrollbar-thumb:hover": {
+                backgroundColor: theme.palette.text.disabled,
+              },
+            })}
+          >
+            <EmojiPicker
+              onEmojiClick={addEmoji}
+              lazyLoadEmojis={true}
+              searchDisabled={true}
+              width="100%"
+              height="100%"
+              style={{
+                backgroundColor: "transparent",
+                "--epr-bg-color": "transparent",
+                "--epr-category-label-bg-color": "transparent",
+                "--epr-reactions-bg-color": "transparent",
+                "--epr-picker-border-color": "transparent",
+                "--epr-preview-border-color": "transparent",
+              }}
+            />
+          </Box>
+        </Box>
 
         <input
           type="file"
