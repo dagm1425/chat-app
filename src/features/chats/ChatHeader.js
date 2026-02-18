@@ -176,16 +176,19 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
     if (!selectedMembers.length) return;
 
     const unreadCounts = { ...chat.unreadCounts };
+    const readStateUpdates = {};
 
     handleAddPublicChatMembersClose();
     selectedMembers.forEach((member) => {
       unreadCounts[member.uid] = 0;
+      readStateUpdates[`readState.${member.uid}.lastReadAt`] = null;
     });
 
     await updateDoc(doc(db, "chats", `${chat.chatId}`), {
       members: arrayUnion(...selectedMembers),
       memberIds: arrayUnion(...selectedMembers.map((member) => member.uid)),
       unreadCounts,
+      ...readStateUpdates,
     });
   };
 

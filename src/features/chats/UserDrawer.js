@@ -125,6 +125,10 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
       recentMsg: null,
       drafts: [],
       unreadCounts: { [user.uid]: 0, [otherChatMember.uid]: 0 },
+      readState: {
+        [user.uid]: { lastReadAt: null },
+        [otherChatMember.uid]: { lastReadAt: null },
+      },
     });
   };
 

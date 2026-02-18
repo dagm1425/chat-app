@@ -1,7 +1,7 @@
 import React from "react";
 import PropTypes from "prop-types";
 import { db } from "../../firebase";
-import { arrayRemove, doc, updateDoc } from "firebase/firestore";
+import { arrayRemove, deleteField, doc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Box, Button } from "@mui/material";
 
@@ -14,6 +14,8 @@ function LeaveChatDialogContent({ chatId, user, onClose }) {
     await updateDoc(doc(db, "chats", `${chatId}`), {
       members: arrayRemove(user),
       memberIds: arrayRemove(user.uid),
+      [`unreadCounts.${user.uid}`]: deleteField(),
+      [`readState.${user.uid}`]: deleteField(),
     });
   };
 

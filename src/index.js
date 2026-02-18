@@ -50,6 +50,9 @@ const CustomThemeProvider = () => {
             },
           }),
     },
+    typography: {
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+    },
   });
 
   const theme = React.useMemo(() => createTheme(getDesignTokens(mode)), [mode]);

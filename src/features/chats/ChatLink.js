@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import PropTypes from "prop-types";
 import {
   Avatar,
@@ -10,13 +10,11 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { doc, updateDoc } from "firebase/firestore";
 import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
 import { formatFilename } from "../../common/utils";
-import { db } from "../../firebase";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
@@ -36,23 +34,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const activeChatId = routeChatId || selectedChatId;
   const isActiveChat = chatId === activeChatId;
 
-  useEffect(() => {
-    if (isActiveChat && unreadMsgCount > 0) resetUnreadCount();
-  }, [isActiveChat, unreadMsgCount]);
-
   const handleLinkClick = () => {
     setSelectedChatId(chatId);
-    resetUnreadCount();
-  };
-
-  const resetUnreadCount = async () => {
-    const unreadCounts = chat.unreadCounts;
-
-    if (unreadCounts[user.uid] === 0) return;
-
-    await updateDoc(doc(db, "chats", `${chatId}`), {
-      unreadCounts: { ...unreadCounts, [user.uid]: 0 },
-    });
   };
 
   const returnRecentMsg = () => {

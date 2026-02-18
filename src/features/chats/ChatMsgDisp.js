@@ -1,22 +1,26 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import { useDispatch, useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import {
   Timestamp,
-  arrayUnion,
   collection,
   deleteDoc,
   doc,
-  getDocs,
   limit,
   onSnapshot,
   orderBy,
   query,
+  runTransaction,
   serverTimestamp,
   setDoc,
   updateDoc,
-  writeBatch,
 } from "firebase/firestore";
 import { db } from "../../firebase";
 import {
@@ -46,6 +50,37 @@ import UsersSearch from "./UsersSearch";
 import { formatDate } from "../../common/utils";
 
 const savedScrollTopByChatId = new Map();
+const READ_BOTTOM_THRESHOLD_PX = 56;
+
+const toMillis = (value) => {
+  if (!value) return null;
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }
+  if (value instanceof Date) {
+    const ms = value.getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value?.toDate === "function") {
+    const ms = value.toDate().getTime();
+    return Number.isFinite(ms) ? ms : null;
+  }
+  if (typeof value?.seconds === "number") {
+    const nanos = Number.isFinite(value.nanoseconds) ? value.nanoseconds : 0;
+    return value.seconds * 1000 + Math.floor(nanos / 1000000);
+  }
+  return null;
+};
+
+const getLatestVisibleMessageTimestampMs = (chatMsg) => {
+  if (!chatMsg?.length) return null;
+  for (let i = chatMsg.length - 1; i >= 0; i -= 1) {
+    const timestampMs = toMillis(chatMsg[i].timestamp);
+    if (timestampMs !== null) return timestampMs;
+  }
+  return null;
+};
 
 function ChatMsgDisp({
   chat,
@@ -76,6 +111,10 @@ function ChatMsgDisp({
   const isActiveRef = useRef(isActive);
   const prevIsActiveRef = useRef(isActive);
   const hasRestoredScrollRef = useRef(false);
+  const isCommittingReadRef = useRef(false);
+  const lastCommittedCursorMsByChatRef = useRef(new Map());
+  const bottomSentinelRef = useRef(null);
+  const isNearBottomRef = useRef(false);
   const msgOptionsItemSx = {
     display: "flex",
     alignItems: "center",
@@ -94,48 +133,91 @@ function ChatMsgDisp({
     "https://blog.1a23.com/wp-content/uploads/sites/2/2020/02/pattern-9.svg";
   const isMobile = useMediaQuery("(max-width:600px)");
   const skeletonWidths = [180, 140, 210, 160];
+  const localUnreadCount = chat.unreadCounts?.[user.uid] ?? 0;
 
-  const showScrollToBottomBtn = () => {
-    setIsScrollToBottomBtnActive(true);
-  };
-
-  const hideScrollToBottomBtn = () => {
-    setIsScrollToBottomBtnActive(false);
-  };
-
-  const resetUnreadCount = async () => {
-    if (!isActiveRef.current) return;
-    const unreadCounts = chat.unreadCounts;
-
-    if (unreadCounts[user.uid] === 0) return;
-
-    await updateDoc(doc(db, "chats", `${chatId}`), {
-      unreadCounts: { ...unreadCounts, [user.uid]: 0 },
+  const syncNearBottomState = (nearBottom) => {
+    isNearBottomRef.current = nearBottom;
+    setIsScrollToBottomBtnActive((prev) => {
+      const next = !nearBottom;
+      return prev === next ? prev : next;
     });
+    return nearBottom;
   };
 
-  // eslint-disable-next-line no-unused-vars
-  const callback = (entries, observer) => {
+  // Keep this callback stable across incidental rerenders (e.g. opening a menu)
+  // so effects that attach listeners/observers do not churn, while deps still
+  // refresh the closure when chat/user/messages really change.
+  const commitReadCursorIfEligible = useCallback(async () => {
     if (!isActiveRef.current) return;
-    entries.forEach((entry) => {
-      if (entry.isIntersecting) {
-        hideScrollToBottomBtn();
-        resetUnreadCount();
-      } else {
-        showScrollToBottomBtn();
-      }
-    });
-  };
+    if (
+      typeof document !== "undefined" &&
+      document.visibilityState !== "visible"
+    )
+      return;
+    if (!isNearBottomRef.current) return;
 
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return (...args) => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => func(...args), delay);
-    };
-  };
+    const nextReadCursorAtMs = getLatestVisibleMessageTimestampMs(chatMsg);
+    if (nextReadCursorAtMs === null) return;
 
-  const debouncedCallback = debounce(callback, 1000);
+    // Local fast-path guard: skip obvious no-op attempts before hitting
+    // Firestore.
+    const lastCommittedForChat =
+      lastCommittedCursorMsByChatRef.current.get(chatId) ?? null;
+    if (
+      lastCommittedForChat !== null &&
+      nextReadCursorAtMs <= lastCommittedForChat &&
+      localUnreadCount === 0
+    ) {
+      return;
+    }
+
+    if (isCommittingReadRef.current) return;
+    isCommittingReadRef.current = true;
+
+    try {
+      const chatRef = doc(db, "chats", `${chatId}`);
+      // Use a transaction instead of updateDoc so read cursor + unread reset stay
+      // correct under concurrent writes. If the chat doc changes before commit,
+      // unreadCounts for e.g, Firestore retries this callback against the latest server state.
+      await runTransaction(db, async (transaction) => {
+        const chatSnap = await transaction.get(chatRef);
+        if (!chatSnap.exists()) return;
+
+        const chatData = chatSnap.data();
+        const currentCursorMs = toMillis(
+          chatData.readState?.[user.uid]?.lastReadAt
+        );
+        const currentUnreadCount = chatData.unreadCounts?.[user.uid] ?? 0;
+        const shouldAdvanceCursor =
+          currentCursorMs === null || nextReadCursorAtMs > currentCursorMs;
+        const shouldResetUnread = currentUnreadCount > 0;
+
+        if (!shouldAdvanceCursor && !shouldResetUnread) return;
+
+        const updates = {};
+
+        if (shouldAdvanceCursor) {
+          updates[`readState.${user.uid}.lastReadAt`] =
+            Timestamp.fromMillis(nextReadCursorAtMs);
+        }
+        if (shouldResetUnread) {
+          updates[`unreadCounts.${user.uid}`] = 0;
+        }
+
+        transaction.update(chatRef, updates);
+      });
+
+      const committedValue =
+        lastCommittedForChat === null
+          ? nextReadCursorAtMs
+          : Math.max(lastCommittedForChat, nextReadCursorAtMs);
+      lastCommittedCursorMsByChatRef.current.set(chatId, committedValue);
+    } catch (error) {
+      console.error("[ChatMsgDisp] Failed to commit read cursor:", error);
+    } finally {
+      isCommittingReadRef.current = false;
+    }
+  }, [chatId, localUnreadCount, chatMsg, user.uid]);
 
   useEffect(() => {
     isActiveRef.current = isActive;
@@ -156,24 +238,52 @@ function ChatMsgDisp({
   }, [chatId, isActive]);
 
   useEffect(() => {
-    if (!isActive || !chatMsg) return;
-    updateUnreadMsg();
-  }, [chatMsg, isActive]);
+    if (!isActive) return;
+    // Keep callback in deps so listener always uses latest values
+    // (chatMsg, unreadCounts, chatId, user.uid), not a stale closure.
 
-  useLayoutEffect(() => {
-    if (!isActive || isMobile || !scroll?.current) return;
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      commitReadCursorIfEligible();
+    };
 
-    const list = scroll.current.children;
-    const target = list.item(list.length - 2);
-    const observer = new IntersectionObserver(debouncedCallback, {
-      passive: true,
-    });
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () =>
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+  }, [chatId, isActive, commitReadCursorIfEligible]);
 
-    if (!target) return;
-    observer.observe(target);
+  useEffect(() => {
+    if (!isActive || isChatsLoading || !scroll?.current) return;
+    // Keep callback in deps so observer always uses latest values
+    // (chatMsg, unreadCounts, chatId, user.uid), not a stale closure.
 
-    return () => observer.disconnect();
-  }, [chatId, isActive, isMobile, scroll]);
+    const scrollNode = scroll.current;
+    const sentinelNode = bottomSentinelRef.current;
+    if (!sentinelNode) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const nearBottom = entries.some((entry) => entry.isIntersecting);
+
+        if (nearBottom) {
+          syncNearBottomState(nearBottom);
+          commitReadCursorIfEligible();
+        } else {
+          syncNearBottomState(false);
+        }
+      },
+      {
+        root: scrollNode,
+        rootMargin: `0px 0px ${READ_BOTTOM_THRESHOLD_PX}px 0px`,
+        threshold: 0,
+      }
+    );
+
+    observer.observe(sentinelNode);
+    return () => {
+      observer.disconnect();
+    };
+  }, [chatId, isActive, isChatsLoading, scroll, commitReadCursorIfEligible]);
 
   useLayoutEffect(() => {
     const scrollNode = scroll?.current;
@@ -245,6 +355,13 @@ function ChatMsgDisp({
     };
   }, [chatId, chatMsg?.length, isActive, isChatsLoading, scroll]);
 
+  useEffect(() => {
+    if (!isActive || !scroll?.current) return;
+    if (isNearBottomRef.current) {
+      commitReadCursorIfEligible();
+    }
+  }, [chatId, chatMsg?.length, isActive, commitReadCursorIfEligible]);
+
   const subscribeChatMsg = () => {
     const q = query(
       collection(db, "chats", `${chatId}`, "chatMessages"),
@@ -272,32 +389,6 @@ function ChatMsgDisp({
       setIsChatsLoading(false);
       dispatch(setChatMsgs({ chatId, chatMsg: msgsWithDateObject }));
     });
-  };
-
-  const updateUnreadMsg = async () => {
-    const querySnapshot = await getDocs(
-      collection(db, "chats", `${chatId}`, "chatMessages")
-    );
-    const batch = writeBatch(db);
-
-    querySnapshot.forEach((doc) => {
-      const msgData = doc.data();
-      const isUserMessage = msgData.from.uid === user.uid;
-      const isMsgRead = msgData.isMsgRead;
-
-      if (chat.type === "private") {
-        if (!isUserMessage && !isMsgRead) {
-          batch.update(doc.ref, { isMsgRead: true });
-        }
-      } else {
-        const readBy = Array.isArray(isMsgRead) ? isMsgRead : [];
-        if (!isUserMessage && !readBy.includes(user.uid)) {
-          batch.update(doc.ref, { isMsgRead: arrayUnion(user.uid) });
-        }
-      }
-    });
-
-    await batch.commit();
   };
 
   const handleMsgOptionsOpen = (e) => {
@@ -455,8 +546,7 @@ function ChatMsgDisp({
     const isMsgRecent = chat.recentMsg && chat.recentMsg.msgId === msgId;
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
     const unreadCounts = { ...chat.unreadCounts };
-    const readBy = Array.isArray(msg.isMsgRead) ? msg.isMsgRead : [];
-    const isUserMsg = msg.from.uid === user.uid;
+    const msgTimestampMs = toMillis(msg.timestamp);
 
     await deleteDoc(messageRef);
 
@@ -476,14 +566,16 @@ function ChatMsgDisp({
     }
 
     for (const uid in unreadCounts) {
-      if (
-        ((isUserMsg && uid !== user.uid) ||
-          (!isUserMsg && uid !== msg.from.uid)) &&
-        (typeof msg.isMsgRead === "boolean"
-          ? !msg.isMsgRead
-          : !readBy.includes(uid))
-      ) {
-        unreadCounts[uid]--;
+      if (uid === msg.from.uid) continue;
+
+      const cursorMs = toMillis(chat.readState?.[uid]?.lastReadAt);
+      const isMsgUnreadForUser =
+        msgTimestampMs === null ||
+        cursorMs === null ||
+        cursorMs < msgTimestampMs;
+
+      if (isMsgUnreadForUser) {
+        unreadCounts[uid] = Math.max(0, unreadCounts[uid] - 1);
       }
     }
 
@@ -555,6 +647,10 @@ function ChatMsgDisp({
         recentMsg: null,
         drafts: [],
         unreadCounts: { [user.uid]: 0, [recipientUser.uid]: 1 },
+        readState: {
+          [user.uid]: { lastReadAt: null },
+          [recipientUser.uid]: { lastReadAt: null },
+        },
       };
 
       await setDoc(chatRef, newChat);
@@ -597,17 +693,35 @@ function ChatMsgDisp({
   };
 
   const renderReadSign = (message) => {
-    if (
-      (chat.type === "private" &&
-        message.from.uid === user.uid &&
-        message.isMsgRead) ||
-      (chat.type === "public" &&
-        message.from.uid === user.uid &&
-        Array.isArray(message.isMsgRead) &&
-        message.isMsgRead.length)
-    ) {
-      return <DoneAllIcon sx={{ fontSize: "0.875rem", opacity: 0.9 }} />;
-    } else return "";
+    if (message.from.uid !== user.uid) return null;
+
+    const messageTimestampMs = toMillis(message.timestamp);
+    if (messageTimestampMs === null) return null;
+
+    const readState = chat.readState || {};
+    const readIcon = (
+      <DoneAllIcon sx={{ fontSize: "0.875rem", opacity: 0.9 }} />
+    );
+
+    if (chat.type === "private") {
+      const recipient = chat.members.find((member) => member.uid !== user.uid);
+      const recipientCursorMs = toMillis(
+        readState?.[recipient?.uid]?.lastReadAt || null
+      );
+
+      return recipientCursorMs !== null &&
+        recipientCursorMs >= messageTimestampMs
+        ? readIcon
+        : null;
+    }
+
+    const hasAnyRecipientRead = chat.members.some((member) => {
+      if (member.uid === user.uid) return false;
+      const cursorMs = toMillis(readState?.[member.uid]?.lastReadAt || null);
+      return cursorMs !== null && cursorMs >= messageTimestampMs;
+    });
+
+    return hasAnyRecipientRead ? readIcon : null;
   };
 
   const msgList =
@@ -741,9 +855,20 @@ function ChatMsgDisp({
       ) : msgList.length > 0 ? (
         msgList
       ) : null}
-      <span></span>
+      <Box
+        ref={bottomSentinelRef}
+        aria-hidden
+        sx={{
+          width: "1px",
+          height: "1px",
+          flexShrink: 0,
+          pointerEvents: "none",
+        }}
+      />
       {!isMobile && (
         <IconButton
+          disableRipple
+          disableFocusRipple
           sx={{
             fontSize: "2.5rem",
             color: "text.secondary",
@@ -757,10 +882,12 @@ function ChatMsgDisp({
             boxShadow: 2,
             zIndex: 100,
             transform: isScrollToBottomBtnActive
-              ? "translateY(0)"
-              : "translateY(100px)",
+              ? "translateY(0) scale(1)"
+              : "translateY(12px) scale(0.96)",
             opacity: isScrollToBottomBtnActive ? 1 : 0,
-            transition: "all 0.3s ease",
+            transition:
+              "transform 160ms cubic-bezier(0.2, 0, 0, 1), opacity 140ms ease-out",
+            pointerEvents: isScrollToBottomBtnActive ? "auto" : "none",
           }}
           onClick={scrollToBottom}
         >
@@ -769,6 +896,31 @@ function ChatMsgDisp({
               fontSize: "2.5rem",
             }}
           />
+          {localUnreadCount > 0 && isScrollToBottomBtnActive && (
+            <Box
+              sx={{
+                position: "absolute",
+                top: "-0.35rem",
+                right: "-0.1rem",
+                fontWeight: "bold",
+                color: "white",
+                bgcolor: "primary.main",
+                borderRadius: "50%",
+                lineHeight: "0px",
+                pointerEvents: "none",
+                "& span": {
+                  fontSize: "12px",
+                  display: "inline-block",
+                  paddingTop: "50%",
+                  paddingBottom: "50%",
+                  marginLeft: "6px",
+                  marginRight: "6px",
+                },
+              }}
+            >
+              <span>{localUnreadCount > 99 ? "99+" : localUnreadCount}</span>
+            </Box>
+          )}
         </IconButton>
       )}
       <Menu

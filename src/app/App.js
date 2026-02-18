@@ -81,7 +81,23 @@ function App() {
         }
       });
       chats = chats.map((chat) => {
-        if (!chat.recentMsg) return chat;
+        const normalizedReadState = Object.entries(chat.readState || {}).reduce(
+          (acc, [uid, state]) => {
+            const cursor = state?.lastReadAt;
+            acc[uid] = {
+              lastReadAt:
+                cursor && typeof cursor.toDate === "function"
+                  ? cursor.toDate().toISOString()
+                  : cursor instanceof Date
+                  ? cursor.toISOString()
+                  : cursor || null,
+            };
+            return acc;
+          },
+          {}
+        );
+
+        if (!chat.recentMsg) return { ...chat, readState: normalizedReadState };
 
         const date = chat.recentMsg.timestamp
           ? chat.recentMsg.timestamp.toDate().toISOString()
@@ -92,6 +108,7 @@ function App() {
 
         return {
           ...chat,
+          readState: normalizedReadState,
           recentMsg: {
             ...chat.recentMsg,
             timestamp: formatDate(date),
