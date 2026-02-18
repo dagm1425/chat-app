@@ -48,6 +48,7 @@ import { v4 as uuid } from "uuid";
 import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
 import { formatDate } from "../../common/utils";
+import { notifyUser } from "../../common/toast/ToastProvider";
 
 const savedScrollTopByChatId = new Map();
 const READ_BOTTOM_THRESHOLD_PX = 56;
@@ -418,6 +419,11 @@ function ChatMsgDisp({
   };
 
   const handleMsgForwardOpen = () => {
+    const msg = chatMsg.find((item) => item.msgId === msgId);
+    if (!isMessageForwardable(msg)) {
+      notifyUser("Please wait for upload to finish before forwarding", "info");
+      return;
+    }
     handleMsgOptionsClose();
     setIsForwardMsgOpen(true);
   };
@@ -593,13 +599,37 @@ function ChatMsgDisp({
     });
   };
 
-  const createNewMessage = (msg, msgId) => {
+  const isMessageForwardable = (message) => {
+    if (!message) return false;
+    if (message.type === "call-system") return false;
+    if (!message.fileMsg) return true;
+
+    const hasFileUrl = Boolean(message.fileMsg.fileUrl);
+    // URL is written only after successful upload completion.
+    // Prefer this as the final truth to avoid progress/write-order races.
+    if (hasFileUrl) return true;
+
+    const progress = Number(message.fileMsg.progress);
+    return Number.isFinite(progress) && progress >= 100;
+  };
+
+  const createNewMessage = (msg, msgId, targetChatType) => {
+    const forwardedFromSource = msg.forwardedFrom || msg.from || {};
+    const forwardedFrom = {
+      uid: forwardedFromSource.uid || "",
+      displayName: forwardedFromSource.displayName || "Unknown",
+      photoURL: forwardedFromSource.photoURL || "",
+    };
+
     return {
       ...msg,
       from: user,
       msgId,
       msgReply: null,
+      isForwarded: true,
+      forwardedFrom,
       isMsgDelivered: true,
+      isMsgRead: targetChatType === "private" ? false : [],
       timestamp: serverTimestamp(),
     };
   };
@@ -608,6 +638,10 @@ function ChatMsgDisp({
     handleMsgForwardClose();
 
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
+    if (!isMessageForwardable(msg)) {
+      notifyUser("Please wait for upload to finish before forwarding", "info");
+      return;
+    }
     const privateChats = chats.filter((chat) => chat.type === "private");
     const chatWithSelectedUser = findPrivateChat(privateChats, recipientUser);
 
@@ -617,7 +651,7 @@ function ChatMsgDisp({
       const msgId = uuid();
       const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
       const chatRef = doc(db, "chats", `${chatId}`);
-      const newMsg = createNewMessage(msg, msgId);
+      const newMsg = createNewMessage(msg, msgId, chatWithSelectedUser[0].type);
 
       for (const uid in unreadCounts) {
         if (uid !== user.uid) {
@@ -637,7 +671,7 @@ function ChatMsgDisp({
       const chatRef = doc(db, "chats", `${chatId}`);
       let msgRef;
       const msgId = uuid();
-      const newMsg = createNewMessage(msg, msgId);
+      const newMsg = createNewMessage(msg, msgId, "private");
       const newChat = {
         chatId,
         type: "private",
@@ -771,6 +805,7 @@ function ChatMsgDisp({
       : [];
   const selectedMsg = chatMsg?.find((msg) => msg.msgId === msgId);
   const isSelectedCallStatusMsg = selectedMsg?.type === "call";
+  const isSelectedMsgForwardable = isMessageForwardable(selectedMsg);
 
   return (
     <Box
@@ -961,7 +996,11 @@ function ChatMsgDisp({
           </MenuItem>
         )}
         {!isSelectedCallStatusMsg && (
-          <MenuItem onClick={handleMsgForwardOpen} sx={msgOptionsItemSx}>
+          <MenuItem
+            onClick={handleMsgForwardOpen}
+            disabled={!isSelectedMsgForwardable}
+            sx={msgOptionsItemSx}
+          >
             <ArrowForwardIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Forward</Typography>
           </MenuItem>

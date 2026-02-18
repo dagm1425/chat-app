@@ -37,6 +37,12 @@ function ChatMsg({
   const senderPhotoURL = senderInfo?.photoURL || message.from.photoURL;
   const msgTime = formatTime(message.timestamp);
   const isMobile = useMediaQuery("(max-width:600px)");
+  const forwardedFrom = message.forwardedFrom || null;
+  const shouldShowForwardedMeta = !!(
+    message.isForwarded &&
+    forwardedFrom &&
+    forwardedFrom.displayName
+  );
 
   return (
     <Box
@@ -87,6 +93,33 @@ function ChatMsg({
           >
             {message.from.uid === user.uid ? "You" : senderDisplayName}
           </Typography>
+        )}
+        {shouldShowForwardedMeta && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.375rem",
+              ml: "0.25rem",
+              mb: "0.25rem",
+            }}
+          >
+            <Avatar
+              src={forwardedFrom.photoURL}
+              sx={{ width: 18, height: 18, fontSize: "0.625rem" }}
+            />
+            <Typography
+              variant="body2"
+              sx={{
+                fontSize: "0.775rem",
+                color: "primary.main",
+                fontWeight: 500,
+                lineHeight: 1.2,
+              }}
+            >
+              Forwarded from {forwardedFrom.displayName}
+            </Typography>
+          </Box>
         )}
         {message.msgReply &&
           chatMsg.find((msg) => msg.msgId === message.msgReply.msgId) && (
