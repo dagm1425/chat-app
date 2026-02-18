@@ -56,17 +56,18 @@ function UsersSearch({
       excUsers.find((excUser) => excUser.uid === otherUser.uid) ? false : true
     );
 
-  const filteredUsersBySearch = (users) => {
-    if (search === "") return filteredUsers(users);
+  const filteredUsersBySearch = () => {
+    if (search === "") return filteredUsers();
 
     const re = new RegExp(search, "gi");
 
-    return filteredUsers(users).filter((user) => {
+    return filteredUsers().filter((user) => {
       return user.displayName.match(re);
     });
   };
 
-  const usersList = filteredUsersBySearch(users).map((user) => {
+  const filteredResults = filteredUsersBySearch();
+  const usersList = filteredResults.map((user) => {
     return (
       <ListItem key={user.uid} disablePadding>
         <ListItemButton onClick={() => handleItemClick(user)}>
@@ -224,7 +225,13 @@ function UsersSearch({
             {usersList.length ? (
               usersList
             ) : (
-              <Typography variant="body1">No users found.</Typography>
+              <Typography variant="body1">
+                {search.trim()
+                  ? "No matching users found."
+                  : selectedMembers !== undefined
+                  ? "No new members found."
+                  : "No users found."}
+              </Typography>
             )}
           </Box>
         ) : (
