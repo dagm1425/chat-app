@@ -599,6 +599,7 @@ function ChatMsgDisp({
       from: user,
       msgId,
       msgReply: null,
+      isMsgDelivered: true,
       timestamp: serverTimestamp(),
     };
   };
@@ -694,34 +695,43 @@ function ChatMsgDisp({
 
   const renderReadSign = (message) => {
     if (message.from.uid !== user.uid) return null;
+    const isDelivered = message.isMsgDelivered !== false;
+    if (!isDelivered) return null;
 
     const messageTimestampMs = toMillis(message.timestamp);
-    if (messageTimestampMs === null) return null;
-
     const readState = chat.readState || {};
-    const readIcon = (
-      <DoneAllIcon sx={{ fontSize: "0.875rem", opacity: 0.9 }} />
-    );
+    let isMsgRead = false;
 
     if (chat.type === "private") {
       const recipient = chat.members.find((member) => member.uid !== user.uid);
       const recipientCursorMs = toMillis(
         readState?.[recipient?.uid]?.lastReadAt || null
       );
-
-      return recipientCursorMs !== null &&
-        recipientCursorMs >= messageTimestampMs
-        ? readIcon
-        : null;
+      isMsgRead =
+        messageTimestampMs !== null &&
+        recipientCursorMs !== null &&
+        recipientCursorMs >= messageTimestampMs;
+    } else {
+      isMsgRead = chat.members.some((member) => {
+        if (member.uid === user.uid) return false;
+        const cursorMs = toMillis(readState?.[member.uid]?.lastReadAt || null);
+        return (
+          messageTimestampMs !== null &&
+          cursorMs !== null &&
+          cursorMs >= messageTimestampMs
+        );
+      });
     }
 
-    const hasAnyRecipientRead = chat.members.some((member) => {
-      if (member.uid === user.uid) return false;
-      const cursorMs = toMillis(readState?.[member.uid]?.lastReadAt || null);
-      return cursorMs !== null && cursorMs >= messageTimestampMs;
-    });
-
-    return hasAnyRecipientRead ? readIcon : null;
+    return (
+      <DoneAllIcon
+        sx={{
+          fontSize: "0.875rem",
+          opacity: 0.9,
+          color: isMsgRead ? "primary.main" : "text.secondary",
+        }}
+      />
+    );
   };
 
   const msgList =

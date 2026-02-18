@@ -1109,6 +1109,7 @@ const CallModal = (props) => {
       },
       from: initiatorInfo,
       msgReply: null,
+      isMsgDelivered: true,
       isMsgRead: false,
       timestamp: serverTimestamp(),
     };

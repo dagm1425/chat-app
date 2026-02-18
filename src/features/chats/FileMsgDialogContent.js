@@ -65,6 +65,7 @@ function FileMsgDialogContent({
       msgId,
       from: user,
       caption,
+      isMsgDelivered: true,
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
       msgReply,

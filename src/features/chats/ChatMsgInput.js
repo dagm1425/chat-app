@@ -134,6 +134,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
       from: user,
       msg,
       msgReply,
+      isMsgDelivered: true,
       isMsgRead: chat.type === "private" ? false : [],
       timestamp: serverTimestamp(),
     };
