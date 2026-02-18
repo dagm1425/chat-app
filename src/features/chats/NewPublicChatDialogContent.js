@@ -4,20 +4,24 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
-import { useId } from "react";
+import { v4 as uuid } from "uuid";
 import { Box, Button, TextField } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 
-function NewPublicChatDialogContent({ onClose }) {
+function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
   const [chatName, setChatName] = useState("");
+  const [isCreatingPublicChat, setIsCreatingPublicChat] = useState(false);
   const user = useSelector(selectUser);
-  const chatId = useId();
+  const navigate = useNavigate();
 
   const createPublicChat = async () => {
-    if (chatName === "") return;
+    const trimmedChatName = chatName.trim();
+    if (!trimmedChatName) return null;
+    const chatId = uuid();
 
     await setDoc(doc(db, "chats", `${chatId}`), {
       chatId: `${chatId}`,
-      displayName: chatName,
+      displayName: trimmedChatName,
       avatarBgColor: generateRandomColor(),
       type: "public",
       createdBy: user,
@@ -31,11 +35,27 @@ function NewPublicChatDialogContent({ onClose }) {
         [user.uid]: { lastReadAt: null },
       },
     });
+
+    setSelectedChatId(chatId);
+    navigate(`/${chatId}`);
+    return chatId;
   };
 
-  const handleBtnClick = () => {
-    createPublicChat();
-    onClose();
+  const handleBtnClick = async () => {
+    if (isCreatingPublicChat) return;
+    setIsCreatingPublicChat(true);
+
+    try {
+      const createdChatId = await createPublicChat();
+      if (createdChatId) onClose();
+    } catch (error) {
+      console.error(
+        "[NewPublicChatDialogContent] Failed to create public chat:",
+        error
+      );
+    } finally {
+      setIsCreatingPublicChat(false);
+    }
   };
 
   const generateRandomColor = () => {
@@ -82,8 +102,12 @@ function NewPublicChatDialogContent({ onClose }) {
           pr: "1rem",
         }}
       >
-        <Button onClick={handleBtnClick}>Create chat</Button>
-        <Button onClick={onClose}>Cancel</Button>
+        <Button disabled={isCreatingPublicChat} onClick={handleBtnClick}>
+          Create chat
+        </Button>
+        <Button disabled={isCreatingPublicChat} onClick={onClose}>
+          Cancel
+        </Button>
       </Box>
     </Box>
   );

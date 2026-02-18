@@ -61,12 +61,17 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
     chat.type === "private"
       ? null
       : chat.members.map((member) => member.displayName).join(", ");
-  const otherChatMember = chat.members.find(
-    (member) => member.uid !== user.uid
-  );
-  const calleeStatus = userStatuses[otherChatMember.uid];
+  const otherChatMember =
+    chat.type === "private"
+      ? chat.members.find((member) => member.uid !== user.uid) || null
+      : null;
+  const otherChatMemberUid = otherChatMember?.uid || null;
+  const calleeStatus = otherChatMember
+    ? userStatuses[otherChatMember.uid]
+    : null;
 
   useEffect(() => {
+    if (chat.type !== "private" || !otherChatMemberUid) return;
     if (callState.status === "Calling..." && calleeStatus === "online") {
       dispatch(setCall({ ...callState, status: "Ringing..." }));
       return;
@@ -74,7 +79,7 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
     if (callState.status === "Ringing..." && calleeStatus !== "online") {
       dispatch(setCall({ ...callState, status: "Calling..." }));
     }
-  }, [calleeStatus, callState, dispatch]);
+  }, [calleeStatus, callState, chat.type, dispatch, otherChatMemberUid]);
 
   const handleChatOptionsOpen = (e) => {
     setAnchorEl(e.currentTarget);

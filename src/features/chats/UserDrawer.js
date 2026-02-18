@@ -48,6 +48,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCreatingPrivateChat, setIsCreatingPrivateChat] = useState(false);
   const colorMode = React.useContext(ColorModeContext);
 
   const signOutUser = async () => {
@@ -112,7 +113,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
     if (existingChat) {
       setSelectedChatId(existingChat.chatId);
       navigate(`/${existingChat.chatId}`);
-      return;
+      return existingChat.chatId;
     }
 
     await setDoc(doc(db, "chats", `${chatId}`), {
@@ -130,11 +131,24 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
         [otherChatMember.uid]: { lastReadAt: null },
       },
     });
+
+    setSelectedChatId(chatId);
+    navigate(`/${chatId}`);
+    return chatId;
   };
 
-  const handleItemClick = (otherChatMember) => {
-    createNewPrivateChat(otherChatMember);
-    handleNewPrivateChatClose();
+  const handleItemClick = async (otherChatMember) => {
+    if (isCreatingPrivateChat) return;
+    setIsCreatingPrivateChat(true);
+
+    try {
+      await createNewPrivateChat(otherChatMember);
+      handleNewPrivateChatClose();
+    } catch (error) {
+      console.error("[UserDrawer] Failed to create private chat:", error);
+    } finally {
+      setIsCreatingPrivateChat(false);
+    }
   };
 
   return (
@@ -246,7 +260,10 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
         >
           New group chat
         </DialogTitle>
-        <NewPublicChatDialogContent onClose={handleNewPublicChatClose} />
+        <NewPublicChatDialogContent
+          onClose={handleNewPublicChatClose}
+          setSelectedChatId={setSelectedChatId}
+        />
       </Dialog>
 
       <Dialog open={isSignOutOpen} onClose={handleSignOutClose}>
