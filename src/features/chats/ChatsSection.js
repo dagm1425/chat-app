@@ -1,6 +1,7 @@
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -64,7 +65,7 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
     }
   }, [chats, id, maxOpenChats]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setMsgReply(null);
   }, [id]);
 
