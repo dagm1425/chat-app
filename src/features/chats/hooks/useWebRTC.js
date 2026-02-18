@@ -892,10 +892,20 @@ const useWebRTC = (db) => {
         initiatorUid: callData.initiator,
       },
     };
+    const unreadCounts = { ...(chatData.unreadCounts || {}) };
+    const senderUid = newMsg.from?.uid;
+    for (const uid in unreadCounts) {
+      if (uid !== senderUid) {
+        unreadCounts[uid] = (unreadCounts[uid] || 0) + 1;
+      }
+    }
 
     await setDoc(msgRef, newMsg);
-    await updateDoc(chatRef, { recentMsg: newMsg });
-    await updateDoc(chatRef, { timestamp: newMsg.timestamp });
+    await updateDoc(chatRef, {
+      recentMsg: newMsg,
+      timestamp: newMsg.timestamp,
+      unreadCounts,
+    });
   };
 
   const cleanupLocalCall = async () => {
