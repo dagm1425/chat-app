@@ -57,6 +57,8 @@ function ToastProvider({ children }) {
     key: 0,
   });
 
+  // Stable during normal rerenders; new identity only when this provider
+  // instance remounts.
   const showToast = React.useCallback(({ message, severity }) => {
     setToast((prev) => ({
       open: true,
@@ -67,8 +69,10 @@ function ToastProvider({ children }) {
   }, []);
 
   React.useEffect(() => {
+    // Bind this exact showToast instance to the module-level bridge.
     toastSetter = showToast;
     return () => {
+      // Prevent stale global setter from pointing to an unmounted provider.
       if (toastSetter === showToast) {
         toastSetter = null;
       }

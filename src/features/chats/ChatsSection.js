@@ -1,5 +1,4 @@
 import React, {
-  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -38,13 +37,13 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
     ? MAX_OPEN_CHATS_MOBILE
     : MAX_OPEN_CHATS_DESKTOP;
 
-  const getScrollRef = useCallback((chatId) => {
+  const getScrollRef = (chatId) => {
     if (!chatId) return null;
     if (!scrollRefsByChatId.current.has(chatId)) {
       scrollRefsByChatId.current.set(chatId, React.createRef());
     }
     return scrollRefsByChatId.current.get(chatId);
-  }, []);
+  };
 
   useEffect(() => {
     const validIds = new Set(chats.map((item) => item.chatId));
