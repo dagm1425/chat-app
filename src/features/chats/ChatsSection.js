@@ -64,6 +64,10 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
     }
   }, [chats, id, maxOpenChats]);
 
+  useEffect(() => {
+    setMsgReply(null);
+  }, [id]);
+
   const activeScrollRef = getScrollRef(id);
   const warmChatIds = useMemo(() => {
     const warmed = openChatIds.filter((chatId) => chatById.has(chatId));
