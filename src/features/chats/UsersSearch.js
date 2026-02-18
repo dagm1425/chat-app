@@ -4,6 +4,7 @@ import {
   Avatar,
   Box,
   Button,
+  Chip,
   Input,
   List,
   ListItem,
@@ -25,10 +26,13 @@ function UsersSearch({
   addMembers,
   onClose,
   userStatuses,
+  showFooterActions = true,
+  isEmbedded = false,
 }) {
   const [search, setSearch] = useState("");
   const [isUsersLoading, setIsUsersLoading] = useState(true);
   const [users, setUsers] = useState([]);
+  const isAddMembersFlow = Array.isArray(selectedMembers);
 
   useEffect(() => {
     const unsub = subscribeUsers();
@@ -73,7 +77,7 @@ function UsersSearch({
         <ListItemButton onClick={() => handleItemClick(user)}>
           <ListItemAvatar>
             <Avatar src={user.photoURL} sx={{ position: "relative" }} />
-            {selectedMembers && (
+            {isAddMembersFlow && (
               <Box
                 component="span"
                 sx={{
@@ -152,11 +156,19 @@ function UsersSearch({
   });
 
   return (
-    <Box sx={{ textAlign: "center" }}>
+    <Box
+      sx={{
+        textAlign: "center",
+        width: isEmbedded ? "100%" : { xs: "92vw", sm: 360 },
+        maxWidth: isEmbedded ? "100%" : 360,
+        px: isEmbedded ? 0 : "1rem",
+        boxSizing: "border-box",
+      }}
+    >
       <Input
         type="text"
         value={search}
-        sx={{ fontSize: "18px", width: 280, mx: "1.25rem", px: "6px" }}
+        sx={{ fontSize: "18px", width: "100%", px: "6px" }}
         onChange={(e) => setSearch(e.target.value)}
         startAdornment={
           <Box
@@ -171,86 +183,95 @@ function UsersSearch({
           </Box>
         }
       />
-      {selectedMembers && (
+      {isAddMembersFlow && (
         <Box
           sx={{
-            display: "grid",
-            gridTemplateRows: selectedMembers.length ? "1fr" : "0fr",
             mt: "0.5rem",
-            transition: "grid-template-rows 250ms ease-in-out",
+            pb: selectedMembers.length ? "0.5rem" : 0,
+            maxHeight: selectedMembers.length ? 76 : 0,
+            overflowY: "auto",
+            overflowX: "hidden",
+            display: "flex",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+            gap: "0.375rem",
+            minWidth: 0,
+            borderBottom: "1px solid",
+            borderColor: selectedMembers.length ? "divider" : "transparent",
+            transition: "max-height 220ms ease, padding-bottom 220ms ease",
           }}
         >
-          <Box sx={{ overflow: "hidden" }}>
-            {selectedMembers.length > 0 &&
-              selectedMembers.map((member) => {
-                return (
-                  <Box
-                    key={member.uid}
-                    sx={{
-                      display: "inline-flex",
-                      gap: "0.25rem",
-                      mr: "0.25rem",
-                      border: "none",
-                      borderRadius: "30px",
-                      backgroundColor: "primary.main",
-                    }}
-                  >
-                    <Avatar
-                      src={member.photoURL}
-                      sx={{ width: 24, height: 24 }}
-                    />
-                    <Typography
-                      variant="body2"
-                      component="span"
-                      sx={{ color: "white", pr: "0.5rem" }}
-                    >
-                      {member.displayName}
-                    </Typography>
-                  </Box>
-                );
-              })}
-          </Box>
+          {selectedMembers.map((member) => (
+            <Chip
+              key={member.uid}
+              size="small"
+              avatar={<Avatar src={member.photoURL} />}
+              label={member.displayName}
+              onDelete={() => handleItemClick(member)}
+              sx={{
+                maxWidth: "calc(50% - 3px)",
+                "& .MuiChip-label": {
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                },
+              }}
+            />
+          ))}
         </Box>
       )}
       <List
         sx={{
-          display: "grid",
-          placeItems: "center",
           height: 200,
           overflowY: "auto",
+          width: "100%",
         }}
       >
         {!isUsersLoading ? (
-          <Box sx={{ width: "100%", height: "100%" }}>
-            {usersList.length ? (
-              usersList
-            ) : (
+          usersList.length ? (
+            usersList
+          ) : (
+            <Box
+              sx={{
+                display: "grid",
+                placeItems: "center",
+                minHeight: "100%",
+                px: "1rem",
+                textAlign: "center",
+              }}
+            >
               <Typography variant="body1">
                 {search.trim()
                   ? "No matching users found."
-                  : selectedMembers !== undefined
+                  : isAddMembersFlow
                   ? "No new members found."
                   : "No users found."}
               </Typography>
-            )}
-          </Box>
+            </Box>
+          )
         ) : (
-          <CircularProgress />
+          <Box
+            sx={{ display: "grid", placeItems: "center", minHeight: "100%" }}
+          >
+            <CircularProgress />
+          </Box>
         )}
       </List>
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          gap: "0.5rem",
-          pb: "1rem",
-          pr: "1rem",
-        }}
-      >
-        {addMembers && <Button onClick={addMembers}>Add Members</Button>}
-        <Button onClick={onClose}>Cancel</Button>
-      </Box>
+      {showFooterActions && (
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            alignItems: "center",
+            gap: "0.5rem",
+            pb: "1rem",
+            pr: "1rem",
+          }}
+        >
+          {addMembers && <Button onClick={addMembers}>Add Members</Button>}
+          <Button onClick={onClose}>Cancel</Button>
+        </Box>
+      )}
     </Box>
   );
 }
@@ -276,4 +297,6 @@ UsersSearch.propTypes = {
   addMembers: PropTypes.func,
   onClose: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
+  showFooterActions: PropTypes.bool,
+  isEmbedded: PropTypes.bool,
 };

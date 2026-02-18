@@ -263,6 +263,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
         <NewPublicChatDialogContent
           onClose={handleNewPublicChatClose}
           setSelectedChatId={setSelectedChatId}
+          userStatuses={userStatuses}
         />
       </Dialog>
 

@@ -5,19 +5,46 @@ import { db } from "../../firebase";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { v4 as uuid } from "uuid";
-import { Box, Button, TextField } from "@mui/material";
+import { Box, Button, TextField, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
+import UsersSearch from "./UsersSearch";
 
-function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
+function NewPublicChatDialogContent({
+  onClose,
+  setSelectedChatId,
+  userStatuses,
+}) {
   const [chatName, setChatName] = useState("");
   const [isCreatingPublicChat, setIsCreatingPublicChat] = useState(false);
+  const [selectedMembers, setSelectedMembers] = useState([]);
   const user = useSelector(selectUser);
   const navigate = useNavigate();
+
+  const handleMemberSelect = (member) => {
+    setSelectedMembers((prev) => {
+      const selected = prev.find((item) => item.uid === member.uid);
+      if (selected) return prev.filter((item) => item.uid !== member.uid);
+      return [...prev, member];
+    });
+  };
 
   const createPublicChat = async () => {
     const trimmedChatName = chatName.trim();
     if (!trimmedChatName) return null;
     const chatId = uuid();
+    const members = [user, ...selectedMembers];
+    const uniqueMembers = Array.from(
+      new Map(members.map((member) => [member.uid, member])).values()
+    );
+    const memberIds = uniqueMembers.map((member) => member.uid);
+    const unreadCounts = memberIds.reduce((acc, uid) => {
+      acc[uid] = 0;
+      return acc;
+    }, {});
+    const readState = memberIds.reduce((acc, uid) => {
+      acc[uid] = { lastReadAt: null };
+      return acc;
+    }, {});
 
     await setDoc(doc(db, "chats", `${chatId}`), {
       chatId: `${chatId}`,
@@ -25,15 +52,13 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
       avatarBgColor: generateRandomColor(),
       type: "public",
       createdBy: user,
-      members: [user],
-      memberIds: [user.uid],
+      members: uniqueMembers,
+      memberIds,
       timestamp: serverTimestamp(),
       recentMsg: null,
       drafts: [],
-      unreadCounts: { [user.uid]: 0 },
-      readState: {
-        [user.uid]: { lastReadAt: null },
-      },
+      unreadCounts,
+      readState,
     });
 
     setSelectedChatId(chatId);
@@ -68,22 +93,19 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
   return (
     <Box
       sx={{
-        width: "340px",
+        width: { xs: "92vw", sm: 360 },
+        maxWidth: 360,
         px: "1.5rem",
+        boxSizing: "border-box",
       }}
     >
-      {/* <Typography
-        variant="body1"
-        sx={{ fontSize: "1rem", color: "text.secondary", mb: ".25rem" }}
-      >
-        Set a name for your group chat:
-      </Typography> */}
       <TextField
         value={chatName}
         sx={{
           display: "block",
           fontSize: "16px",
-          mb: "2rem",
+          mb: "1rem",
+          width: "100%",
         }}
         fullWidth
         onChange={(e) => setChatName(e.target.value)}
@@ -92,17 +114,39 @@ function NewPublicChatDialogContent({ onClose, setSelectedChatId }) {
         variant="standard"
         required
       />
+      <Typography
+        variant="body2"
+        sx={{
+          color: "text.secondary",
+          mb: "0.5rem",
+          width: "100%",
+          textAlign: "left",
+        }}
+      >
+        Add members
+      </Typography>
+      <UsersSearch
+        excUsers={[user]}
+        handleItemClick={handleMemberSelect}
+        selectedMembers={selectedMembers}
+        userStatuses={userStatuses}
+        showFooterActions={false}
+        isEmbedded
+      />
       <Box
         sx={{
           display: "flex",
           justifyContent: "flex-end",
           alignItems: "center",
           gap: "0.5rem",
-          pb: "1rem",
-          pr: "1rem",
+          pt: "0.75rem",
+          pb: "0.5rem",
         }}
       >
-        <Button disabled={isCreatingPublicChat} onClick={handleBtnClick}>
+        <Button
+          disabled={isCreatingPublicChat || chatName.trim() === ""}
+          onClick={handleBtnClick}
+        >
           Create chat
         </Button>
         <Button disabled={isCreatingPublicChat} onClick={onClose}>
@@ -118,4 +162,5 @@ export default NewPublicChatDialogContent;
 NewPublicChatDialogContent.propTypes = {
   setSelectedChatId: PropTypes.func,
   onClose: PropTypes.func,
+  userStatuses: PropTypes.objectOf(PropTypes.string),
 };
