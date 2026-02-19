@@ -185,37 +185,6 @@ const CallModal = (props) => {
     return readyRemoteStreamIds.has(userId) || isVideoOff;
   });
 
-  // DEBUG: Track localVideoRef on every render
-  useEffect(() => {
-    console.log("[CallModal Debug] callState:", {
-      callStatus: callState.status,
-      isActive: callState.isActive,
-    });
-  });
-
-  useEffect(() => {
-    console.log(
-      "[debug speed] [CallModal][LocalTile]",
-      `status=${callState.status}`,
-      `isUserInCall=${isUserInCall}`,
-      `preJoinVideoEnabled=${preJoinVideoEnabled}`,
-      `localVideoFlag=${videoEnabledMap[user.uid]}`,
-      `isLocalVideoEnabled=${isLocalVideoEnabled}`,
-      `isLocalVideoActive=${isLocalVideoActive}`,
-      `isPreviewing=${isPreviewing}`,
-      `t=${new Date().toISOString()}`
-    );
-  }, [
-    callState.status,
-    isUserInCall,
-    preJoinVideoEnabled,
-    isLocalVideoEnabled,
-    isLocalVideoActive,
-    isPreviewing,
-    user.uid,
-    videoEnabledMap,
-  ]);
-
   useEffect(() => {
     return () => {
       if (localVideoFadeTimeoutRef.current) {
@@ -227,33 +196,16 @@ const CallModal = (props) => {
 
   useEffect(() => {
     if (!callState.isActive) {
-      console.log(
-        `[debug speed] [LocalVideoIntro] reset (call inactive) t=${new Date().toISOString()}`
-      );
       localVideoIntroDoneRef.current = false;
       setIsLocalVideoIntro(false);
       return;
     }
     if (localVideoIntroDoneRef.current || !isLocalVideoActive) {
-      console.log(
-        `[debug speed] [LocalVideoIntro] skip done=${
-          localVideoIntroDoneRef.current
-        } localActive=${isLocalVideoActive} t=${new Date().toISOString()}`
-      );
       return;
     }
-    console.log(
-      `[debug speed] [LocalVideoIntro] start localActive=${isLocalVideoActive} t=${new Date().toISOString()}`
-    );
     localVideoIntroDoneRef.current = true;
     setIsLocalVideoIntro(true);
   }, [callState.isActive, isLocalVideoActive]);
-
-  useEffect(() => {
-    console.log(
-      `[debug speed] [LocalVideoIntro] state intro=${isLocalVideoIntro} fading=${isLocalVideoFading} t=${new Date().toISOString()}`
-    );
-  }, [isLocalVideoIntro, isLocalVideoFading]);
 
   // Helper functions for participant access
   const getOtherParticipants = () => {
@@ -418,34 +370,13 @@ const CallModal = (props) => {
   const stopPreviewStream = () => {
     const stream = previewStreamRef.current;
     if (!stream) {
-      console.log(
-        `[debug speed] [CameraRelease] stopPreviewStream: no preview stream @ ${new Date().toISOString()}`
-      );
       return;
     }
     if (stream === localStreamRef.current) {
-      console.log(
-        `[debug speed] [CameraRelease] stopPreviewStream: preview is active local stream, not stopping tracks @ ${new Date().toISOString()}`
-      );
       previewStreamRef.current = null;
       setIsPreviewing(false);
       return;
     }
-    const tracks = stream.getTracks();
-    console.log(
-      `[debug speed] [CameraRelease] stopPreviewStream: stopping ${
-        tracks.length
-      } tracks @ ${new Date().toISOString()}`
-    );
-    tracks.forEach((track) => {
-      console.log(
-        `[debug speed] [CameraRelease] stopPreviewStream: stopping ${
-          track.kind
-        } id=${track.id} state=${track.readyState} enabled=${
-          track.enabled
-        } @ ${new Date().toISOString()}`
-      );
-    });
     stream.getTracks().forEach((track) => track.stop());
     previewStreamRef.current = null;
     setIsPreviewing(false);
@@ -681,9 +612,6 @@ const CallModal = (props) => {
     // 1:1 video: set "Ongoing call" only when the remote tile is ready.
     // Example: callee joins with camera OFF -> we get a stream first, but must wait
     // for videoEnabled=false before showing header/timer to avoid a brief flash.
-    console.log(
-      "[CallModal] 1:1 remote tile ready, setting status to Ongoing call"
-    );
     ensureStartTime();
     dispatch(setCall({ ...callState, status: "Ongoing call" }));
   }, [callData?.isGroupCall, callData?.isVideoCall, callState, oneToOneRemote]);
@@ -743,9 +671,6 @@ const CallModal = (props) => {
 
     // Group video: end "Waiting..." once any remote tile is ready
     // (e.g., a joiner has camera OFF, so no onPlaying until we receive videoEnabled=false).
-    console.log(
-      "[CallModal] group remote tile ready, setting status to Ongoing call"
-    );
     ensureStartTime();
     dispatch(setCall({ ...callState, status: "Ongoing call" }));
   }, [
@@ -763,9 +688,6 @@ const CallModal = (props) => {
   useEffect(() => {
     // Don't re-attach streams during cleanup (prevents video from reappearing after hangup)
     if (isCleaningUpRef.current) {
-      console.log(
-        "[CallModal] useEffect: Skipping stream attachment (cleanup in progress)"
-      );
       return;
     }
 
@@ -777,10 +699,6 @@ const CallModal = (props) => {
       !localVideoSwapInFlightRef.current &&
       localVideoRef.current.srcObject !== localStreamRef.current
     ) {
-      console.log(
-        "[CallModal] attaching localVideo srcObject @",
-        new Date().toISOString()
-      );
       localVideoRef.current.srcObject = localStreamRef.current;
     }
     if (
@@ -795,10 +713,6 @@ const CallModal = (props) => {
       localStreamRef.current &&
       localAudioRef.current.srcObject !== localStreamRef.current
     ) {
-      console.log(
-        "[CallModal] attaching localAudio srcObject @",
-        new Date().toISOString()
-      );
       localAudioRef.current.srcObject = localStreamRef.current;
     }
 
@@ -814,12 +728,6 @@ const CallModal = (props) => {
         if (!attachedStreamsRef.current.has(userId)) {
           let videoRef = remoteVideoRefsMap.current.get(userId);
           if (videoRef && videoRef.current && stream) {
-            console.log(
-              "[CallModal] attaching group remote video srcObject for user",
-              userId,
-              "@",
-              new Date().toISOString()
-            );
             videoRef.current.srcObject = stream;
             attachedStreamsRef.current.add(userId);
           }
@@ -835,20 +743,12 @@ const CallModal = (props) => {
             remoteVideoRef.current &&
             remoteVideoRef.current.srcObject !== firstRemoteStream
           ) {
-            console.log(
-              "[CallModal] attaching 1:1 remoteVideo srcObject @",
-              new Date().toISOString()
-            );
             remoteVideoRef.current.srcObject = firstRemoteStream;
           }
           if (
             remoteAudioRef.current &&
             remoteAudioRef.current.srcObject !== firstRemoteStream
           ) {
-            console.log(
-              "[CallModal] attaching 1:1 remoteAudio srcObject @",
-              new Date().toISOString()
-            );
             remoteAudioRef.current.srcObject = firstRemoteStream;
           }
         }
@@ -868,38 +768,16 @@ const CallModal = (props) => {
     const chatRef = doc(db, "chats", callData.chatId);
 
     const unsubscribe = onSnapshot(chatRef, (docSnap) => {
-      console.log(
-        `[debug speed] [CallModal] Firestore snapshot received @ ${new Date().toISOString()} chatId=${
-          callData?.chatId
-        }`
-      );
       // Don't process updates if we're cleaning up
       if (isCleaningUpRef.current) {
-        console.log(
-          "[CallModal] Firestore snapshot update ignored (cleanup in progress)"
-        );
         return;
       }
 
       if (!docSnap.exists()) {
-        console.log("[CallModal] Firestore snapshot: document does not exist");
         return;
       }
 
       const callDataFromFirestore = docSnap.data().call;
-      console.log("[CallModal] Firestore snapshot update:", {
-        hasCallData: !!callDataFromFirestore,
-        isActive: callDataFromFirestore?.isActive,
-        callStateIsActive: callState.isActive,
-        isCleaningUp: isCleaningUpRef.current,
-      });
-      console.log(
-        `[CallModal] snapshot @ ${new Date().toISOString()} remoteStreamsSize=${
-          remoteStreamsRef?.current?.size || 0
-        } localVideoSrc=${!!localVideoRef.current
-          ?.srcObject} remoteVideoSrc=${!!remoteVideoRef.current
-          ?.srcObject} callStatus=${callState.status}`
-      );
 
       if (callDataFromFirestore) {
         const startTime =
@@ -920,50 +798,21 @@ const CallModal = (props) => {
           callDataFromFirestore &&
           callDataFromFirestore.isActive === false
         ) {
-          console.log(
-            `[debug speed] [CallModal] remote hangup detected @ ${new Date().toISOString()}`
-          );
           if (localVideoRef.current?.srcObject)
             localVideoRef.current.srcObject = null;
           if (remoteVideoRef.current?.srcObject)
             remoteVideoRef.current.srcObject = null;
-          console.log(
-            "[CallModal] Detected remote participant left in 1:1 call, ending call",
-            `@ ${new Date().toISOString()}`
-          );
 
           // Set cleanup flag FIRST to prevent media `onPlaying` handlers
           // from re-setting the call status to "Ongoing call".
-          console.log(
-            "[CallModal] setting isCleaningUpRef.current = true @",
-            new Date().toISOString()
-          );
           isCleaningUpRef.current = true;
 
           // Show "Call ended" status to user
-          console.log(
-            "[CallModal] dispatching Call ended @",
-            new Date().toISOString(),
-            "previousStatus=",
-            callState.status
-          );
           dispatch(setCall({ ...callState, status: "Call ended" }));
 
           // Clear video elements immediately to stop any further playback events
-          console.log(
-            "[CallModal] clearing video srcObjects @",
-            new Date().toISOString(),
-            {
-              localVideoSrc: !!localVideoRef.current?.srcObject,
-              remoteVideoSrc: !!remoteVideoRef.current?.srcObject,
-            }
-          );
 
           // Run cleanup immediately (match local hangup behavior)
-          console.log(
-            "[CallModal] calling handleLocalCallCleanup() immediately @",
-            new Date().toISOString()
-          );
           handleLocalCallCleanup();
           // setTimeout(() => {
           // }, 1000);
@@ -973,11 +822,6 @@ const CallModal = (props) => {
 
         // Only update state if not cleaning up (prevents jittering)
         if (!isCleaningUpRef.current) {
-          console.log("[CallModal] Updating screenSharingUids state");
-          console.log(
-            "[CallModal] screenSharingUidsFromFirestore",
-            screenSharingUidsFromFirestore
-          );
           setScreenSharingUids(screenSharingUidsFromFirestore);
           setVideoEnabledMap(videoEnabledFromFirestore);
 
@@ -988,22 +832,14 @@ const CallModal = (props) => {
               const remoteUid = otherParticipants[0];
               const remoteIsSharing =
                 !!screenSharingUidsFromFirestore[remoteUid];
-              console.log(
-                `[CallModal] Setting isRemoteScreenSharing: ${remoteIsSharing}`
-              );
               setIsRemoteScreenSharing(remoteIsSharing);
             }
           }
-        } else {
-          console.log(
-            "[CallModal] Skipping state updates (cleanup in progress)"
-          );
         }
       }
     });
 
     return () => {
-      console.log("[CallModal] Cleaning up Firestore listener");
       unsubscribe();
     };
   }, [callData?.chatId]);
@@ -1130,29 +966,15 @@ const CallModal = (props) => {
   };
 
   const handleLocalCallCleanup = async () => {
-    console.log(
-      "[CallModal] handleLocalCallCleanup() called @",
-      new Date().toISOString()
-    );
     // Note: isCleaningUpRef is set to true by hangUp() before calling this
 
-    console.log("[CallModal] Clearing audio elements");
     if (localAudioRef.current) {
-      console.log("[CallModal] Clearing local audio srcObject");
       localAudioRef.current.srcObject = null;
     }
     if (remoteAudioRef.current) {
-      console.log("[CallModal] Clearing remote audio srcObject");
       remoteAudioRef.current.srcObject = null;
     }
 
-    console.log("[CallModal] Calling useWebRTC.cleanupLocalCall()");
-    console.log(
-      "[CallModal] cleanupLocalCall type:",
-      typeof cleanupLocalCall,
-      "is function:",
-      typeof cleanupLocalCall === "function"
-    );
     if (typeof cleanupLocalCall !== "function") {
       console.error(
         "[CallModal] ERROR: cleanupLocalCall is not a function!",
@@ -1163,15 +985,7 @@ const CallModal = (props) => {
     }
 
     try {
-      console.log(
-        "[CallModal] About to await cleanupLocalCall() @",
-        new Date().toISOString()
-      );
       await cleanupLocalCall();
-      console.log(
-        "[CallModal] cleanupLocalCall() completed successfully @",
-        new Date().toISOString()
-      );
     } catch (error) {
       console.error("[CallModal] Error in cleanupLocalCall():", error);
       console.error("[CallModal] Error stack:", error.stack);
@@ -1179,7 +993,6 @@ const CallModal = (props) => {
       // Only reset after cleanup is completely done
       // This prevents multiple simultaneous cleanup calls
       isCleaningUpRef.current = false;
-      console.log("[CallModal] Set isCleaningUpRef.current = false");
     }
   };
 
@@ -1199,53 +1012,22 @@ const CallModal = (props) => {
   };
 
   const hangUp = async () => {
-    console.log("[CallModal] hangUp() called");
-
     // Set cleanup flag IMMEDIATELY to prevent race conditions
     // (useEffect re-attaching streams, onPlaying resetting status)
     isCleaningUpRef.current = true;
-
-    const previewTracks = previewStreamRef.current?.getTracks() || [];
-    const localTracks = localStreamRef.current?.getTracks() || [];
-    console.log(
-      `[debug speed] [CameraRelease] hangUp() media snapshot @ ${new Date().toISOString()} previewTracks=${
-        previewTracks.length
-      } localTracks=${localTracks.length}`
-    );
-    previewTracks.forEach((track) => {
-      console.log(
-        `[debug speed] [CameraRelease] hangUp() preview ${track.kind} id=${track.id} state=${track.readyState} enabled=${track.enabled}`
-      );
-    });
-    localTracks.forEach((track) => {
-      console.log(
-        `[debug speed] [CameraRelease] hangUp() local ${track.kind} id=${track.id} state=${track.readyState} enabled=${track.enabled}`
-      );
-    });
 
     if (!isUserInCall) {
       stopPreviewStream();
     }
 
-    console.log("[CallModal] Current call state:", {
-      isActive: callState.isActive,
-      status: callState.status,
-      participants: callData?.participants,
-      timer: getElapsedSeconds(),
-    });
-
     // Set UI status immediately for user feedback
-    console.log("[CallModal] Setting status to 'Call ended'");
     dispatch(setCall({ ...callState, status: "Call ended" }));
 
     // Clear video elements immediately
-    console.log("[CallModal] Clearing video elements");
     if (localVideoRef.current?.srcObject) {
-      console.log("[CallModal] Clearing local video srcObject");
       localVideoRef.current.srcObject = null;
     }
     if (remoteVideoRef.current?.srcObject) {
-      console.log("[CallModal] Clearing remote video srcObject");
       remoteVideoRef.current.srcObject = null;
     }
     // For group calls, hide the video grid so "Call ended" is visible
@@ -1260,24 +1042,11 @@ const CallModal = (props) => {
           status[uid] = getCallStatus({ uid }, durationSeconds);
         });
       }
-      console.log("[CallModal] Built status object for call history:", status);
 
       // Send call history message
-      console.log("[CallModal] Sending call history message");
-      sendMsg(status, durationSeconds)
-        .then(() => {
-          console.log("[CallModal] Call history message sent successfully");
-        })
-        .catch((error) => {
-          console.error(
-            "[CallModal] Error sending call history message:",
-            error
-          );
-        });
-    } else {
-      console.log(
-        "[CallModal] Group call: system history message handled on call end"
-      );
+      sendMsg(status, durationSeconds).catch((error) => {
+        console.error("[CallModal] Error sending call history message:", error);
+      });
     }
 
     // Let useWebRTC.cleanupLocalCall() handle Firestore updates
@@ -1286,7 +1055,6 @@ const CallModal = (props) => {
     // - Clear screenSharingUids
     // - Set isActive = false and clear callData if no participants left
     // - Clean up peer connections and streams
-    console.log("[CallModal] Calling handleLocalCallCleanup()");
 
     handleLocalCallCleanup().catch((error) => {
       console.error(
@@ -1916,20 +1684,12 @@ const CallModal = (props) => {
                           // Determine if we need to update srcObject
                           // Only update if element exists, stream exists, AND it's different
                           if (el && stream && el.srcObject !== stream) {
-                            console.log(
-                              `[CallModal] Setting srcObject for user ${userId} (preventing flicker)`
-                            );
                             el.srcObject = stream;
                           }
                         }}
                         autoPlay
                         playsInline
                         onPlaying={() => {
-                          console.log(
-                            `[CallModal][onPlaying][group] ${new Date().toISOString()} user=${userId} isCleaningUp=${
-                              isCleaningUpRef.current
-                            } callStatusBefore=${callState.status}`
-                          );
                           markRemoteFrameReady(userId, videoRef?.current);
                         }}
                         style={{
@@ -1999,9 +1759,6 @@ const CallModal = (props) => {
                   ref={(el) => {
                     // Only update srcObject if different
                     if (el && stream && el.srcObject !== stream) {
-                      console.log(
-                        `[CallModal] Setting audio srcObject for user ${userId}`
-                      );
                       el.srcObject = stream;
                     }
                   }}
@@ -2116,15 +1873,6 @@ const CallModal = (props) => {
                         zIndex: 1,
                       }}
                       onPlaying={() => {
-                        console.log(
-                          `[CallModal][onPlaying][1:1] ${new Date().toISOString()} isCleaningUp=${
-                            isCleaningUpRef.current
-                          } localVideoSrc=${!!localVideoRef.current
-                            ?.srcObject} remoteVideoSrc=${!!remoteVideoRef
-                            .current?.srcObject} callStatusBefore=${
-                            callState.status
-                          }`
-                        );
                         if (remoteUid) {
                           markRemoteFrameReady(
                             remoteUid,
@@ -2219,9 +1967,6 @@ const CallModal = (props) => {
             muted
             onPlaying={() => {
               if (isLocalVideoIntro) {
-                console.log(
-                  `[debug speed] [LocalVideoIntro] local video onPlaying -> end t=${new Date().toISOString()}`
-                );
                 setIsLocalVideoIntro(false);
               }
             }}
@@ -2345,9 +2090,6 @@ const CallModal = (props) => {
                   key={`audio-${userId}`}
                   ref={(el) => {
                     if (el && stream && el.srcObject !== stream) {
-                      console.log(
-                        `[CallModal] Setting audio srcObject for user ${userId}`
-                      );
                       el.srcObject = stream;
                     }
                   }}

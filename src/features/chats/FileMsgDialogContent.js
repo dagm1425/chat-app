@@ -108,7 +108,7 @@ function FileMsgDialogContent({
         updateProgress(msgRef, progress, uploadTask);
       },
       (error) => {
-        console.log("There was a problem uploading the file", error);
+        console.error("There was a problem uploading the file", error);
       },
       () => {
         getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
