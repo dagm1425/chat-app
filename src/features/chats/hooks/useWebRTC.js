@@ -968,6 +968,7 @@ const useWebRTC = (db) => {
 
       // Capture chatId before clearing Redux state
       const chatId = callState.callData?.chatId;
+      let shouldDeleteAllSignals = false;
 
       // 6. Remove self from participants and cleanup Firestore
       if (chatId) {
@@ -1023,6 +1024,7 @@ const useWebRTC = (db) => {
                   `[debug speed] [useWebRTC][CallEnd] write completed @ ${new Date().toISOString()} chatId=${chatId}`
                 );
                 console.log("[useWebRTC] Call closed in Firestore");
+                shouldDeleteAllSignals = true;
                 if (callData.isGroupCall) {
                   sendGroupCallSystemMsg(chatRef, chatData, callData).catch(
                     (error) => {
@@ -1148,8 +1150,15 @@ const useWebRTC = (db) => {
 
       console.log("[useWebRTC] Redux state cleared, Firestore already updated");
 
-      // 7. Clean up signals subcollection
-      if (chatId) {
+      // 7. Clean up signals subcollection only when call has ended.
+      // If the call is still active, deleting all signals can disrupt remaining participants.
+      if (!chatId) {
+        console.log("[useWebRTC] No chatId, skipping signal cleanup");
+      } else if (!shouldDeleteAllSignals) {
+        console.log(
+          "[useWebRTC] Step 7 skipped: call remains active, keeping shared signals"
+        );
+      } else {
         console.log("[useWebRTC] Step 7: Cleaning up signals subcollection");
         try {
           const signalsRef = collection(db, "chats", chatId, "signals");
@@ -1175,8 +1184,6 @@ const useWebRTC = (db) => {
         } catch (error) {
           console.error("[useWebRTC] Error cleaning up signals:", error);
         }
-      } else {
-        console.log("[useWebRTC] No chatId, skipping signal cleanup");
       }
 
       console.log("[useWebRTC] cleanupLocalCall() completed");

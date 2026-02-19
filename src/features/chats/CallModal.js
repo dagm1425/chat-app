@@ -317,10 +317,14 @@ const CallModal = (props) => {
     const hasRemoteStream = remoteStreamsArray.some(
       ([userId]) => userId === remoteUid
     );
-    const isRemoteTileReady =
-      hasRemoteStream &&
-      hasRemoteVideoFlag &&
-      (isRemoteVideoEnabled ? readyRemoteStreamIds.has(remoteUid) : true);
+    let isRemoteTileReady = false;
+    if (hasRemoteStream) {
+      if (hasRemoteVideoFlag && isRemoteVideoEnabled === false) {
+        isRemoteTileReady = true;
+      } else {
+        isRemoteTileReady = readyRemoteStreamIds.has(remoteUid);
+      }
+    }
 
     return {
       remoteUid,
