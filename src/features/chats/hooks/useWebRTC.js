@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState } from "react";
 import {
   onSnapshot,
   collection,
@@ -45,9 +45,9 @@ const useWebRTC = (db) => {
   // Track stream changes to notify CallModal when streams are added/removed
   // This is more efficient than polling - only triggers re-renders when streams actually change
   const [streamsVersion, setStreamsVersion] = useState(0);
-  const forceRender = useCallback(() => {
+  const forceRender = () => {
     setStreamsVersion((v) => v + 1);
-  }, []);
+  };
 
   const configuration = {
     iceServers: [
@@ -66,133 +66,130 @@ const useWebRTC = (db) => {
     return { ...data, startTime };
   };
 
-  const createPeerConnection = useCallback(
-    async (targetUserId, chatId, stream) => {
-      if (peerConnectionsRef.current.has(targetUserId)) {
-        const existingPc = peerConnectionsRef.current.get(targetUserId);
-        const existingAgeMs = existingPc?.__createdAt
-          ? Date.now() - existingPc.__createdAt
-          : null;
-        console.warn(
-          `[debug speed] [RejoinFlow] [L48] Already have a connection for ${targetUserId} state=${existingPc?.connectionState} signaling=${existingPc?.signalingState} ageMs=${existingAgeMs}`
+  const createPeerConnection = async (targetUserId, chatId, stream) => {
+    if (peerConnectionsRef.current.has(targetUserId)) {
+      const existingPc = peerConnectionsRef.current.get(targetUserId);
+      const existingAgeMs = existingPc?.__createdAt
+        ? Date.now() - existingPc.__createdAt
+        : null;
+      console.warn(
+        `[debug speed] [RejoinFlow] [L48] Already have a connection for ${targetUserId} state=${existingPc?.connectionState} signaling=${existingPc?.signalingState} ageMs=${existingAgeMs}`
+      );
+      return existingPc;
+    }
+
+    console.log(
+      `[L53] Creating new RTCPeerConnection for targetUserId: ${targetUserId}`
+    );
+    const pc = new RTCPeerConnection(configuration);
+    pc.__createdAt = Date.now();
+    peerConnectionsRef.current.set(targetUserId, pc);
+    console.log(
+      `[debug speed] [RejoinFlow] [L55] PeerConnection created and stored. Current PC count: ${peerConnectionsRef.current.size} createdAt=${pc.__createdAt}`
+    );
+
+    // Add local tracks to this new connection
+    if (stream) {
+      stream.getTracks().forEach((track) => {
+        pc.addTrack(track, stream);
+      });
+    }
+
+    // Handle ICE candidates
+    pc.onicecandidate = async (event) => {
+      if (event.candidate) {
+        const offerId = pc.__offerId;
+        if (!offerId) {
+          console.log(
+            `[debug speed] [RejoinFlow] [ICE] Missing offerId for ${targetUserId}, skipping candidate`
+          );
+          return;
+        }
+        console.log(
+          `[L67] ICE candidate generated for ${targetUserId}, sending to Firestore`
         );
-        return existingPc;
+        const signalsRef = collection(db, "chats", chatId, "signals");
+        await addDoc(signalsRef, {
+          type: "candidate",
+          from: user.uid,
+          to: targetUserId,
+          offerId,
+          payload: event.candidate.toJSON(),
+        });
+        console.log(
+          `[L73] ICE candidate sent to Firestore for ${targetUserId}`
+        );
+      } else {
+        console.log(
+          `[L65] ICE candidate gathering complete for ${targetUserId}`
+        );
+      }
+    };
+
+    // Handle incoming tracks
+    pc.ontrack = (event) => {
+      console.log(
+        `[L77] ontrack event received from ${targetUserId}, track kind: ${event.track.kind}`
+      );
+      // Get existing stream or create new one
+      let remoteStream = remoteStreamsRef.current.get(targetUserId);
+      if (!remoteStream) {
+        console.log(`[L81] Creating new MediaStream for ${targetUserId}`);
+        remoteStream = new MediaStream();
+        remoteStreamsRef.current.set(targetUserId, remoteStream);
       }
 
-      console.log(
-        `[L53] Creating new RTCPeerConnection for targetUserId: ${targetUserId}`
-      );
-      const pc = new RTCPeerConnection(configuration);
-      pc.__createdAt = Date.now();
-      peerConnectionsRef.current.set(targetUserId, pc);
-      console.log(
-        `[debug speed] [RejoinFlow] [L55] PeerConnection created and stored. Current PC count: ${peerConnectionsRef.current.size} createdAt=${pc.__createdAt}`
-      );
+      // Add tracks that aren't already in the stream
+      event.streams[0].getTracks().forEach((track) => {
+        const existingTrack = remoteStream
+          .getTracks()
+          .find((t) => t.id === track.id);
+        if (!existingTrack) {
+          console.log(
+            `[L91] Adding ${track.kind} track to remote stream for ${targetUserId}`
+          );
+          remoteStream.addTrack(track);
+        }
+        track.onended = () => {
+          if (remoteStream.getTracks().find((t) => t.id === track.id)) {
+            remoteStream.removeTrack(track);
+            forceRender();
+          }
+        };
+      });
 
-      // Add local tracks to this new connection
-      if (stream) {
-        stream.getTracks().forEach((track) => {
-          pc.addTrack(track, stream);
-        });
+      forceRender(); // Trigger re-render to show new video
+    };
+
+    // Handle connection state changes (cleanup if disconnected)
+    pc.onconnectionstatechange = () => {
+      const pcAgeMs = pc.__createdAt ? Date.now() - pc.__createdAt : null;
+      const mappedPc = peerConnectionsRef.current.get(targetUserId);
+      console.log(
+        `[debug speed] [RejoinFlow] [L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}, ageMs=${pcAgeMs}`
+      );
+      if (
+        pc.connectionState === "disconnected" ||
+        pc.connectionState === "failed" ||
+        pc.connectionState === "closed"
+      ) {
+        // Guard against stale callbacks from older RTCPeerConnection instances.
+        // Without this, a late event from an old PC can delete the current active
+        // connection/stream for the same userId and trigger false "reconnecting" UI.
+        if (mappedPc !== pc) {
+          return;
+        }
+        console.log(
+          `[debug speed] [RejoinFlow] [Reconnect] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}, ageMs=${pcAgeMs}`
+        );
+        remoteStreamsRef.current.delete(targetUserId);
+        peerConnectionsRef.current.delete(targetUserId);
+        forceRender();
       }
+    };
 
-      // Handle ICE candidates
-      pc.onicecandidate = async (event) => {
-        if (event.candidate) {
-          const offerId = pc.__offerId;
-          if (!offerId) {
-            console.log(
-              `[debug speed] [RejoinFlow] [ICE] Missing offerId for ${targetUserId}, skipping candidate`
-            );
-            return;
-          }
-          console.log(
-            `[L67] ICE candidate generated for ${targetUserId}, sending to Firestore`
-          );
-          const signalsRef = collection(db, "chats", chatId, "signals");
-          await addDoc(signalsRef, {
-            type: "candidate",
-            from: user.uid,
-            to: targetUserId,
-            offerId,
-            payload: event.candidate.toJSON(),
-          });
-          console.log(
-            `[L73] ICE candidate sent to Firestore for ${targetUserId}`
-          );
-        } else {
-          console.log(
-            `[L65] ICE candidate gathering complete for ${targetUserId}`
-          );
-        }
-      };
-
-      // Handle incoming tracks
-      pc.ontrack = (event) => {
-        console.log(
-          `[L77] ontrack event received from ${targetUserId}, track kind: ${event.track.kind}`
-        );
-        // Get existing stream or create new one
-        let remoteStream = remoteStreamsRef.current.get(targetUserId);
-        if (!remoteStream) {
-          console.log(`[L81] Creating new MediaStream for ${targetUserId}`);
-          remoteStream = new MediaStream();
-          remoteStreamsRef.current.set(targetUserId, remoteStream);
-        }
-
-        // Add tracks that aren't already in the stream
-        event.streams[0].getTracks().forEach((track) => {
-          const existingTrack = remoteStream
-            .getTracks()
-            .find((t) => t.id === track.id);
-          if (!existingTrack) {
-            console.log(
-              `[L91] Adding ${track.kind} track to remote stream for ${targetUserId}`
-            );
-            remoteStream.addTrack(track);
-          }
-          track.onended = () => {
-            if (remoteStream.getTracks().find((t) => t.id === track.id)) {
-              remoteStream.removeTrack(track);
-              forceRender();
-            }
-          };
-        });
-
-        forceRender(); // Trigger re-render to show new video
-      };
-
-      // Handle connection state changes (cleanup if disconnected)
-      pc.onconnectionstatechange = () => {
-        const pcAgeMs = pc.__createdAt ? Date.now() - pc.__createdAt : null;
-        const mappedPc = peerConnectionsRef.current.get(targetUserId);
-        console.log(
-          `[debug speed] [RejoinFlow] [L99] PC connection state changed for ${targetUserId}: ${pc.connectionState}, signalingState: ${pc.signalingState}, ageMs=${pcAgeMs}`
-        );
-        if (
-          pc.connectionState === "disconnected" ||
-          pc.connectionState === "failed" ||
-          pc.connectionState === "closed"
-        ) {
-          // Guard against stale callbacks from older RTCPeerConnection instances.
-          // Without this, a late event from an old PC can delete the current active
-          // connection/stream for the same userId and trigger false "reconnecting" UI.
-          if (mappedPc !== pc) {
-            return;
-          }
-          console.log(
-            `[debug speed] [RejoinFlow] [Reconnect] Cleaning up PC for ${targetUserId} due to state: ${pc.connectionState}, ageMs=${pcAgeMs}`
-          );
-          remoteStreamsRef.current.delete(targetUserId);
-          peerConnectionsRef.current.delete(targetUserId);
-          forceRender();
-        }
-      };
-
-      return pc;
-    },
-    [db, user.uid, forceRender]
-  );
+    return pc;
+  };
 
   const startCall = async (chat, isAudioCall) => {
     console.log(
