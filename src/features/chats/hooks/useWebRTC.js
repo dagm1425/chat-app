@@ -474,24 +474,8 @@ const useWebRTC = (db) => {
       }
 
       const isVideoCall = callData.isVideoCall || false;
-      const wasMarkedScreenSharing =
+      const shouldClearStaleScreenSharing =
         !!chatSnapshot.data()?.call?.screenSharingUids?.[user.uid];
-      if (wasMarkedScreenSharing) {
-        // Refresh/rejoin scenario: OS/browser always ends display capture on refresh,
-        // so a persisted screenSharingUids.<uid>=true is stale and makes peers render
-        // the remote tile as "video/share on" instead of avatar when camera intent is off.
-        // Clear it before negotiation so remote UI state matches real media tracks.
-        try {
-          await updateDoc(chatRef, {
-            [`call.screenSharingUids.${user.uid}`]: deleteField(),
-          });
-        } catch (error) {
-          console.warn(
-            "[useWebRTC] joinCall failed to clear stale screenSharingUids flag:",
-            error
-          );
-        }
-      }
 
       // Get stream based on call type (reuse preview stream if available)
       const hasLivePreview =
@@ -530,41 +514,51 @@ const useWebRTC = (db) => {
       localStreamRef.current = localStream;
 
       const currentParticipants = callData.participants || [];
+      const shouldAddSelfToParticipants = !currentParticipants.includes(
+        user.uid
+      );
+      const updatedParticipants = shouldAddSelfToParticipants
+        ? [...currentParticipants, user.uid]
+        : currentParticipants;
+      const pendingCallUpdates = {};
 
-      subscribeToSignals(chatId);
-      subscribeToParticipants(chatId, localStream);
-
-      // 1. Initiate connections to everyone CURRENTLY in the list
-      await initiateConnectionsToExistingParticipants(chatId, localStream);
-
-      // 2. Add self to participants and participantDetails using a canonical variable
-      let updatedParticipants = currentParticipants;
-      if (!updatedParticipants.includes(user.uid)) {
-        updatedParticipants = [...currentParticipants, user.uid];
-
-        await updateDoc(chatRef, {
-          [`call.callData.participants`]: updatedParticipants,
-        });
-
+      if (shouldAddSelfToParticipants) {
+        pendingCallUpdates["call.callData.participants"] = updatedParticipants;
         // Set startTime when first participant joins (for call duration timer)
         // Only set if not already set (to preserve original start time in group calls)
         if (!callData.startTime) {
-          await updateDoc(chatRef, {
-            "call.callData.startTime": serverTimestamp(),
-          });
+          pendingCallUpdates["call.callData.startTime"] = serverTimestamp();
         }
       }
 
       if (isVideoCall) {
         const desiredVideoEnabled = !!initialVideoEnabled;
         const currentVideoEnabled = callData.videoEnabled?.[user.uid];
-        // Only write if currentVideoEnabled differs (e.g., refresh/reconnect/other tab could already set it to true).
+        // Only write if currentVideoEnabled differs (e.g., refresh/reconnect/other tab could already set it).
         if (currentVideoEnabled !== desiredVideoEnabled) {
-          await updateDoc(chatRef, {
-            [`call.callData.videoEnabled.${user.uid}`]: desiredVideoEnabled,
-          });
+          pendingCallUpdates[`call.callData.videoEnabled.${user.uid}`] =
+            desiredVideoEnabled;
         }
       }
+
+      if (shouldClearStaleScreenSharing) {
+        pendingCallUpdates[`call.screenSharingUids.${user.uid}`] =
+          deleteField();
+      }
+
+      subscribeToSignals(chatId);
+      subscribeToParticipants(chatId, localStream);
+
+      const hasPendingCallUpdates = Object.keys(pendingCallUpdates).length > 0;
+      if (hasPendingCallUpdates) {
+        // Fire-and-forget metadata sync; signaling starts immediately.
+        void updateDoc(chatRef, pendingCallUpdates).catch((error) => {
+          console.warn("[useWebRTC] joinCall metadata update failed:", error);
+        });
+      }
+
+      // 1. Initiate connections to everyone CURRENTLY in the list
+      await initiateConnectionsToExistingParticipants(chatId, localStream);
 
       // Construct updated callData for Redux (mirror Firestore)
       const updatedCallData = {
