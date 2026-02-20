@@ -195,7 +195,7 @@ const CallModal = (props) => {
     : preJoinVideoEnabled;
   const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
   // Include video-off participants so group tiles render even without onPlaying.
-  // amend this comment because we're using dummy track to trigger ongoing call with callee starting with video off// Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
+  // Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
   const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) => {
     const hasVideoFlag = Object.prototype.hasOwnProperty.call(
       videoEnabledMap,
@@ -372,20 +372,6 @@ const CallModal = (props) => {
   const muteControlOpacity = isMuteControlDisabled ? 0.4 : 1;
   const shouldShowVideoToggle =
     !isInitiator() || isOngoingCall || isConnectingCall || isRejoinCall;
-
-  // const hideCenterHeaderForGroup =
-  //   callData?.isGroupCall &&
-  //   readyRemoteStreamsArray.length > 0 &&
-  //   callState.status !== "Call ended";
-  // const hideCenterHeaderForOneToOneVideo =
-  //   callData?.isVideoCall &&
-  //   !callData?.isGroupCall &&
-  //   isOngoingCall &&
-  //   oneToOneRemote.remoteTileReady;
-  // const centerHeaderDisplay =
-  //   hideCenterHeaderForGroup || hideCenterHeaderForOneToOneVideo
-  //     ? "none"
-  //     : "flex";
 
   const stopPreviewStream = () => {
     const stream = previewStreamRef.current;
@@ -823,17 +809,12 @@ const CallModal = (props) => {
           // from re-setting the call status to "Ongoing call".
           isCleaningUpRef.current = true;
 
-          // Show "Call ended" status to user
           dispatch(setCall({ ...callState, status: "Call ended" }));
-
-          // Clear video elements immediately to stop any further playback events
 
           // Run cleanup immediately (match local hangup behavior)
           handleLocalCallCleanup();
-          // setTimeout(() => {
-          // }, 1000);
 
-          return; // Don't process further updates
+          return;
         }
 
         // Only update state if not cleaning up (prevents jittering)
@@ -859,40 +840,6 @@ const CallModal = (props) => {
       unsubscribe();
     };
   }, [callData?.chatId]);
-
-  // useEffect(() => {
-  //   if (!callData?.chatId) return;
-
-  //   const chatRef = doc(db, "chats", callData.chatId);
-
-  //   const unsubscribe = onSnapshot(chatRef, (docSnap) => {
-  //     const callDataFromFirestore = docSnap.data().call;
-
-  //     if (callDataFromFirestore) {
-  //       const isGroupCall = callData?.isGroupCall || false;
-
-  //       if (
-  //         !isGroupCall &&
-  //         !isCleaningUpRef.current &&
-  //         callState.isActive === true &&
-  //         callDataFromFirestore.isActive === false
-  //       ) {
-  //         if (localVideoRef.current?.srcObject)
-  //           localVideoRef.current.srcObject = null;
-  //         if (remoteVideoRef.current?.srcObject)
-  //           remoteVideoRef.current.srcObject = null;
-
-  //         isCleaningUpRef.current = true;
-
-  //         dispatch(setCall({ ...callState, status: "Call ended" }));
-  //       }
-  //     }
-  //   });
-
-  //   return () => {
-  //     unsubscribe();
-  //   };
-  // }, [callData?.chatId]);
 
   useEffect(() => {
     if (!callState.isActive) {

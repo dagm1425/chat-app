@@ -500,9 +500,9 @@ const useWebRTC = (db) => {
           return;
         }
       }
-      // On join we still need a video sender so remote frame/onPlaying readiness
-      // logic (used to transition call UI to "Ongoing call", especially in group)
-      // can proceed predictably.
+      // dummyTrack is used to keep a video sender/transceiver even when user joins with camera OFF,
+      // so later camera/screen-share replaceTrack flows can work reliably
+      // without renegotiation. It doesn't trigger onPlaying thus not used to set ongoing call.
       if (
         isVideoCall &&
         !initialVideoEnabled &&
