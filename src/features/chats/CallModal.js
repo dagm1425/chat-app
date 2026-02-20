@@ -176,7 +176,6 @@ const CallModal = (props) => {
   const remoteVideoRefsMap = useRef(new Map());
   // const timeoutStatusMsg = useRef(null);
   const isCleaningUpRef = useRef(false);
-  const dummyVideoTrackRef = useRef(null);
   const isTogglingVideoRef = useRef(false);
   const pendingFrameReadyRef = useRef(new Set());
   const isMobile = useMediaQuery("(max-width:600px)");
@@ -389,28 +388,6 @@ const CallModal = (props) => {
     if (localVideoRef.current?.srcObject === stream) {
       localVideoRef.current.srcObject = null;
     }
-  };
-
-  const getDummyVideoTrack = () => {
-    if (
-      dummyVideoTrackRef.current &&
-      dummyVideoTrackRef.current.readyState !== "ended"
-    ) {
-      return dummyVideoTrackRef.current;
-    }
-
-    const canvas = document.createElement("canvas");
-    canvas.width = 640;
-    canvas.height = 360;
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.fillStyle = "#000";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-    const stream = canvas.captureStream(5);
-    const track = stream.getVideoTracks()[0];
-    dummyVideoTrackRef.current = track;
-    return track;
   };
 
   const updateVideoEnabled = async (enabled) => {
