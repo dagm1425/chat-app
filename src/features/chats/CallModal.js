@@ -67,6 +67,29 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 const CallDuration = memo(CallDurationBase);
 const NO_ANSWER_AUTO_HANGUP_MS = 30000;
 const RECONNECT_AUTO_HANGUP_MS = 20000;
+const isRemoteParticipantReadyForOngoing = ({
+  participantUid,
+  remoteStreamPresent,
+  videoPreferenceByUid,
+  screenShareByUid,
+  readyStreamIds,
+}) => {
+  if (!participantUid) return false;
+
+  const hasVideoPreference = Object.prototype.hasOwnProperty.call(
+    videoPreferenceByUid,
+    participantUid
+  );
+  if (!hasVideoPreference) return false;
+
+  const shouldRenderVideo =
+    videoPreferenceByUid[participantUid] !== false ||
+    !!screenShareByUid[participantUid];
+
+  return shouldRenderVideo
+    ? readyStreamIds.has(participantUid)
+    : remoteStreamPresent;
+};
 
 const ReconnectingBadge = ({ sx = {} }) => (
   <Box
@@ -238,10 +261,10 @@ const CallModal = (props) => {
     if (callData?.isGroupCall) {
       return {
         remoteUid: null,
-        hasRemoteVideoFlag: false,
-        isRemoteVideoEnabled: null,
-        hasRemoteStream: false,
-        isRemoteTileReady: false,
+        hasRemoteVideoPreference: false,
+        shouldRenderRemoteVideo: null,
+        remoteStreamPresent: false,
+        remoteTileReady: false,
       };
     }
 
@@ -252,38 +275,37 @@ const CallModal = (props) => {
     if (!remoteUid) {
       return {
         remoteUid: null,
-        hasRemoteVideoFlag: false,
-        isRemoteVideoEnabled: null,
-        hasRemoteStream: false,
-        isRemoteTileReady: false,
+        hasRemoteVideoPreference: false,
+        shouldRenderRemoteVideo: null,
+        remoteStreamPresent: false,
+        remoteTileReady: false,
       };
     }
 
-    const hasRemoteVideoFlag = Object.prototype.hasOwnProperty.call(
+    const hasRemoteVideoPreference = Object.prototype.hasOwnProperty.call(
       videoEnabledMap,
       remoteUid
     );
-    const isRemoteVideoEnabled = hasRemoteVideoFlag
+    const shouldRenderRemoteVideo = hasRemoteVideoPreference
       ? videoEnabledMap[remoteUid] !== false || !!screenSharingUids[remoteUid]
       : null;
-    const hasRemoteStream = remoteStreamsArray.some(
+    const remoteStreamPresent = remoteStreamsArray.some(
       ([userId]) => userId === remoteUid
     );
-    let isRemoteTileReady = false;
-    if (hasRemoteStream) {
-      if (hasRemoteVideoFlag && isRemoteVideoEnabled === false) {
-        isRemoteTileReady = true;
-      } else {
-        isRemoteTileReady = readyRemoteStreamIds.has(remoteUid);
-      }
-    }
+    const remoteTileReady = isRemoteParticipantReadyForOngoing({
+      participantUid: remoteUid,
+      remoteStreamPresent,
+      videoPreferenceByUid: videoEnabledMap,
+      screenShareByUid: screenSharingUids,
+      readyStreamIds: readyRemoteStreamIds,
+    });
 
     return {
       remoteUid,
-      hasRemoteVideoFlag,
-      isRemoteVideoEnabled,
-      hasRemoteStream,
-      isRemoteTileReady,
+      hasRemoteVideoPreference,
+      shouldRenderRemoteVideo,
+      remoteStreamPresent,
+      remoteTileReady,
     };
   }, [
     callData?.isGroupCall,
@@ -298,22 +320,20 @@ const CallModal = (props) => {
   const isOneToOneRemoteVideoStreaming =
     !callData?.isGroupCall &&
     !!oneToOneRemote.remoteUid &&
-    oneToOneRemote.isRemoteVideoEnabled === true &&
+    oneToOneRemote.shouldRenderRemoteVideo === true &&
     readyRemoteStreamIds.has(oneToOneRemote.remoteUid);
   const isGroupTwoParticipantVideoStreaming = (() => {
     if (!callData?.isGroupCall) return false;
     if (remoteStreamsArray.length !== 1) return false;
     const remoteUid = remoteStreamsArray[0]?.[0];
     if (!remoteUid) return false;
-    const hasRemoteVideoFlag = Object.prototype.hasOwnProperty.call(
-      videoEnabledMap,
-      remoteUid
-    );
-    if (!hasRemoteVideoFlag) return false;
-    const isRemoteVideoEnabled =
-      videoEnabledMap[remoteUid] !== false || !!screenSharingUids[remoteUid];
-    if (!isRemoteVideoEnabled) return false;
-    return readyRemoteStreamIds.has(remoteUid);
+    return isRemoteParticipantReadyForOngoing({
+      participantUid: remoteUid,
+      remoteStreamPresent: true,
+      videoPreferenceByUid: videoEnabledMap,
+      screenShareByUid: screenSharingUids,
+      readyStreamIds: readyRemoteStreamIds,
+    });
   })();
   const isDarkControlBg =
     isOngoingCall &&
@@ -361,7 +381,7 @@ const CallModal = (props) => {
   //   callData?.isVideoCall &&
   //   !callData?.isGroupCall &&
   //   isOngoingCall &&
-  //   oneToOneRemote.isRemoteTileReady;
+  //   oneToOneRemote.remoteTileReady;
   // const centerHeaderDisplay =
   //   hideCenterHeaderForGroup || hideCenterHeaderForOneToOneVideo
   //     ? "none"
@@ -605,9 +625,8 @@ const CallModal = (props) => {
       callState.status === "Call ended"
     )
       return;
-    if (!oneToOneRemote.remoteUid) return;
-    if (!oneToOneRemote.hasRemoteStream) return;
-    if (!oneToOneRemote.isRemoteTileReady) return;
+    // remoteTileReady is a strict gate and already implies remote uid/stream.
+    if (!oneToOneRemote.remoteTileReady) return;
 
     // 1:1 video: set "Ongoing call" only when the remote tile is ready.
     // Example: callee joins with camera OFF -> we get a stream first, but must wait
@@ -652,20 +671,15 @@ const CallModal = (props) => {
       return;
     if (remoteStreamsArray.length === 0) return;
 
-    const anyTileReady = remoteStreamsArray.some(([userId]) => {
-      const hasVideoFlag = Object.prototype.hasOwnProperty.call(
-        videoEnabledMap,
-        userId
-      );
-      const isVideoEnabled = hasVideoFlag
-        ? videoEnabledMap[userId] !== false || !!screenSharingUids[userId]
-        : null;
-
-      if (isVideoEnabled === false) {
-        return true;
-      }
-      return readyRemoteStreamIds.has(userId);
-    });
+    const anyTileReady = remoteStreamsArray.some(([userId]) =>
+      isRemoteParticipantReadyForOngoing({
+        participantUid: userId,
+        remoteStreamPresent: true,
+        videoPreferenceByUid: videoEnabledMap,
+        screenShareByUid: screenSharingUids,
+        readyStreamIds: readyRemoteStreamIds,
+      })
+    );
 
     if (!anyTileReady) return;
 
@@ -760,6 +774,8 @@ const CallModal = (props) => {
     remoteStreamsArray, // This updates when streams are detected
     callData?.isGroupCall,
     isLocalVideoActive,
+    screenSharingUids,
+    videoEnabledMap,
   ]);
 
   useEffect(() => {
@@ -1652,30 +1668,42 @@ const CallModal = (props) => {
                     participantInfo?.displayName?.split(" ")[0] ||
                     "Participant";
                   const isThisUserSharing = !!screenSharingUids[userId];
-                  const hasVideoFlag = Object.prototype.hasOwnProperty.call(
-                    videoEnabledMap,
-                    userId
-                  );
-                  const isVideoEnabled =
-                    videoEnabledMap[userId] !== false || isThisUserSharing;
-                  const isVideoOff = hasVideoFlag && !isVideoEnabled;
-                  const isReady =
-                    readyRemoteStreamIds.has(userId) || isVideoOff;
+                  const hasVideoPreference =
+                    Object.prototype.hasOwnProperty.call(
+                      videoEnabledMap,
+                      userId
+                    );
+                  const isVideoEnabled = hasVideoPreference
+                    ? videoEnabledMap[userId] !== false || isThisUserSharing
+                    : false;
+                  const isVideoOff = hasVideoPreference && !isVideoEnabled;
+                  const isReady = isRemoteParticipantReadyForOngoing({
+                    participantUid: userId,
+                    remoteStreamPresent: true,
+                    videoPreferenceByUid: videoEnabledMap,
+                    screenShareByUid: screenSharingUids,
+                    readyStreamIds: readyRemoteStreamIds,
+                  });
+                  const shouldShowParticipantTile = isOngoingCall && isReady;
 
                   return (
                     <Box
                       key={userId}
                       sx={{
-                        position: isReady ? "relative" : "absolute",
-                        top: isReady ? "auto" : 0,
-                        left: isReady ? "auto" : 0,
-                        width: isReady ? "100%" : "1px",
-                        height: isReady ? "100%" : "1px",
+                        position: shouldShowParticipantTile
+                          ? "relative"
+                          : "absolute",
+                        top: shouldShowParticipantTile ? "auto" : 0,
+                        left: shouldShowParticipantTile ? "auto" : 0,
+                        width: shouldShowParticipantTile ? "100%" : "1px",
+                        height: shouldShowParticipantTile ? "100%" : "1px",
                         backgroundColor: "#1a1a1a",
                         borderRadius: "4px",
                         overflow: "hidden",
-                        opacity: isReady ? 1 : 0,
-                        pointerEvents: isReady ? "auto" : "none",
+                        opacity: shouldShowParticipantTile ? 1 : 0,
+                        pointerEvents: shouldShowParticipantTile
+                          ? "auto"
+                          : "none",
                       }}
                     >
                       <video
@@ -1693,12 +1721,25 @@ const CallModal = (props) => {
                           markRemoteFrameReady(userId, videoRef?.current);
                         }}
                         style={{
-                          width: isVideoEnabled ? "100%" : "1px",
-                          height: isVideoEnabled ? "100%" : "1px",
+                          width:
+                            shouldShowParticipantTile && isVideoEnabled
+                              ? "100%"
+                              : "1px",
+                          height:
+                            shouldShowParticipantTile && isVideoEnabled
+                              ? "100%"
+                              : "1px",
                           objectFit: isThisUserSharing ? "contain" : "cover",
-                          opacity: isVideoEnabled ? 1 : 0,
-                          position: isVideoEnabled ? "static" : "absolute",
-                          pointerEvents: isVideoEnabled ? "auto" : "none",
+                          opacity:
+                            shouldShowParticipantTile && isVideoEnabled ? 1 : 0,
+                          position:
+                            shouldShowParticipantTile && isVideoEnabled
+                              ? "static"
+                              : "absolute",
+                          pointerEvents:
+                            shouldShowParticipantTile && isVideoEnabled
+                              ? "auto"
+                              : "none",
                         }}
                       />
                       {isVideoEnabled ? (
@@ -1773,8 +1814,8 @@ const CallModal = (props) => {
             <>
               {(() => {
                 const remoteUid = oneToOneRemote.remoteUid;
-                const isRemoteVideoEnabled =
-                  oneToOneRemote.isRemoteVideoEnabled;
+                const shouldRenderRemoteVideo =
+                  oneToOneRemote.shouldRenderRemoteVideo;
                 const remoteInfo = getParticipantInfo(remoteUid);
                 const remoteName =
                   remoteInfo?.displayName?.split(" ")[0] || "Unknown";
@@ -1820,7 +1861,7 @@ const CallModal = (props) => {
                       </Box>
                       {isReconnecting && <ReconnectingBadge />}
                     </Box>
-                    {isRemoteVideoEnabled === false && (
+                    {shouldRenderRemoteVideo === false && (
                       <Box
                         sx={{
                           position: "absolute",
@@ -1862,12 +1903,12 @@ const CallModal = (props) => {
                         transform: "scaleX(1)",
                         borderRadius: 0,
                         display:
-                          isOngoingCall && isRemoteVideoEnabled
+                          isOngoingCall && shouldRenderRemoteVideo
                             ? "block"
                             : "none",
                         // opacity:
-                        //   isRemoteVideoEnabled === true &&
-                        //   oneToOneRemote.isRemoteTileReady
+                        //   shouldRenderRemoteVideo === true &&
+                        //   oneToOneRemote.remoteTileReady
                         //     ? 1
                         //     : 0,
                         zIndex: 1,
