@@ -177,6 +177,8 @@ const CallModal = (props) => {
   const isOngoingCall = callState.status === "Ongoing call";
   const isConnectingCall = callState.status === "Connecting...";
   const isLineBusyCall = callState.status === "Line busy";
+  const isEveryoneBusyCall = callState.status === "Everyone is busy";
+  const isBusyOutcomeStatus = isLineBusyCall || isEveryoneBusyCall;
   const isUserInCall = callData?.participants?.includes(user.uid);
   // Rejoin applies to any participant (including initiator) after refresh/reopen
   // while the call is still active but local media isn't connected yet.
@@ -251,6 +253,38 @@ const CallModal = (props) => {
     if (!uid || !callData?.participantDetails) return null;
     return callData.participantDetails[uid] || null;
   };
+
+  const groupBusyInfoLabel = useMemo(() => {
+    if (!callData?.isGroupCall) return "";
+
+    const busyAtStart = Array.isArray(callData.busyAtStart)
+      ? callData.busyAtStart
+      : [];
+    if (!busyAtStart.length) return "";
+
+    const activeParticipants = new Set(callData.participants || []);
+    const stillBusyUids = busyAtStart.filter(
+      (uid) => uid !== user.uid && !activeParticipants.has(uid)
+    );
+    if (!stillBusyUids.length) return "";
+
+    const names = stillBusyUids.map((uid) => {
+      const participant = callData.participantDetails?.[uid];
+      return participant?.displayName?.split(" ")[0] || "Unknown";
+    });
+    const shownNames = names.slice(0, 2).join(", ");
+    const remainingCount = names.length - Math.min(names.length, 2);
+    const namesLabel =
+      remainingCount > 0 ? `${shownNames} +${remainingCount}` : shownNames;
+
+    return `${names.length} busy: ${namesLabel}`;
+  }, [
+    callData?.busyAtStart,
+    callData?.isGroupCall,
+    callData?.participantDetails,
+    callData?.participants,
+    user.uid,
+  ]);
 
   const oneToOneRemote = useMemo(() => {
     if (callData?.isGroupCall) {
@@ -582,7 +616,7 @@ const CallModal = (props) => {
     const shouldPreview =
       callData?.isVideoCall &&
       callState.status !== "Call ended" &&
-      callState.status !== "Line busy" &&
+      !isBusyOutcomeStatus &&
       (!isUserInCall || isRejoinCall);
     const shouldWaitForRejoinVideoFlag =
       callData?.isVideoCall && isRejoinCall && !hasLocalVideoFlag;
@@ -613,6 +647,7 @@ const CallModal = (props) => {
     hasLocalVideoFlag,
     isLocalVideoEnabled,
     isConnectingCall,
+    isBusyOutcomeStatus,
   ]);
 
   // Update remote streams array when streams change (for group calls)
@@ -821,9 +856,12 @@ const CallModal = (props) => {
         return;
       }
       const latestCallStatus = store.getState().chats.call.status;
-      // "Line busy" is a local transient outcome (no live call doc was created),
+      // Busy outcome statuses are local/transient (no live call doc was created),
       // so remote call state listeners should not transition it to "Call ended".
-      if (latestCallStatus === "Line busy") {
+      if (
+        latestCallStatus === "Line busy" ||
+        latestCallStatus === "Everyone is busy"
+      ) {
         return;
       }
 
@@ -1064,6 +1102,7 @@ const CallModal = (props) => {
       callState.isActive &&
       callState.status !== "Call ended" &&
       callState.status !== "Ongoing call" &&
+      !isBusyOutcomeStatus &&
       isInitiatorUser &&
       !hasAnyAnswerer;
 
@@ -1091,6 +1130,8 @@ const CallModal = (props) => {
         latestCall.status !== "Call ended" &&
         latestCall.status !== "Ongoing call" &&
         latestCall.callData?.initiator === user.uid &&
+        latestCall.status !== "Line busy" &&
+        latestCall.status !== "Everyone is busy" &&
         latestParticipants.every((uid) => uid === user.uid);
 
       if (!stillUnanswered) {
@@ -1104,6 +1145,7 @@ const CallModal = (props) => {
     callData?.participants,
     callState.isActive,
     callState.status,
+    isBusyOutcomeStatus,
     user.uid,
   ]);
 
@@ -1527,10 +1569,24 @@ const CallModal = (props) => {
             {callData?.isGroupCall &&
             isInitiator() &&
             !isOngoingCall &&
-            callState.status !== "Call ended"
+            callState.status !== "Call ended" &&
+            !isBusyOutcomeStatus
               ? "Waiting..."
               : getCallStatusText()}
           </Typography>
+          {callData?.isGroupCall &&
+            isInitiator() &&
+            !isOngoingCall &&
+            callState.status !== "Call ended" &&
+            !isBusyOutcomeStatus &&
+            !!groupBusyInfoLabel && (
+              <Typography
+                variant="body2"
+                sx={{ mt: 0.25, fontSize: "0.8rem", color: "#b7c1d1" }}
+              >
+                {groupBusyInfoLabel}
+              </Typography>
+            )}
         </Box>
         <Typography
           variant="body2"
@@ -2137,7 +2193,7 @@ const CallModal = (props) => {
           left: "50%",
           transform: "translateX(-50%)",
           display:
-            callState.status === "Call ended" || isLineBusyCall
+            callState.status === "Call ended" || isBusyOutcomeStatus
               ? "none"
               : "flex",
           gap: 2,

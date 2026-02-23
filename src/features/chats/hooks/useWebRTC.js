@@ -262,6 +262,11 @@ const useWebRTC = (db) => {
     const callee = isOneToOne
       ? chat.members.find((member) => member.uid !== user.uid)
       : null;
+    const inviteeUids = isGroupCall
+      ? chat.members
+          .map((member) => member.uid)
+          .filter((memberUid) => memberUid !== user.uid)
+      : [];
 
     if (isOneToOne && callee?.uid) {
       const calleeBusy = await getUserBusy(callee.uid);
@@ -314,6 +319,52 @@ const useWebRTC = (db) => {
       }
     }
 
+    let busyInviteeUids = [];
+    if (isGroupCall && inviteeUids.length > 0) {
+      const inviteeBusyResults = await Promise.all(
+        inviteeUids.map(async (inviteeUid) => ({
+          uid: inviteeUid,
+          isBusy: await getUserBusy(inviteeUid),
+        }))
+      );
+      busyInviteeUids = inviteeBusyResults
+        .filter((result) => result.isBusy)
+        .map((result) => result.uid);
+
+      const availableInvitees = inviteeUids.filter(
+        (inviteeUid) => !busyInviteeUids.includes(inviteeUid)
+      );
+
+      if (availableInvitees.length === 0) {
+        dispatch(
+          setCall({
+            isActive: true,
+            status: "Everyone is busy",
+            callData,
+          })
+        );
+        if (busyStatusTimeoutRef.current) {
+          clearTimeout(busyStatusTimeoutRef.current);
+          busyStatusTimeoutRef.current = null;
+        }
+        busyStatusTimeoutRef.current = setTimeout(() => {
+          const latestCall = store.getState().chats.call;
+          const isSameBusyCall =
+            latestCall.status === "Everyone is busy" &&
+            latestCall.callData?.id === callId;
+          if (isSameBusyCall) {
+            dispatch(setCall({ isActive: false, status: "", callData: {} }));
+          }
+          busyStatusTimeoutRef.current = null;
+        }, BUSY_MODAL_AUTO_CLOSE_MS);
+        return;
+      }
+    }
+
+    if (isGroupCall && busyInviteeUids.length > 0) {
+      callData.busyAtStart = busyInviteeUids;
+    }
+
     // 1. Get local media stream
     let localStream;
     try {
@@ -360,11 +411,9 @@ const useWebRTC = (db) => {
       return;
     }
 
-    if (isOneToOne) {
-      setSelfBusy({ callId, chatId: chat.chatId }).catch((error) => {
-        console.warn("[useWebRTC] Failed to set busy state:", error);
-      });
-    }
+    setSelfBusy({ callId, chatId: chat.chatId }).catch((error) => {
+      console.warn("[useWebRTC] Failed to set busy state:", error);
+    });
 
     // 4. Subscribe to signaling
     subscribeToSignals(chat.chatId);
@@ -659,11 +708,9 @@ const useWebRTC = (db) => {
       }
       localStreamRef.current = localStream;
 
-      if (!callData.isGroupCall) {
-        busyCallId = callData.id || null;
-        await setSelfBusy({ callId: busyCallId, chatId });
-        busySetOnJoin = true;
-      }
+      busyCallId = callData.id || null;
+      await setSelfBusy({ callId: busyCallId, chatId });
+      busySetOnJoin = true;
 
       const currentParticipants = callData.participants || [];
       const shouldAddSelfToParticipants = !currentParticipants.includes(
@@ -796,7 +843,6 @@ const useWebRTC = (db) => {
 
   const cleanupLocalCall = async () => {
     const activeCallId = callState.callData?.id || null;
-    const shouldClearBusy = callState.callData?.isGroupCall === false;
 
     try {
       // 0. Stop local tracks early so camera/mic release isn't blocked by Firestore latency
@@ -934,7 +980,7 @@ const useWebRTC = (db) => {
       console.error("[useWebRTC] Error stack:", error.stack);
       throw error; // Re-throw so CallModal can catch it
     } finally {
-      if (shouldClearBusy && activeCallId) {
+      if (activeCallId) {
         clearSelfBusyIfMatch({ callId: activeCallId }).catch((busyError) => {
           console.warn(
             "[useWebRTC] Failed to clear busy state during cleanup:",
