@@ -172,6 +172,8 @@ const CallModal = (props) => {
   const localVideoIntroDoneRef = useRef(false);
   const previewRequestIdRef = useRef(0);
   const previewRequestPendingRef = useRef(false);
+  const prevOneToOneShouldRenderRef = useRef(undefined);
+  const prevGroupShouldRenderByUidRef = useRef(new Map());
   // For group calls: Map of userId -> video element ref
   const remoteVideoRefsMap = useRef(new Map());
   // const timeoutStatusMsg = useRef(null);
@@ -371,6 +373,78 @@ const CallModal = (props) => {
   const muteControlOpacity = isMuteControlDisabled ? 0.4 : 1;
   const shouldShowVideoToggle =
     !isInitiator() || isOngoingCall || isConnectingCall || isRejoinCall;
+
+  useEffect(() => {
+    if (callData?.isGroupCall) return;
+    const currentShouldRender = oneToOneRemote.shouldRenderRemoteVideo;
+    const previousShouldRender = prevOneToOneShouldRenderRef.current;
+    const videoNode = remoteVideoRef.current;
+
+    // In 1:1 OFF -> ON transitions, the hidden remote video can remain paused.
+    // Resume playback when a stream is already attached.
+    if (
+      previousShouldRender === false &&
+      currentShouldRender === true &&
+      videoNode &&
+      videoNode.srcObject &&
+      videoNode.paused
+    ) {
+      const playResult = videoNode.play?.();
+      if (playResult && typeof playResult.catch === "function") {
+        playResult.catch(() => {});
+      }
+    }
+
+    prevOneToOneShouldRenderRef.current = currentShouldRender;
+  }, [callData?.isGroupCall, oneToOneRemote.shouldRenderRemoteVideo]);
+
+  useEffect(() => {
+    if (!callData?.isGroupCall || !callData?.isVideoCall) {
+      prevGroupShouldRenderByUidRef.current.clear();
+      return;
+    }
+
+    const prevByUid = prevGroupShouldRenderByUidRef.current;
+    const activeRemoteUids = new Set();
+
+    remoteStreamsArray.forEach(([userId]) => {
+      activeRemoteUids.add(userId);
+
+      const hasVideoPreference = Object.prototype.hasOwnProperty.call(
+        videoEnabledMap,
+        userId
+      );
+      const shouldRenderVideo = hasVideoPreference
+        ? videoEnabledMap[userId] !== false || !!screenSharingUids[userId]
+        : false;
+      const previousShouldRenderVideo = prevByUid.get(userId);
+
+      if (previousShouldRenderVideo === false && shouldRenderVideo === true) {
+        const videoRef = remoteVideoRefsMap.current.get(userId);
+        const videoNode = videoRef?.current;
+        if (videoNode && videoNode.srcObject && videoNode.paused) {
+          const playResult = videoNode.play?.();
+          if (playResult && typeof playResult.catch === "function") {
+            playResult.catch(() => {});
+          }
+        }
+      }
+
+      prevByUid.set(userId, shouldRenderVideo);
+    });
+
+    for (const userId of prevByUid.keys()) {
+      if (!activeRemoteUids.has(userId)) {
+        prevByUid.delete(userId);
+      }
+    }
+  }, [
+    callData?.isGroupCall,
+    callData?.isVideoCall,
+    remoteStreamsArray,
+    screenSharingUids,
+    videoEnabledMap,
+  ]);
 
   const stopPreviewStream = () => {
     const stream = previewStreamRef.current;
@@ -1641,9 +1715,10 @@ const CallModal = (props) => {
                         }}
                         autoPlay
                         playsInline
-                        onPlaying={() => {
-                          markRemoteFrameReady(userId, videoRef?.current);
-                        }}
+                        muted={!isVideoEnabled}
+                        onPlaying={() =>
+                          markRemoteFrameReady(userId, videoRef?.current)
+                        }
                         style={{
                           width:
                             shouldShowParticipantTile && isVideoEnabled
@@ -1666,6 +1741,16 @@ const CallModal = (props) => {
                               : "none",
                         }}
                       />
+                      {shouldShowParticipantTile && !isVideoEnabled && (
+                        <audio
+                          ref={(el) => {
+                            if (el && stream && el.srcObject !== stream) {
+                              el.srcObject = stream;
+                            }
+                          }}
+                          autoPlay
+                        />
+                      )}
                       {isVideoEnabled ? (
                         <Box
                           sx={{
@@ -1716,20 +1801,6 @@ const CallModal = (props) => {
                   );
                 })}
               </Box>
-
-              {/* Audio elements for remote streams */}
-              {remoteStreamsArray.map(([userId, stream]) => (
-                <audio
-                  key={`audio-${userId}`}
-                  ref={(el) => {
-                    // Only update srcObject if different
-                    if (el && stream && el.srcObject !== stream) {
-                      el.srcObject = stream;
-                    }
-                  }}
-                  autoPlay
-                />
-              ))}
             </>
           )}
 
@@ -1743,6 +1814,7 @@ const CallModal = (props) => {
                 const remoteInfo = getParticipantInfo(remoteUid);
                 const remoteName =
                   remoteInfo?.displayName?.split(" ")[0] || "Unknown";
+
                 return (
                   <>
                     <Box
@@ -1830,11 +1902,6 @@ const CallModal = (props) => {
                           isOngoingCall && shouldRenderRemoteVideo
                             ? "block"
                             : "none",
-                        // opacity:
-                        //   shouldRenderRemoteVideo === true &&
-                        //   oneToOneRemote.remoteTileReady
-                        //     ? 1
-                        //     : 0,
                         zIndex: 1,
                       }}
                       onPlaying={() => {
@@ -1848,7 +1915,11 @@ const CallModal = (props) => {
                       ref={remoteVideoRef}
                       autoPlay
                       playsInline
+                      muted={shouldRenderRemoteVideo === false}
                     />
+                    {shouldRenderRemoteVideo === false && (
+                      <audio ref={remoteAudioRef} autoPlay />
+                    )}
                   </>
                 );
               })()}
