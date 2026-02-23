@@ -85,6 +85,15 @@ const CallMsg = ({ message, makeCall }) => {
       label = isVideoCall ? "Video call" : "Voice call";
       callSummary = "Declined call";
       break;
+    case "Busy call":
+      icon = isVideoCall ? (
+        <MissedVideoCallIcon sx={{ color: "red[700]", fontSize: iconSize }} />
+      ) : (
+        <PhoneMissedIcon sx={{ color: "red[700]", fontSize: iconSize }} />
+      );
+      label = isVideoCall ? "Video call" : "Voice call";
+      callSummary = "Busy call";
+      break;
     default:
       label = status || "Unknown status";
       break;

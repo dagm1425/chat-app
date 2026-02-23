@@ -1,13 +1,6 @@
 /* eslint-disable no-unused-vars */
 import PropTypes from "prop-types";
-import {
-  doc,
-  getDoc,
-  onSnapshot,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
+import { doc, onSnapshot, updateDoc } from "firebase/firestore";
 import { db } from "../../firebase";
 import {
   Avatar,
@@ -28,11 +21,11 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall, selectChatById } from "./chatsSlice";
 import { store } from "../../app/store";
-import { v4 as uuid } from "uuid";
 import { useEffect, useState, useRef, memo, useMemo } from "react";
 import { selectUser } from "../user/userSlice";
 import { notifyUser } from "../../common/toast/ToastProvider";
 import { getMediaPermissionMessage } from "../../common/utils";
+import { sendOneToOneCallHistoryMsg } from "./callHistory";
 
 const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -183,6 +176,7 @@ const CallModal = (props) => {
   const isMobile = useMediaQuery("(max-width:600px)");
   const isOngoingCall = callState.status === "Ongoing call";
   const isConnectingCall = callState.status === "Connecting...";
+  const isLineBusyCall = callState.status === "Line busy";
   const isUserInCall = callData?.participants?.includes(user.uid);
   // Rejoin applies to any participant (including initiator) after refresh/reopen
   // while the call is still active but local media isn't connected yet.
@@ -588,6 +582,7 @@ const CallModal = (props) => {
     const shouldPreview =
       callData?.isVideoCall &&
       callState.status !== "Call ended" &&
+      callState.status !== "Line busy" &&
       (!isUserInCall || isRejoinCall);
     const shouldWaitForRejoinVideoFlag =
       callData?.isVideoCall && isRejoinCall && !hasLocalVideoFlag;
@@ -825,6 +820,12 @@ const CallModal = (props) => {
       if (isCleaningUpRef.current) {
         return;
       }
+      const latestCallStatus = store.getState().chats.call.status;
+      // "Line busy" is a local transient outcome (no live call doc was created),
+      // so remote call state listeners should not transition it to "Call ended".
+      if (latestCallStatus === "Line busy") {
+        return;
+      }
 
       if (!docSnap.exists()) {
         return;
@@ -938,47 +939,6 @@ const CallModal = (props) => {
     return Math.max(0, Math.floor(elapsedMs / 1000));
   };
 
-  const sendMsg = async (status, durationSeconds) => {
-    const msgId = uuid();
-    const msgRef = doc(db, "chats", callData.chatId, "chatMessages", msgId);
-    const chatRef = doc(db, "chats", callData.chatId);
-    const chatSnap = await getDoc(chatRef);
-    const chatData = chatSnap.data();
-    let unreadCounts = { ...chatData.unreadCounts };
-
-    // Get initiator info for the "from" field
-    const initiatorInfo = getParticipantInfo(callData?.initiator) || user;
-
-    const newMsg = {
-      msgId,
-      type: "call",
-      callData: {
-        status,
-        duration: formatCallDuration(durationSeconds),
-        isVideoCall: callData.isVideoCall,
-        chat: {
-          chatId: chatData.chatId,
-          members: chatData.members,
-        },
-      },
-      from: initiatorInfo,
-      msgReply: null,
-      isMsgDelivered: true,
-      isMsgRead: false,
-      timestamp: serverTimestamp(),
-    };
-    await setDoc(msgRef, newMsg);
-    await updateDoc(chatRef, { recentMsg: newMsg });
-    await updateDoc(chatRef, { timestamp: newMsg.timestamp });
-
-    for (const uid in unreadCounts) {
-      if (uid !== user.uid) {
-        unreadCounts[uid]++;
-      }
-    }
-    await updateDoc(chatRef, { unreadCounts });
-  };
-
   const handleLocalCallCleanup = async () => {
     // Note: isCleaningUpRef is set to true by hangUp() before calling this
 
@@ -1057,8 +1017,16 @@ const CallModal = (props) => {
         });
       }
 
-      // Send call history message
-      sendMsg(status, durationSeconds).catch((error) => {
+      const initiatorInfo = getParticipantInfo(callData?.initiator) || user;
+      sendOneToOneCallHistoryMsg({
+        db,
+        chatId: callData.chatId,
+        initiatorInfo,
+        statusByUid: status,
+        durationSeconds,
+        isVideoCall: callData.isVideoCall,
+        senderUid: user.uid,
+      }).catch((error) => {
         console.error("[CallModal] Error sending call history message:", error);
       });
     }
@@ -2168,7 +2136,10 @@ const CallModal = (props) => {
           top: "86%",
           left: "50%",
           transform: "translateX(-50%)",
-          display: callState.status === "Call ended" ? "none" : "flex",
+          display:
+            callState.status === "Call ended" || isLineBusyCall
+              ? "none"
+              : "flex",
           gap: 2,
           zIndex: 2,
         }}

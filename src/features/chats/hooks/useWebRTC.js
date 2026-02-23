@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   onSnapshot,
   collection,
@@ -14,16 +14,27 @@ import {
   getDocs,
   deleteDoc,
 } from "firebase/firestore";
+import {
+  get as getRtValue,
+  onDisconnect,
+  ref as rtRef,
+  remove as removeRtValue,
+  set as setRtValue,
+} from "firebase/database";
 import { v4 as uuid } from "uuid";
 import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall } from "../chatsSlice";
 import { selectUser } from "../../user/userSlice";
 import { store } from "../../../app/store";
+import { rtDb } from "../../../firebase";
 import {
   formatDurationMinutes,
   getMediaPermissionMessage,
 } from "../../../common/utils";
 import { notifyUser } from "../../../common/toast/ToastProvider";
+import { sendOneToOneCallHistoryMsg } from "../callHistory";
+
+const BUSY_MODAL_AUTO_CLOSE_MS = 1500;
 
 const useWebRTC = (db) => {
   const dispatch = useDispatch();
@@ -37,6 +48,8 @@ const useWebRTC = (db) => {
   const localStreamRef = useRef(null);
   const dummyVideoTrackRef = useRef(null);
   const screenTrackRef = useRef(null);
+  const busyStatusTimeoutRef = useRef(null);
+  const activeBusyCallIdRef = useRef(null);
 
   // Store unsubscribe functions for Firestore listeners
   const unsubscribeSignalsRef = useRef(null);
@@ -48,6 +61,16 @@ const useWebRTC = (db) => {
   const forceRender = () => {
     setStreamsVersion((v) => v + 1);
   };
+
+  useEffect(
+    () => () => {
+      if (busyStatusTimeoutRef.current) {
+        clearTimeout(busyStatusTimeoutRef.current);
+        busyStatusTimeoutRef.current = null;
+      }
+    },
+    []
+  );
 
   const configuration = {
     iceServers: [
@@ -64,6 +87,63 @@ const useWebRTC = (db) => {
         ? data.startTime.toDate().toISOString()
         : data.startTime;
     return { ...data, startTime };
+  };
+
+  const setSelfBusy = async ({ callId, chatId }) => {
+    if (!callId || !chatId) return;
+    const previousCallId = activeBusyCallIdRef.current;
+    if (previousCallId && previousCallId !== callId) {
+      // One-call-at-a-time UI can still leave a brief async handoff window:
+      // after Call-1 modal closes but before its cleanup finally-block clears busy.
+      // If Call-2 starts in that gap, drop stale Call-1 busy session first.
+      const previousRef = rtRef(rtDb, `callBusy/${user.uid}/${previousCallId}`);
+      try {
+        await onDisconnect(previousRef).cancel();
+      } catch (_) {
+        // Best effort cleanup.
+      }
+      await removeRtValue(previousRef);
+    }
+
+    const sessionRef = rtRef(rtDb, `callBusy/${user.uid}/${callId}`);
+    const disconnectOp = onDisconnect(sessionRef);
+    await disconnectOp.remove();
+    await setRtValue(sessionRef, {
+      chatId,
+      updatedAt: Date.now(),
+    });
+    activeBusyCallIdRef.current = callId;
+  };
+
+  const clearSelfBusyIfMatch = async ({ callId }) => {
+    if (!callId) return;
+    if (activeBusyCallIdRef.current && activeBusyCallIdRef.current !== callId) {
+      return;
+    }
+    const sessionRef = rtRef(rtDb, `callBusy/${user.uid}/${callId}`);
+    try {
+      await onDisconnect(sessionRef).cancel();
+    } catch (_) {
+      // Best effort: removing the value is what matters.
+    }
+    await removeRtValue(sessionRef);
+    if (activeBusyCallIdRef.current === callId) {
+      activeBusyCallIdRef.current = null;
+    }
+  };
+
+  const getUserBusy = async (targetUid) => {
+    if (!targetUid) return false;
+    try {
+      const busySnap = await getRtValue(rtRef(rtDb, `callBusy/${targetUid}`));
+      if (!busySnap.exists()) return false;
+      const sessions = busySnap.val();
+      return !!sessions && Object.keys(sessions).length > 0;
+    } catch (error) {
+      console.warn("[useWebRTC] Failed to check busy state:", error);
+      // Fail-open: don't block call start on metadata read issues.
+      return false;
+    }
   };
 
   const createPeerConnection = async (targetUserId, chatId, stream) => {
@@ -152,11 +232,93 @@ const useWebRTC = (db) => {
   };
 
   const startCall = async (chat, isAudioCall) => {
-    // 1. Get Local Stream
+    const isVideoCall = !isAudioCall;
+    const memberCount = Array.isArray(chat.members) ? chat.members.length : 0;
+    const isGroupCall = memberCount > 2;
+    const callId = uuid();
+
+    // Build participantDetails map (uid -> user info).
+    const participantDetails = {};
+    chat.members.forEach((member) => {
+      participantDetails[member.uid] = member;
+    });
+
+    const callData = {
+      id: callId,
+      participants: [user.uid],
+      participantDetails,
+      initiator: user.uid,
+      isVideoCall,
+      isGroupCall,
+      chatId: chat.chatId,
+      ...(isVideoCall ? { videoEnabled: { [user.uid]: true } } : {}),
+    };
+
+    // Calls can be started from call-history messages where `chat.type` is absent.
+    // Fall back to member count so busy checks still run for legacy history entries.
+    const isPrivateChat =
+      chat.type === "private" || (!chat.type && memberCount === 2);
+    const isOneToOne = !isGroupCall && isPrivateChat;
+    const callee = isOneToOne
+      ? chat.members.find((member) => member.uid !== user.uid)
+      : null;
+
+    if (isOneToOne && callee?.uid) {
+      const calleeBusy = await getUserBusy(callee.uid);
+      if (calleeBusy) {
+        dispatch(
+          setCall({
+            isActive: true,
+            status: "Line busy",
+            callData,
+          })
+        );
+
+        const statusByUid = {
+          [user.uid]: "Busy call",
+          [callee.uid]: "Missed call",
+        };
+        const initiatorInfo = participantDetails[user.uid] || user;
+
+        sendOneToOneCallHistoryMsg({
+          db,
+          chatId: chat.chatId,
+          initiatorInfo,
+          statusByUid,
+          durationSeconds: 0,
+          isVideoCall,
+          senderUid: user.uid,
+        }).catch((error) => {
+          console.error(
+            "[useWebRTC] Failed to write busy call history:",
+            error
+          );
+          notifyUser("Could not save call history.", "error");
+        });
+
+        if (busyStatusTimeoutRef.current) {
+          clearTimeout(busyStatusTimeoutRef.current);
+          busyStatusTimeoutRef.current = null;
+        }
+        busyStatusTimeoutRef.current = setTimeout(() => {
+          const latestCall = store.getState().chats.call;
+          const isSameBusyCall =
+            latestCall.status === "Line busy" &&
+            latestCall.callData?.id === callId;
+          if (isSameBusyCall) {
+            dispatch(setCall({ isActive: false, status: "", callData: {} }));
+          }
+          busyStatusTimeoutRef.current = null;
+        }, BUSY_MODAL_AUTO_CLOSE_MS);
+        return;
+      }
+    }
+
+    // 1. Get local media stream
     let localStream;
     try {
       localStream = await navigator.mediaDevices.getUserMedia({
-        video: !isAudioCall,
+        video: isVideoCall,
         audio: true,
       });
     } catch (error) {
@@ -167,31 +329,7 @@ const useWebRTC = (db) => {
 
     localStreamRef.current = localStream;
 
-    // 2. Build participantDetails map (uid → user info)
-    // Include all chat members so callee info is available immediately
-    const participantDetails = {};
-    chat.members.forEach((member) => {
-      participantDetails[member.uid] = member;
-    });
-
-    const isGroupCall = chat.members.length > 2;
-
-    // 3. Create Call Data (stored directly in chat document)
-    const callId = uuid(); // Generate ID for reference if needed
-    const isVideoCall = !isAudioCall;
-
-    const callData = {
-      id: callId,
-      participants: [user.uid], // Only I am active initially
-      participantDetails,
-      initiator: user.uid,
-      isVideoCall, // Only store isVideoCall, derive isAudioCall as !isVideoCall
-      isGroupCall,
-      chatId: chat.chatId,
-      ...(isVideoCall ? { videoEnabled: { [user.uid]: true } } : {}),
-    };
-
-    // 4. Update Redux State (Optimistic update to prevent App.js listener from overriding status)
+    // 2. Update Redux state optimistically
     dispatch(
       setCall({
         isActive: true,
@@ -200,7 +338,7 @@ const useWebRTC = (db) => {
       })
     );
 
-    // 5. Update Chat Document (single source of truth)
+    // 3. Update chat document (single source of truth)
     const chatRef = doc(db, "chats", chat.chatId);
     try {
       await updateDoc(chatRef, {
@@ -222,7 +360,13 @@ const useWebRTC = (db) => {
       return;
     }
 
-    // 6. Subscribe to signaling
+    if (isOneToOne) {
+      setSelfBusy({ callId, chatId: chat.chatId }).catch((error) => {
+        console.warn("[useWebRTC] Failed to set busy state:", error);
+      });
+    }
+
+    // 4. Subscribe to signaling
     subscribeToSignals(chat.chatId);
     subscribeToParticipants(chat.chatId, localStream);
   };
@@ -454,6 +598,8 @@ const useWebRTC = (db) => {
   const joinCall = async (previewStream = null, initialVideoEnabled = true) => {
     // Get chatId from Redux state (populated by App.js from Firestore)
     const chatId = callState.callData?.chatId;
+    let busySetOnJoin = false;
+    let busyCallId = null;
 
     if (!chatId) {
       console.error("[L310] joinCall: Missing chatId in callState");
@@ -512,6 +658,12 @@ const useWebRTC = (db) => {
         localStream.addTrack(dummyTrack);
       }
       localStreamRef.current = localStream;
+
+      if (!callData.isGroupCall) {
+        busyCallId = callData.id || null;
+        await setSelfBusy({ callId: busyCallId, chatId });
+        busySetOnJoin = true;
+      }
 
       const currentParticipants = callData.participants || [];
       const shouldAddSelfToParticipants = !currentParticipants.includes(
@@ -578,6 +730,14 @@ const useWebRTC = (db) => {
       );
     } catch (error) {
       console.error("Error joining call:", error);
+      if (busySetOnJoin && busyCallId) {
+        clearSelfBusyIfMatch({ callId: busyCallId }).catch((busyError) => {
+          console.warn(
+            "[useWebRTC] Failed to clear busy after join error:",
+            busyError
+          );
+        });
+      }
       const latestStatus = store.getState().chats.call.status;
       if (latestStatus !== "Connecting...") return;
       const latestCallState = store.getState().chats.call;
@@ -635,6 +795,9 @@ const useWebRTC = (db) => {
   };
 
   const cleanupLocalCall = async () => {
+    const activeCallId = callState.callData?.id || null;
+    const shouldClearBusy = callState.callData?.isGroupCall === false;
+
     try {
       // 0. Stop local tracks early so camera/mic release isn't blocked by Firestore latency
       if (localStreamRef.current) {
@@ -770,6 +933,15 @@ const useWebRTC = (db) => {
       console.error("[useWebRTC] Error in cleanupLocalCall():", error);
       console.error("[useWebRTC] Error stack:", error.stack);
       throw error; // Re-throw so CallModal can catch it
+    } finally {
+      if (shouldClearBusy && activeCallId) {
+        clearSelfBusyIfMatch({ callId: activeCallId }).catch((busyError) => {
+          console.warn(
+            "[useWebRTC] Failed to clear busy state during cleanup:",
+            busyError
+          );
+        });
+      }
     }
   };
 
