@@ -67,6 +67,18 @@ export function getMediaPermissionMessage({ error, isAudioCall }) {
     : "Unable to access camera/microphone.";
 }
 
+export function extractFirstUrl(text) {
+  if (typeof text !== "string") return null;
+  const match = text.match(/https?:\/\/[^\s<>"'`]+/i);
+  if (!match) return null;
+
+  let url = match[0].trim();
+  while (/[),.!?;:\]}]$/.test(url)) {
+    url = url.slice(0, -1);
+  }
+  return url || null;
+}
+
 export function isLink(text) {
   try {
     new URL(text);
