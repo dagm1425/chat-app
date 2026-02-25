@@ -11,6 +11,7 @@ import CloseIcon from "@mui/icons-material/Close";
 import DownloadIcon from "@mui/icons-material/Download";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { formatFilename } from "../../common/utils"; // Assuming formatFilename is in utils
+import PdfFilePreview from "./PdfFilePreview";
 
 const FileMsg = ({
   message,
@@ -21,6 +22,35 @@ const FileMsg = ({
   cancelUpload,
   downloadFile,
 }) => {
+  const fileMsg = message.fileMsg || {};
+  const fileName = fileMsg.fileName || "";
+  const fileType = fileMsg.fileType || "";
+  const fileUrl = fileMsg.fileUrl || "";
+  const progress = Number(fileMsg.progress);
+  const isUploadComplete =
+    Boolean(fileUrl) && (!Number.isFinite(progress) || progress >= 100);
+  const isUploadPending = !isUploadComplete;
+  const isPdf =
+    fileType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf");
+  const uploadProgress = Number.isFinite(progress) ? progress : 0;
+
+  if (isPdf && isUploadComplete) {
+    return (
+      <>
+        <PdfFilePreview
+          fileUrl={fileUrl}
+          fileName={fileName}
+          fileSize={fileMsg.fileSize}
+          isSentFromUser={isSentFromUser}
+          onDownload={downloadFile}
+        />
+        <Typography variant="body2" sx={{ ml: "0.25rem" }}>
+          {message.caption}
+        </Typography>
+      </>
+    );
+  }
+
   return (
     <>
       <Box
@@ -47,7 +77,7 @@ const FileMsg = ({
           onMouseOver={() => setFileMsgId(message.msgId)}
           onMouseOut={() => setFileMsgId("")}
         >
-          {message.fileMsg.progress != 100 ? (
+          {isUploadPending ? (
             <Box sx={{ display: "grid" }}>
               <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
               <IconButton
@@ -74,12 +104,7 @@ const FileMsg = ({
                       bgcolor: "transparent",
                     },
                   }}
-                  onClick={() =>
-                    downloadFile(
-                      message.fileMsg.fileUrl,
-                      message.fileMsg.fileName
-                    )
-                  }
+                  onClick={() => downloadFile(fileUrl, fileName)}
                 >
                   <DownloadIcon
                     sx={{
@@ -124,7 +149,7 @@ const FileMsg = ({
           }}
         >
           <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-            {formatFilename(message.fileMsg.fileName)}
+            {formatFilename(fileName)}
           </Typography>
           <div>
             <Typography
@@ -134,8 +159,8 @@ const FileMsg = ({
                 fontSize: "0.825rem",
               }}
             >
-              {message.fileMsg.fileSize}
-              {message.fileMsg.progress != 100 && (
+              {fileMsg.fileSize}
+              {isUploadPending && (
                 <Typography
                   component="span"
                   variant="body2"
@@ -145,7 +170,7 @@ const FileMsg = ({
                     ml: "0.5rem",
                   }}
                 >
-                  {`${message.fileMsg.progress.toFixed(0)}% done`}
+                  {`${uploadProgress.toFixed(0)}% done`}
                 </Typography>
               )}
             </Typography>
