@@ -21,6 +21,29 @@ import { Box } from "@mui/material";
 import { ref, set, serverTimestamp, onDisconnect } from "firebase/database";
 import { store } from "../app/store";
 
+const toSerializable = (value) => {
+  if (value === null || value === undefined) return value;
+  if (value instanceof Date) return value.toISOString();
+
+  if (typeof value?.toDate === "function") {
+    const parsed = value.toDate();
+    return parsed instanceof Date ? parsed.toISOString() : parsed;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toSerializable(item));
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value).reduce((acc, [key, nestedValue]) => {
+      acc[key] = toSerializable(nestedValue);
+      return acc;
+    }, {});
+  }
+
+  return value;
+};
+
 function App() {
   const dispatch = useDispatch();
   const [user, loading] = useAuthState(auth);
@@ -46,7 +69,7 @@ function App() {
 
     if (!usern.exists()) return;
     setFetchingUserData(false);
-    dispatch(setUser(usern.data()));
+    dispatch(setUser(toSerializable(usern.data())));
   };
 
   const subscribeChats = () => {
