@@ -12,7 +12,6 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import { formatFilename } from "../../common/utils";
 
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 
@@ -136,9 +135,9 @@ function FileMsgDialogContent({
           width: "85%",
           mx: "auto",
           display: "flex",
-          justifyContent: "center",
+          justifyContent: "space-between",
           alignItems: "center",
-          gap: "0.825rem",
+          gap: "0.75rem",
         }}
       >
         <Box
@@ -150,12 +149,22 @@ function FileMsgDialogContent({
             height: 40,
             filter: "brightness(0.875)",
             borderRadius: "50%",
+            flexShrink: 0,
           }}
         >
           <InsertDriveFileIcon fontSize="medium" />
         </Box>
-        <Box sx={{ textAlign: "center" }}>
-          <Typography variant="body1">{formatFilename(file.name)}</Typography>
+        <Box sx={{ textAlign: "left", minWidth: 0, flex: 1 }}>
+          <Typography
+            variant="body1"
+            sx={{
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
+            {file.name}
+          </Typography>
           <Typography variant="body2" sx={{ color: "text.secondary" }}>
             {fileSize}
           </Typography>

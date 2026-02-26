@@ -2,7 +2,7 @@ import React from "react";
 import PropTypes from "prop-types";
 import { Avatar, Box, Typography, useMediaQuery } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
-import { formatFilename, formatTime } from "../../common/utils";
+import { formatTime } from "../../common/utils";
 import TextMsg from "./TextMsg";
 import ImageMsg from "./ImageMsg";
 import VideoMsg from "./VideoMsg";
@@ -228,7 +228,7 @@ function MsgReply({ message, user, scrollToMsg }) {
     ? message.msgReply.caption
     : message.msgReply.type === "video"
     ? "Video"
-    : formatFilename(message.msgReply.fileMsg.fileName);
+    : message.msgReply.fileMsg.fileName;
 
   return (
     <Box
@@ -269,7 +269,16 @@ function MsgReply({ message, user, scrollToMsg }) {
             ? "You"
             : message.msgReply.from.displayName}
         </Typography>
-        <Typography variant="body2" sx={{ fontSize: "0.825rem" }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontSize: "0.825rem",
+            maxWidth: { xs: "11rem", sm: "14rem" },
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
           {replyText}
         </Typography>
       </Box>

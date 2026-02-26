@@ -14,7 +14,6 @@ import { Link, useLocation } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import PeopleIcon from "@mui/icons-material/People";
-import { formatFilename } from "../../common/utils";
 
 function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const user = useSelector(selectUser);
@@ -42,7 +41,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
     if (recentMsg.msg) return recentMsg.msg;
     if (recentMsg.caption) return recentMsg.caption;
     if (recentMsg.type === "video") return "Video";
-    if (recentMsg.fileMsg) return formatFilename(recentMsg.fileMsg.fileName);
+    if (recentMsg.fileMsg) return recentMsg.fileMsg.fileName;
     if (recentMsg.type === "call-system") {
       const durationLabel = recentMsg.callData?.durationLabel || "0 min";
       const isVideoCall = !!recentMsg.callData?.isVideoCall;
@@ -153,7 +152,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 <Typography
                   sx={{
                     color: "text.secondary",
-                    fontSize: { xs: "1rem", sm: "inherit" },
+                    fontSize: { xs: "1rem", sm: "0.8rem", lg: "0.85rem" },
                     display: "inline-block",
                     width: { xs: "70%", sm: "80%", lg: "82%" },
                     pr: { xs: "0.5rem", sm: "0.25rem" },
@@ -173,7 +172,6 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                         component="span"
                         sx={{
                           font: "inherit",
-                          fontSize: { xs: "1rem", sm: ".925rem" },
                           color: "primary.main",
                         }}
                       >
@@ -186,7 +184,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   {draft ? (
                     <Typography
                       sx={{
-                        fontSize: { xs: "1rem", sm: ".925rem" },
+                        fontSize: "inherit",
                       }}
                       component="span"
                     >
@@ -201,7 +199,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   ) : (
                     <Typography
                       sx={{
-                        fontSize: { xs: "1rem", sm: ".925rem" },
+                        fontSize: "inherit",
                         color: "text.secondary",
                         display: "inline",
                       }}

@@ -6,6 +6,7 @@ import { extractFirstUrl } from "../../common/utils";
 
 const previewMediaWidthSx = { xs: 78, sm: 90 };
 const previewMediaHeightSx = { xs: 76, sm: 88 };
+const previewCardWidthSx = { xs: "17.75rem", sm: "21.5rem" };
 const urlLinkSx = {
   color: "#1f7ef0",
   textDecoration: "underline",
@@ -23,6 +24,8 @@ const previewCardSx = {
   ml: "0.25rem",
   display: "flex",
   alignItems: "stretch",
+  width: previewCardWidthSx,
+  maxWidth: "100%",
 };
 
 const TextMsg = ({ message }) => {
@@ -94,6 +97,8 @@ const TextMsg = ({ message }) => {
             textDecoration: "none",
             color: "inherit",
             display: "block",
+            width: "fit-content",
+            maxWidth: "100%",
             marginTop: previewTopMargin,
           }}
         >
@@ -218,7 +223,12 @@ const TextMsg = ({ message }) => {
         <Typography
           variant="body2"
           component="div"
-          sx={{ mt: "0.42rem", ml: "0.25rem", wordBreak: "break-word" }}
+          sx={{
+            mt: "0.42rem",
+            ml: "0.25rem",
+            maxWidth: previewCardWidthSx,
+            wordBreak: "break-word",
+          }}
         >
           <Box
             component="a"

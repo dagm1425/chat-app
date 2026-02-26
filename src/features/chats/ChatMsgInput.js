@@ -25,7 +25,6 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
-import { formatFilename } from "../../common/utils";
 import { notifyUser } from "../../common/toast/ToastProvider";
 
 const MAX_FILE_SIZE_BYTES = 5000000;
@@ -200,7 +199,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     if (replyMsg.msg) return replyMsg.msg;
     if (replyMsg.caption) return replyMsg.caption;
     if (replyMsg.type === "video") return "Video";
-    return formatFilename(replyMsg.fileMsg.fileName);
+    return replyMsg.fileMsg.fileName;
   };
 
   const getImageSize = (file) => {
@@ -600,7 +599,14 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                   </Typography>
                   <Typography
                     variant="body1"
-                    sx={{ fontSize: "inherit", lineHeight: "1.125rem" }}
+                    sx={{
+                      fontSize: "inherit",
+                      lineHeight: "1.125rem",
+                      maxWidth: { xs: "12rem", sm: "20rem" },
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
                   >
                     {getReplyPreviewText(msgReply)}
                   </Typography>

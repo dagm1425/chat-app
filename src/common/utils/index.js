@@ -17,16 +17,6 @@ const locale = {
   formatRelative: (token) => formatRelativeLocale[token],
 };
 
-export function formatFilename(filename) {
-  if (filename.length <= 15) {
-    return filename;
-  } else {
-    const begName = filename.substring(0, 8);
-    const endName = filename.substring(filename.length - 6);
-    return begName + "..." + endName;
-  }
-}
-
 export function formatDate(timestamp) {
   const ts = timestamp ? new Date(timestamp) : new Date();
 
