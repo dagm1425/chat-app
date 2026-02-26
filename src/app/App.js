@@ -25,6 +25,18 @@ const toSerializable = (value) => {
   if (value === null || value === undefined) return value;
   if (value instanceof Date) return value.toISOString();
 
+  const seconds = Number.isFinite(value?.seconds)
+    ? value.seconds
+    : value?._seconds;
+  const nanoseconds = Number.isFinite(value?.nanoseconds)
+    ? value.nanoseconds
+    : value?._nanoseconds;
+  if (Number.isFinite(seconds) && Number.isFinite(nanoseconds)) {
+    return new Date(
+      seconds * 1000 + Math.floor(nanoseconds / 1000000)
+    ).toISOString();
+  }
+
   if (typeof value?.toDate === "function") {
     const parsed = value.toDate();
     return parsed instanceof Date ? parsed.toISOString() : parsed;

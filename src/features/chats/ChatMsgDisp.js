@@ -74,6 +74,41 @@ const toMillis = (value) => {
   return null;
 };
 
+const toSerializable = (value) => {
+  if (value === null || value === undefined) return value;
+  if (value instanceof Date) return value.toISOString();
+
+  const seconds = Number.isFinite(value?.seconds)
+    ? value.seconds
+    : value?._seconds;
+  const nanoseconds = Number.isFinite(value?.nanoseconds)
+    ? value.nanoseconds
+    : value?._nanoseconds;
+  if (Number.isFinite(seconds) && Number.isFinite(nanoseconds)) {
+    return new Date(
+      seconds * 1000 + Math.floor(nanoseconds / 1000000)
+    ).toISOString();
+  }
+
+  if (typeof value?.toDate === "function") {
+    const parsed = value.toDate();
+    return parsed instanceof Date ? parsed.toISOString() : parsed;
+  }
+
+  if (Array.isArray(value)) {
+    return value.map((item) => toSerializable(item));
+  }
+
+  if (typeof value === "object") {
+    return Object.entries(value).reduce((acc, [key, nestedValue]) => {
+      acc[key] = toSerializable(nestedValue);
+      return acc;
+    }, {});
+  }
+
+  return value;
+};
+
 const getLatestVisibleMessageTimestampMs = (chatMsg) => {
   if (!chatMsg?.length) return null;
   for (let i = chatMsg.length - 1; i >= 0; i -= 1) {
@@ -383,8 +418,13 @@ function ChatMsgDisp({
         return a.timestamp - b.timestamp;
       });
       const msgsWithDateObject = sortedMessages.map((msg) => {
-        const timestamp = msg.timestamp?.toDate().toISOString();
-        return { ...msg, timestamp };
+        const timestamp =
+          msg.timestamp && typeof msg.timestamp.toDate === "function"
+            ? msg.timestamp.toDate().toISOString()
+            : msg.timestamp instanceof Date
+            ? msg.timestamp.toISOString()
+            : msg.timestamp || null;
+        return toSerializable({ ...msg, timestamp });
       });
 
       setIsChatsLoading(false);
