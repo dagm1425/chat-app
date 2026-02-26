@@ -120,7 +120,9 @@ function App() {
           {}
         );
 
-        if (!chat.recentMsg) return { ...chat, readState: normalizedReadState };
+        if (!chat.recentMsg) {
+          return toSerializable({ ...chat, readState: normalizedReadState });
+        }
 
         const date = chat.recentMsg.timestamp
           ? chat.recentMsg.timestamp.toDate().toISOString()
@@ -129,7 +131,7 @@ function App() {
           ? chat.call.callData.startTime.toDate().toISOString()
           : undefined;
 
-        return {
+        return toSerializable({
           ...chat,
           readState: normalizedReadState,
           recentMsg: {
@@ -145,14 +147,16 @@ function App() {
                 },
               }
             : undefined,
-        };
+        });
       });
 
       setFetchingChatsData(false);
       dispatch(setChats(chats));
 
       const currentCallState = store.getState().chats.call;
-      if (call && !currentCallState.isActive) dispatch(setCall(call));
+      if (call && !currentCallState.isActive) {
+        dispatch(setCall(toSerializable(call)));
+      }
     });
   };
 
