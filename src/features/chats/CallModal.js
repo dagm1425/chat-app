@@ -22,6 +22,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { selectCall, setCall, selectChatById } from "./chatsSlice";
 import { store } from "../../app/store";
 import { useEffect, useState, useRef, memo, useMemo } from "react";
+import { flushSync } from "react-dom";
 import { selectUser } from "../user/userSlice";
 import { notifyUser } from "../../common/toast/ToastProvider";
 import { getMediaPermissionMessage } from "../../common/utils";
@@ -60,6 +61,7 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 const CallDuration = memo(CallDurationBase);
 const NO_ANSWER_AUTO_HANGUP_MS = 30000;
 const RECONNECT_AUTO_HANGUP_MS = 20000;
+
 const isRemoteParticipantReadyForOngoing = ({
   participantUid,
   remoteStreamPresent,
@@ -144,6 +146,7 @@ const CallModal = (props) => {
   const [isReconnecting, setIsReconnecting] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
+  const [videoButtonEnabled, setVideoButtonEnabled] = useState(null);
   const [screenSharingUids, setScreenSharingUids] = useState({}); // Track who's screen sharing
   // const timeoutRef = useRef(null);
   const modalRef = useRef(null);
@@ -191,6 +194,7 @@ const CallModal = (props) => {
     ? videoEnabledMap[user.uid] !== false
     : preJoinVideoEnabled;
   const isLocalVideoActive = isLocalVideoEnabled || isScreenSharing;
+  const isVideoButtonEnabled = videoButtonEnabled ?? isLocalVideoEnabled;
   // Include video-off participants so group tiles render even without onPlaying.
   // Example: callee joins with camera OFF -> no onPlaying, but videoEnabled=false should still show avatar tile.
   const readyRemoteStreamsArray = remoteStreamsArray.filter(([userId]) => {
@@ -377,12 +381,15 @@ const CallModal = (props) => {
     isConnectingCall || isScreenSharing || (!isOngoingCall && !isPreviewing);
   const isVideoDisabledByPreviewBootstrap =
     !isConnectingCall && !isScreenSharing && !isOngoingCall && !isPreviewing;
-  const videoControlOpacity =
-    isVideoControlDisabled && !isVideoDisabledByPreviewBootstrap ? 0.4 : 1;
-  const videoControlBg = isLocalVideoEnabled
+  const videoControlOpacity = isConnectingCall
+    ? 0.4
+    : isVideoControlDisabled && !isVideoDisabledByPreviewBootstrap
+    ? 0.4
+    : 1;
+  const videoControlBg = isVideoButtonEnabled
     ? controlButtonBg
     : activeControlButtonBg;
-  const videoControlColor = isLocalVideoEnabled
+  const videoControlColor = isVideoButtonEnabled
     ? controlButtonColor
     : activeControlButtonColor;
   const isScreenShareControlDisabled = isConnectingCall || !isOngoingCall;
@@ -392,13 +399,24 @@ const CallModal = (props) => {
   const screenShareControlColor = isScreenSharing
     ? activeControlButtonColor
     : controlButtonColor;
-  const screenShareControlOpacity = isScreenShareControlDisabled ? 0.4 : 1;
+  const screenShareControlOpacity = isConnectingCall
+    ? 0.4
+    : isScreenShareControlDisabled
+    ? 0.4
+    : 1;
   const isMuteControlDisabled = isConnectingCall;
   const muteControlBg = isMuted ? activeControlButtonBg : controlButtonBg;
   const muteControlColor = isMuted
     ? activeControlButtonColor
     : controlButtonColor;
-  const muteControlOpacity = isMuteControlDisabled ? 0.4 : 1;
+  const muteControlOpacity = isConnectingCall
+    ? 0.4
+    : isMuteControlDisabled
+    ? 0.4
+    : 1;
+  const controlOpacityTransition = isConnectingCall
+    ? "none"
+    : "opacity 0.12s ease";
   const shouldShowVideoToggle =
     !isInitiator() || isOngoingCall || isConnectingCall || isRejoinCall;
 
@@ -492,22 +510,35 @@ const CallModal = (props) => {
     }
   };
 
-  const updateVideoEnabled = async (enabled) => {
+  const updateVideoEnabled = async (enabled, options = {}) => {
     if (!callData?.chatId) return;
-    setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: enabled }));
-    const currentCallState = store.getState().chats.call;
-    dispatch(
-      setCall({
-        ...currentCallState,
-        callData: {
-          ...currentCallState.callData,
-          videoEnabled: {
-            ...(currentCallState.callData?.videoEnabled || {}),
-            [user.uid]: enabled,
+    const { forceSyncLocal = false } = options;
+    const applyLocalVideoEnabled = () => {
+      setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: enabled }));
+      const currentCallState = store.getState().chats.call;
+      dispatch(
+        setCall({
+          ...currentCallState,
+          callData: {
+            ...currentCallState.callData,
+            videoEnabled: {
+              ...(currentCallState.callData?.videoEnabled || {}),
+              [user.uid]: enabled,
+            },
           },
-        },
-      })
-    );
+        })
+      );
+    };
+    if (forceSyncLocal) {
+      // Force the local videoEnabled commit before heavy synchronous WebRTC work.
+      // Otherwise that work can delay the render/paint from this update, causing
+      // a brief gap where local video is hidden but the avatar tile is not shown yet.
+      flushSync(() => {
+        applyLocalVideoEnabled();
+      });
+    } else {
+      applyLocalVideoEnabled();
+    }
     try {
       await updateDoc(doc(db, "chats", callData.chatId), {
         [`call.callData.videoEnabled.${user.uid}`]: enabled,
@@ -781,13 +812,6 @@ const CallModal = (props) => {
       localVideoRef.current.srcObject !== localStreamRef.current
     ) {
       localVideoRef.current.srcObject = localStreamRef.current;
-    }
-    if (
-      localVideoRef.current &&
-      !isLocalVideoActive &&
-      localVideoRef.current.srcObject
-    ) {
-      localVideoRef.current.srcObject = null;
     }
     if (
       localAudioRef.current &&
@@ -1269,38 +1293,43 @@ const CallModal = (props) => {
       const previousLocalStream = localStreamRef.current;
       localVideoSwapInFlightRef.current = true;
       fadeLocalVideo(true);
-      const stream = await startScreenShare();
-      if (!stream) {
-        localVideoSwapInFlightRef.current = false;
-        fadeLocalVideo(false);
-        return;
-      }
       setIsScreenSharing(true);
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = stream;
-      }
-      if (previousLocalStream && previousLocalStream !== stream) {
-        previousLocalStream.getVideoTracks().forEach((t) => t.stop());
-      }
-      localVideoSwapInFlightRef.current = false;
-      fadeLocalVideo(false);
+      try {
+        const stream = await startScreenShare();
+        if (!stream) {
+          setIsScreenSharing(false);
+          return;
+        }
+        if (localVideoRef.current) {
+          localVideoRef.current.srcObject = stream;
+        }
+        if (previousLocalStream && previousLocalStream !== stream) {
+          previousLocalStream.getVideoTracks().forEach((t) => t.stop());
+        }
 
-      stream.getVideoTracks()[0].onended = async () => {
-        if (manualScreenShareStopRef.current) return;
-        const previousStream = localStreamRef.current;
-        localVideoSwapInFlightRef.current = true;
-        fadeLocalVideo(true);
+        stream.getVideoTracks()[0].onended = async () => {
+          if (manualScreenShareStopRef.current) return;
+          const previousStream = localStreamRef.current;
+          localVideoSwapInFlightRef.current = true;
+          fadeLocalVideo(true);
+          setIsScreenSharing(false);
+          const restoredStream = await stopScreenShare(!isLocalVideoEnabled);
+          if (restoredStream && localVideoRef.current) {
+            localVideoRef.current.srcObject = restoredStream;
+          }
+          if (previousStream && previousStream !== restoredStream) {
+            previousStream.getVideoTracks().forEach((t) => t.stop());
+          }
+          localVideoSwapInFlightRef.current = false;
+          fadeLocalVideo(false);
+        };
+      } catch (error) {
         setIsScreenSharing(false);
-        const restoredStream = await stopScreenShare(!isLocalVideoEnabled);
-        if (restoredStream && localVideoRef.current) {
-          localVideoRef.current.srcObject = restoredStream;
-        }
-        if (previousStream && previousStream !== restoredStream) {
-          previousStream.getVideoTracks().forEach((t) => t.stop());
-        }
+        console.error("[CallModal] Failed to start screen sharing:", error);
+      } finally {
         localVideoSwapInFlightRef.current = false;
         fadeLocalVideo(false);
-      };
+      }
     }
   };
 
@@ -1308,21 +1337,17 @@ const CallModal = (props) => {
     if (!callData?.isVideoCall) return;
     if (isScreenSharing || isTogglingVideoRef.current) return;
 
+    const nextVideoEnabled = !isLocalVideoEnabled;
+    setVideoButtonEnabled(nextVideoEnabled);
     isTogglingVideoRef.current = true;
     const isConnectedToCallMedia = !!localStreamRef.current;
+
     const getVideoSender = (pc) => {
       const transceiver = pc
         .getTransceivers?.()
         ?.find((t) => t.receiver?.track?.kind === "video");
       if (transceiver?.sender) return transceiver.sender;
       return pc.getSenders().find((s) => s.track?.kind === "video");
-    };
-    const getAudioSender = (pc) => {
-      const transceiver = pc
-        .getTransceivers?.()
-        ?.find((t) => t.receiver?.track?.kind === "audio");
-      if (transceiver?.sender) return transceiver.sender;
-      return pc.getSenders().find((s) => s.track?.kind === "audio");
     };
     try {
       const activeStream = isConnectedToCallMedia
@@ -1342,97 +1367,38 @@ const CallModal = (props) => {
         });
       };
 
-      const audioTracks = activeStream.getAudioTracks();
       if (isLocalVideoEnabled) {
         if (localVideoRef.current) {
           localVideoRef.current.style.display = "none";
         }
-        stopLiveVideoTracks(activeStream);
         if (isConnectedToCallMedia) {
-          // Mid-call OFF: switch to a fresh audio-only capture session and send null video.
-          // This reliably releases camera hardware while keeping mic live.
-          let replacementAudioTrack = audioTracks[0] || null;
-          try {
-            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-              video: false,
-            });
-            const freshAudioTrack = audioOnlyStream.getAudioTracks()[0];
-            if (freshAudioTrack) {
-              replacementAudioTrack = freshAudioTrack;
-            }
-          } catch (error) {
-            console.warn(
-              "[CallModal] toggleVideo OFF could not acquire fresh audio-only stream, reusing current audio track:",
-              error
-            );
-          }
+          // Force videoEnabled=false to commit now so React switches to the avatar tile immediately.
+          // Without forceSyncLocal, React may batch this update and apply it after the current toggle work,
+          // which can briefly show a black/empty gap after local video is hidden.
+          // Firestore sync still runs asynchronously in the background.
+          updateVideoEnabled(false, { forceSyncLocal: true });
+        }
+        // Mid-call OFF: keep the same local stream object and remove only video tracks.
+        // This preserves stream identity (the local video element keeps the same stream,
+        // now audio-only), while audio continues through the local audio path.
+        stopLiveVideoTracks(activeStream);
 
+        if (isConnectedToCallMedia) {
+          // Detach video from each PC sender.
+          // Audio sender stays attached to its live audio track, so audio keeps streaming.
           const replacePromises = [];
           peerConnectionsRef.current.forEach((pc) => {
             const videoSender = getVideoSender(pc);
             if (videoSender) {
               replacePromises.push(videoSender.replaceTrack(null));
             }
-            const audioSender = getAudioSender(pc);
-            if (audioSender && replacementAudioTrack) {
-              replacePromises.push(
-                audioSender.replaceTrack(replacementAudioTrack)
-              );
-            }
           });
           await Promise.all(replacePromises);
-
-          // Stop old capture tracks, but keep the replacement audio track alive.
-          activeStream.getTracks().forEach((track) => {
-            if (
-              track !== replacementAudioTrack &&
-              track.readyState === "live"
-            ) {
-              track.stop();
-            }
-          });
-
-          localStreamRef.current = replacementAudioTrack
-            ? new MediaStream([replacementAudioTrack])
-            : new MediaStream();
-          // Don't block local camera release on Firestore latency.
-          updateVideoEnabled(false);
         } else {
-          // Pre-join OFF: rebuild preview with a fresh audio-only stream so camera
-          // capture session is released immediately.
-          let nextPreviewStream = null;
-          try {
-            const audioOnlyStream = await navigator.mediaDevices.getUserMedia({
-              audio: true,
-              video: false,
-            });
-            if (audioOnlyStream.getAudioTracks().length > 0) {
-              nextPreviewStream = audioOnlyStream;
-            }
-          } catch (error) {
-            console.warn(
-              "[CallModal] toggleVideo OFF pre-join audio-only getUserMedia failed, falling back to existing audio track:",
-              error
-            );
-          }
-          if (!nextPreviewStream) {
-            nextPreviewStream = new MediaStream([...audioTracks]);
-          }
-          activeStream.getTracks().forEach((track) => {
-            if (track.readyState === "live") {
-              track.stop();
-            }
-          });
+          // Pre-join OFF mirrors mid-call behavior: keep the same preview stream
+          // object attached and remove only video tracks.
           setPreJoinVideoEnabled(false);
           setVideoEnabledMap((prev) => ({ ...prev, [user.uid]: false }));
-          // Pre-join preview should be audio-only when video is off.
-          // Join flow may add a dummy video track so remote frame readiness
-          // logic can still advance to ongoing call state.
-          previewStreamRef.current = nextPreviewStream;
-        }
-        if (localVideoRef.current) {
-          localVideoRef.current.srcObject = null;
         }
       } else {
         let cameraStream;
@@ -1441,37 +1407,55 @@ const CallModal = (props) => {
             video: true,
           });
         } catch (error) {
-          console.error("[CallModal] Error enabling camera:", error);
           notifyUser(
             getMediaPermissionMessage({ error, isAudioCall: false }),
             "info"
           );
-          isTogglingVideoRef.current = false;
           return;
         }
         const cameraTrack = cameraStream.getVideoTracks()[0];
         if (isConnectedToCallMedia) {
           peerConnectionsRef.current.forEach((pc) => {
             const sender = getVideoSender(pc);
-            if (sender) sender.replaceTrack(cameraTrack);
+            if (sender) {
+              sender.replaceTrack(cameraTrack);
+            }
           });
-          stopLiveVideoTracks(localStreamRef.current);
-          localStreamRef.current = new MediaStream([
-            cameraTrack,
-            ...audioTracks,
-          ]);
+          const stableLocalStream = localStreamRef.current || activeStream;
+          stopLiveVideoTracks(stableLocalStream);
+          // Mid-call local video keeps the same stream object attached to localVideoRef.srcObject.
+          // Adding the new camera track here lets the video element render camera again
+          // without requiring a full stream reattachment.
+          const hasCameraTrack = stableLocalStream
+            .getVideoTracks()
+            .some((track) => track.id === cameraTrack.id);
+          if (!hasCameraTrack) {
+            stableLocalStream.addTrack(cameraTrack);
+          }
+          localStreamRef.current = stableLocalStream;
         } else {
-          stopLiveVideoTracks(activeStream);
-          previewStreamRef.current = new MediaStream([
-            cameraTrack,
-            ...audioTracks,
-          ]);
+          const stablePreviewStream = previewStreamRef.current || activeStream;
+          stopLiveVideoTracks(stablePreviewStream);
+          const hasCameraTrack = stablePreviewStream
+            .getVideoTracks()
+            .some((track) => track.id === cameraTrack.id);
+          if (!hasCameraTrack) {
+            stablePreviewStream.addTrack(cameraTrack);
+          }
+          previewStreamRef.current = stablePreviewStream;
         }
         if (localVideoRef.current) {
-          localVideoRef.current.srcObject = isConnectedToCallMedia
+          const targetStream = isConnectedToCallMedia
             ? localStreamRef.current
             : previewStreamRef.current;
+          if (localVideoRef.current.srcObject !== targetStream) {
+            localVideoRef.current.srcObject = targetStream;
+          }
           localVideoRef.current.style.display = "";
+          const playResult = localVideoRef.current.play?.();
+          if (playResult && typeof playResult.catch === "function") {
+            playResult.catch(() => undefined);
+          }
         }
         if (isConnectedToCallMedia) {
           await updateVideoEnabled(true);
@@ -1484,6 +1468,7 @@ const CallModal = (props) => {
       console.error("[CallModal] Error toggling video:", error);
     } finally {
       isTogglingVideoRef.current = false;
+      setVideoButtonEnabled(null);
     }
   };
 
@@ -2251,11 +2236,8 @@ const CallModal = (props) => {
               bgcolor: videoControlBg,
               color: videoControlColor,
               opacity: videoControlOpacity,
+              transition: controlOpacityTransition,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              transition:
-                isConnectingCall || !isOngoingCall
-                  ? "none"
-                  : "opacity 0.2s ease, background-color 0.2s ease",
               "&:hover": {
                 bgcolor: videoControlBg,
               },
@@ -2270,7 +2252,7 @@ const CallModal = (props) => {
             }}
             disableRipple
           >
-            {isLocalVideoEnabled ? (
+            {isVideoButtonEnabled ? (
               <Videocam sx={{ fontSize: "1.5rem" }} />
             ) : (
               <VideocamOff sx={{ fontSize: "1.5rem" }} />
@@ -2294,8 +2276,8 @@ const CallModal = (props) => {
               color: screenShareControlColor,
               pointerEvents: isScreenShareControlDisabled ? "none" : "auto",
               opacity: screenShareControlOpacity,
+              transition: controlOpacityTransition,
               boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-              transition: "background-color 0.2s ease",
               "&:hover": {
                 bgcolor: screenShareControlBg,
               },
@@ -2329,8 +2311,8 @@ const CallModal = (props) => {
             color: muteControlColor,
             pointerEvents: isMuteControlDisabled ? "none" : "auto",
             opacity: muteControlOpacity,
+            transition: controlOpacityTransition,
             boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
-            transition: "background-color 0.2s ease",
             "&:hover": {
               bgcolor: muteControlBg,
             },
