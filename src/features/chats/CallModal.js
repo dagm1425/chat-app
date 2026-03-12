@@ -1612,7 +1612,7 @@ const CallModal = (props) => {
                   zIndex: 2,
                 }}
               >
-                <span>{remoteStreamsArray.length + 1} participant(s)</span>
+                <span>{remoteStreamsArray.length + 1} participants</span>
                 <span> | </span>
                 <span>
                   <CallDuration
@@ -2042,7 +2042,7 @@ const CallModal = (props) => {
                   zIndex: 2,
                 }}
               >
-                <span>{remoteStreamsArray.length + 1} participant(s)</span>
+                <span>{remoteStreamsArray.length + 1} participants</span>
                 <span> | </span>
                 <span>
                   <CallDuration
