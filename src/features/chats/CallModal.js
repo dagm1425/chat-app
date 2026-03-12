@@ -1079,7 +1079,7 @@ const CallModal = (props) => {
         });
       }
 
-      const initiatorInfo = getParticipantInfo(callData?.initiator) || user;
+      const initiatorInfo = getParticipantInfo(callData?.initiator);
       sendOneToOneCallHistoryMsg({
         db,
         chatId: callData.chatId,

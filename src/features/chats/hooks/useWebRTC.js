@@ -4,7 +4,6 @@ import {
   collection,
   doc,
   getDoc,
-  setDoc,
   updateDoc,
   addDoc,
   serverTimestamp,
@@ -27,12 +26,12 @@ import { selectCall, setCall } from "../chatsSlice";
 import { selectUser } from "../../user/userSlice";
 import { store } from "../../../app/store";
 import { rtDb } from "../../../firebase";
-import {
-  formatDurationMinutes,
-  getMediaPermissionMessage,
-} from "../../../common/utils";
+import { getMediaPermissionMessage } from "../../../common/utils";
 import { notifyUser } from "../../../common/toast/ToastProvider";
-import { sendOneToOneCallHistoryMsg } from "../callHistory";
+import {
+  sendGroupCallSystemMsg,
+  sendOneToOneCallHistoryMsg,
+} from "../callHistory";
 
 const BUSY_MODAL_AUTO_CLOSE_MS = 1500;
 
@@ -797,49 +796,6 @@ const useWebRTC = (db) => {
     }
   };
 
-  const sendGroupCallSystemMsg = async (chatRef, chatData, callData) => {
-    if (!callData?.isGroupCall) return;
-
-    const startTime = callData.startTime?.toDate?.();
-    const durationSeconds = startTime
-      ? Math.max(0, Math.floor((Date.now() - startTime.getTime()) / 1000))
-      : 0;
-    const durationLabel = formatDurationMinutes(durationSeconds);
-    const isVideoCall = !!callData.isVideoCall;
-
-    const msgId = uuid();
-    const msgRef = doc(chatRef, "chatMessages", msgId);
-    const newMsg = {
-      msgId,
-      type: "call-system",
-      from: callData.participantDetails?.[callData.initiator] || user,
-      msgReply: null,
-      isMsgDelivered: true,
-      timestamp: serverTimestamp(),
-      callData: {
-        kind: "group-start",
-        isVideoCall,
-        durationSeconds,
-        durationLabel,
-        initiatorUid: callData.initiator,
-      },
-    };
-    const unreadCounts = { ...(chatData.unreadCounts || {}) };
-    const senderUid = newMsg.from?.uid;
-    for (const uid in unreadCounts) {
-      if (uid !== senderUid) {
-        unreadCounts[uid] = (unreadCounts[uid] || 0) + 1;
-      }
-    }
-
-    await setDoc(msgRef, newMsg);
-    await updateDoc(chatRef, {
-      recentMsg: newMsg,
-      timestamp: newMsg.timestamp,
-      unreadCounts,
-    });
-  };
-
   const cleanupLocalCall = async () => {
     const activeCallId = callState.callData?.id || null;
 
@@ -889,14 +845,17 @@ const useWebRTC = (db) => {
                 });
                 shouldDeleteAllSignals = true;
                 if (callData.isGroupCall) {
-                  sendGroupCallSystemMsg(chatRef, chatData, callData).catch(
-                    (error) => {
-                      console.error(
-                        "[useWebRTC] Error sending group call system message:",
-                        error
-                      );
-                    }
-                  );
+                  sendGroupCallSystemMsg({
+                    chatRef,
+                    chatData,
+                    callData,
+                    senderUid: user.uid,
+                  }).catch((error) => {
+                    console.error(
+                      "[useWebRTC] Error sending group call system message:",
+                      error
+                    );
+                  });
                 }
               } else {
                 // Only update participants if call stays active
