@@ -43,6 +43,7 @@ function ChatMsg({
     forwardedFrom &&
     forwardedFrom.displayName
   );
+  const readSign = message.type === "call" ? null : renderReadSign(message);
 
   return (
     <Box
@@ -176,13 +177,13 @@ function ChatMsg({
             fontSize: 10,
             color: "text.secondary",
             ml: "1rem",
-            pr: renderReadSign(message) ? "0rem" : "0.325rem",
+            pr: readSign ? "0rem" : "0.325rem",
           }}
         >
           <Typography variant="body2" sx={{ font: "inherit" }}>
             {msgTime}
           </Typography>
-          {renderReadSign(message)}
+          {readSign}
         </Box>
       </Box>
     </Box>
