@@ -815,7 +815,6 @@ const useWebRTC = (db) => {
       from: callData.participantDetails?.[callData.initiator] || user,
       msgReply: null,
       isMsgDelivered: true,
-      isMsgRead: chatData.type === "private" ? false : [],
       timestamp: serverTimestamp(),
       callData: {
         kind: "group-start",

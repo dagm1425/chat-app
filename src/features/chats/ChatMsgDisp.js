@@ -653,7 +653,7 @@ function ChatMsgDisp({
     return Number.isFinite(progress) && progress >= 100;
   };
 
-  const createNewMessage = (msg, msgId, targetChatType) => {
+  const createNewMessage = (msg, msgId) => {
     const forwardedFromSource = msg.forwardedFrom || msg.from || {};
     const forwardedFrom = {
       uid: forwardedFromSource.uid || "",
@@ -669,7 +669,6 @@ function ChatMsgDisp({
       isForwarded: true,
       forwardedFrom,
       isMsgDelivered: true,
-      isMsgRead: targetChatType === "private" ? false : [],
       timestamp: serverTimestamp(),
     };
   };
@@ -691,7 +690,7 @@ function ChatMsgDisp({
       const msgId = uuid();
       const msgRef = doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`);
       const chatRef = doc(db, "chats", `${chatId}`);
-      const newMsg = createNewMessage(msg, msgId, chatWithSelectedUser[0].type);
+      const newMsg = createNewMessage(msg, msgId);
 
       for (const uid in unreadCounts) {
         if (uid !== user.uid) {
@@ -711,7 +710,7 @@ function ChatMsgDisp({
       const chatRef = doc(db, "chats", `${chatId}`);
       let msgRef;
       const msgId = uuid();
-      const newMsg = createNewMessage(msg, msgId, "private");
+      const newMsg = createNewMessage(msg, msgId);
       const newChat = {
         chatId,
         type: "private",

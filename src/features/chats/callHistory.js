@@ -52,7 +52,6 @@ export const sendOneToOneCallHistoryMsg = async ({
     from: initiatorInfo,
     msgReply: null,
     isMsgDelivered: true,
-    isMsgRead: false,
     timestamp,
   };
 
