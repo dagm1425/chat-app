@@ -249,14 +249,12 @@ function MsgReply({ message, user, scrollToMsg }) {
         borderLeft: "4px solid",
         borderColor: "primary.main",
         borderRadius: "0.25rem",
-        bgcolor: "inherit",
-        filter: (theme) =>
+        backgroundColor: (theme) =>
           theme.palette.mode === "light"
-            ? "brightness(0.94)"
-            : "brightness(1.15)",
+            ? "rgba(11, 20, 26, 0.04)"
+            : "rgba(255, 255, 255, 0.06)",
         py: "0.125rem",
         cursor: "pointer",
-        boxShadow: 2,
       }}
       onClick={() => {
         scrollToMsg(message);
