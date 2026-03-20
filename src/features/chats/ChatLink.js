@@ -22,6 +22,8 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
   const recentMsg = chat.recentMsg;
   const unreadMsgCount = chat.unreadCounts[user.uid];
   const draft = chat.drafts.find((draft) => draft.from.uid === user.uid);
+  const draftMsg = typeof draft?.msg === "string" ? draft.msg.trim() : "";
+  const hasVisibleDraft = draftMsg.length > 0;
   const otherMember = chat.members.find((member) => member.uid !== user.uid);
   const chatCreator =
     chat.createdBy.uid === user.uid ? "You" : `${chat.createdBy.displayName}`;
@@ -123,7 +125,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                   />
                 )}
               </Typography>
-              {recentMsgTimestamp && !draft && (
+              {recentMsgTimestamp && !hasVisibleDraft && (
                 <Typography
                   variant="body2"
                   component="div"
@@ -139,7 +141,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
             </React.Fragment>
           }
           secondary={
-            !recentMsg && !draft ? (
+            !recentMsg && !hasVisibleDraft ? (
               <Typography
                 variant="body2"
                 component="div"
@@ -166,7 +168,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                 >
                   {recentMsg &&
                     chat.type === "public" &&
-                    !draft &&
+                    !hasVisibleDraft &&
                     recentMsg.type !== "call-system" && (
                       <Typography
                         component="span"
@@ -181,7 +183,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                         {": "}
                       </Typography>
                     )}
-                  {draft ? (
+                  {hasVisibleDraft ? (
                     <Typography
                       sx={{
                         fontSize: "inherit",
@@ -194,7 +196,7 @@ function ChatLink({ chat, selectedChatId, setSelectedChatId }) {
                       >
                         Draft:{" "}
                       </Typography>
-                      {draft.msg}
+                      {draftMsg}
                     </Typography>
                   ) : (
                     <Typography

@@ -389,34 +389,35 @@ function ChatMsgInput({
   };
 
   const updateDraft = async () => {
-    if (!inputRef.current.value) {
-      resetDraft();
-      return;
-    } else if (inputRef.current.value) {
-      let draftsUpdate;
+    const inputValue = inputRef.current?.value || "";
 
-      if (!chatDrafts.userDraft) {
-        draftsUpdate = [
-          ...chatDrafts.drafts,
-          { from: user, msg: inputRef.current.value },
-        ];
-      } else if (
-        chatDrafts.userDraft &&
-        chatDrafts.userDraft.msg !== inputRef.current.value
-      ) {
-        draftsUpdate = chatDrafts.drafts.map((draft) => {
-          if (draft.from.uid === user.uid) {
-            return { ...draft, msg: inputRef.current.value };
-          } else return draft;
-        });
-      }
-
-      if (draftsUpdate)
-        await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
-          drafts: draftsUpdate,
-        });
+    // Treat whitespace-only text as empty draft.
+    if (!inputValue.trim()) {
+      await resetDraft();
       return;
-    } else return;
+    }
+
+    let draftsUpdate;
+
+    if (!chatDrafts.userDraft) {
+      draftsUpdate = [...chatDrafts.drafts, { from: user, msg: inputValue }];
+    } else if (chatDrafts.userDraft.msg !== inputValue) {
+      draftsUpdate = chatDrafts.drafts.map((draft) => {
+        if (draft.from.uid === user.uid) {
+          return { ...draft, msg: inputValue };
+        } else return draft;
+      });
+    }
+
+    if (!draftsUpdate) return;
+
+    try {
+      await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
+        drafts: draftsUpdate,
+      });
+    } catch (error) {
+      console.error("[ChatMsgInput] Failed to update draft:", error);
+    }
   };
 
   const resetDraft = async () => {
@@ -424,9 +425,13 @@ function ChatMsgInput({
       const draftsUpdate = chatDrafts.drafts.filter(
         (draft) => draft.from.uid !== user.uid
       );
-      await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
-        drafts: draftsUpdate,
-      });
+      try {
+        await updateDoc(doc(db, "chats", `${chatDrafts.chatId}`), {
+          drafts: draftsUpdate,
+        });
+      } catch (error) {
+        console.error("[ChatMsgInput] Failed to reset draft:", error);
+      }
       return;
     } else return;
   };
