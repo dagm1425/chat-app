@@ -197,15 +197,24 @@ const TextMsg = ({ message }) => {
             mt: previewTopMargin,
           }}
         >
-          <Skeleton
-            variant="rectangular"
+          <Box
             sx={{
               width: previewMediaWidthSx,
-              height: previewMediaHeightSx,
               minWidth: previewMediaWidthSx,
+              minHeight: previewMediaHeightSx,
               flexShrink: 0,
+              alignSelf: "stretch",
+              display: "flex",
             }}
-          />
+          >
+            <Skeleton
+              variant="rectangular"
+              sx={{
+                width: "100%",
+                height: "100%",
+              }}
+            />
+          </Box>
           <Box sx={{ p: "0.625rem 0.75rem", minWidth: 0, flex: 1 }}>
             <Skeleton variant="text" height={24} width="84%" />
             <Skeleton variant="text" height={18} width="96%" />

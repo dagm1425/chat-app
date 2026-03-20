@@ -3,7 +3,13 @@ import PropTypes from "prop-types";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { db } from "../../firebase";
-import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
+import {
+  deleteField,
+  doc,
+  serverTimestamp,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
 import CheckIcon from "@mui/icons-material/Check";
@@ -28,6 +34,7 @@ import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
 import EditIcon from "@mui/icons-material/Edit";
 import { notifyUser } from "../../common/toast/ToastProvider";
+import { extractFirstUrl } from "../../common/utils";
 
 const MAX_FILE_SIZE_BYTES = 5000000;
 const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
@@ -177,12 +184,35 @@ function ChatMsgInput({
         );
         const chatRef = doc(db, "chats", `${chatId}`);
         const editedAt = serverTimestamp();
-
-        await updateDoc(messageRef, {
+        const messageUpdate = {
           [editSession.fieldKey]: nextValue,
           isEdited: true,
           editedAt,
-        });
+        };
+
+        if (editSession.fieldKey === "msg") {
+          const previousUrl = extractFirstUrl(initialValue);
+          const nextUrl = extractFirstUrl(nextValue);
+
+          if (!nextUrl) {
+            if (previousUrl) {
+              messageUpdate.linkPreviewStatus = deleteField();
+              messageUpdate.linkPreviewFetchedAt = deleteField();
+              messageUpdate.linkPreviewUrl = deleteField();
+              messageUpdate.linkPreview = deleteField();
+              messageUpdate.linkPreviewErrorCode = deleteField();
+            }
+          } else if (nextUrl !== previousUrl) {
+            // Mark as pending so UI can show loading state until backend preview refresh completes.
+            messageUpdate.linkPreviewStatus = "pending";
+            messageUpdate.linkPreviewFetchedAt = deleteField();
+            messageUpdate.linkPreviewUrl = nextUrl;
+            messageUpdate.linkPreview = deleteField();
+            messageUpdate.linkPreviewErrorCode = deleteField();
+          }
+        }
+
+        await updateDoc(messageRef, messageUpdate);
 
         if (chat.recentMsg?.msgId === editSession.msgId) {
           await updateDoc(chatRef, {
@@ -700,7 +730,8 @@ function ChatMsgInput({
                     sx={{
                       fontSize: "inherit",
                       lineHeight: "1.125rem",
-                      maxWidth: { xs: "12rem", sm: "20rem" },
+                      maxWidth: "100%",
+                      display: "block",
                       whiteSpace: "nowrap",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
