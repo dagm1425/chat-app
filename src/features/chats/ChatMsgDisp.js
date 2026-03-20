@@ -39,6 +39,7 @@ import DeleteIcon from "@mui/icons-material/Delete";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
 import ReplyIcon from "@mui/icons-material/Reply";
+import EditIcon from "@mui/icons-material/Edit";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
@@ -122,6 +123,7 @@ function ChatMsgDisp({
   chat,
   uploadTask,
   setMsgReply,
+  setMsgEdit,
   userStatuses,
   scroll,
   makeCall,
@@ -162,6 +164,10 @@ function ChatMsgDisp({
     "&:hover": {
       bgcolor: "action.hover",
     },
+  };
+  const msgOptionsItemProps = {
+    disableRipple: true,
+    disableTouchRipple: true,
   };
   const msgOptionsIconSx = { color: "action.active", fontSize: "1.15rem" };
   const msgDates = new Set();
@@ -555,9 +561,42 @@ function ChatMsgDisp({
 
   const handleMsgReply = async () => {
     const msgReply = chatMsg.find((msg) => msg.msgId === msgId);
+    setMsgEdit(null);
     setMsgReply(msgReply);
 
     handleMsgOptionsClose();
+  };
+
+  const isMessageEditable = (message) => {
+    if (!message) return false;
+    if (message.from?.uid !== user.uid) return false;
+    return (
+      message.type === "text" ||
+      message.type === "image" ||
+      message.type === "video" ||
+      message.type === "file"
+    );
+  };
+
+  const handleMsgEdit = () => {
+    const message = chatMsg.find((item) => item.msgId === msgId);
+    if (!isMessageEditable(message)) return;
+
+    const fieldKey = message.type === "text" ? "msg" : "caption";
+    const initialValue =
+      typeof message[fieldKey] === "string" ? message[fieldKey] : "";
+
+    setMsgReply(null);
+    setMsgEdit({
+      msgId: message.msgId,
+      type: message.type,
+      fieldKey,
+      initialValue,
+    });
+
+    requestAnimationFrame(() => {
+      handleMsgOptionsClose();
+    });
   };
 
   const cancelUpload = async (msgId) => {
@@ -844,6 +883,7 @@ function ChatMsgDisp({
       : [];
   const selectedMsg = chatMsg?.find((msg) => msg.msgId === msgId);
   const isSelectedCallStatusMsg = selectedMsg?.type === "call";
+  const isSelectedMsgEditable = isMessageEditable(selectedMsg);
   const isSelectedMsgForwardable = isMessageForwardable(selectedMsg);
 
   return (
@@ -1024,14 +1064,32 @@ function ChatMsgDisp({
         }}
         MenuListProps={{ sx: { p: 0 } }}
       >
-        <MenuItem onClick={handleDeleteMsgOpen} sx={msgOptionsItemSx}>
+        <MenuItem
+          onClick={handleDeleteMsgOpen}
+          sx={msgOptionsItemSx}
+          {...msgOptionsItemProps}
+        >
           <DeleteIcon sx={msgOptionsIconSx} />
           <Typography variant="body2">Delete</Typography>
         </MenuItem>
         {!isSelectedCallStatusMsg && (
-          <MenuItem onClick={handleMsgReply} sx={msgOptionsItemSx}>
+          <MenuItem
+            onClick={handleMsgReply}
+            sx={msgOptionsItemSx}
+            {...msgOptionsItemProps}
+          >
             <ReplyIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Reply</Typography>
+          </MenuItem>
+        )}
+        {isSelectedMsgEditable && (
+          <MenuItem
+            onClick={handleMsgEdit}
+            sx={msgOptionsItemSx}
+            {...msgOptionsItemProps}
+          >
+            <EditIcon sx={msgOptionsIconSx} />
+            <Typography variant="body2">Edit</Typography>
           </MenuItem>
         )}
         {!isSelectedCallStatusMsg && (
@@ -1039,6 +1097,7 @@ function ChatMsgDisp({
             onClick={handleMsgForwardOpen}
             disabled={!isSelectedMsgForwardable}
             sx={msgOptionsItemSx}
+            {...msgOptionsItemProps}
           >
             <ArrowForwardIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Forward</Typography>
@@ -1093,18 +1152,18 @@ function ChatMsgDisp({
   );
 }
 
-export default ChatMsgDisp;
+export default React.memo(ChatMsgDisp);
 
 ChatMsgDisp.propTypes = {
   chat: PropTypes.object,
   uploadTask: PropTypes.object,
   setMsgReply: PropTypes.func,
+  setMsgEdit: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
   scroll: PropTypes.oneOfType([
     PropTypes.func,
     PropTypes.shape({ current: PropTypes.instanceOf(Element) }),
   ]),
-  setSelectedChatId: PropTypes.func,
   makeCall: PropTypes.func,
   isActive: PropTypes.bool.isRequired,
 };

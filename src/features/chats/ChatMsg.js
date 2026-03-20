@@ -44,6 +44,7 @@ function ChatMsg({
     forwardedFrom.displayName
   );
   const readSign = message.type === "call" ? null : renderReadSign(message);
+  const isEdited = Boolean(message.isEdited || message.editedAt);
 
   return (
     <Box
@@ -180,6 +181,11 @@ function ChatMsg({
             pr: readSign ? "0rem" : "0.325rem",
           }}
         >
+          {isEdited && (
+            <Typography variant="body2" sx={{ font: "inherit" }}>
+              edited
+            </Typography>
+          )}
           <Typography variant="body2" sx={{ font: "inherit" }}>
             {msgTime}
           </Typography>

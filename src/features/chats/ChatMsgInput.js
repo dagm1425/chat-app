@@ -6,6 +6,7 @@ import { db } from "../../firebase";
 import { doc, serverTimestamp, setDoc, updateDoc } from "firebase/firestore";
 import { v4 as uuid } from "uuid";
 import SendIcon from "@mui/icons-material/Send";
+import CheckIcon from "@mui/icons-material/Check";
 import {
   Box,
   Dialog,
@@ -25,13 +26,22 @@ import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import PhotoLibraryOutlinedIcon from "@mui/icons-material/PhotoLibraryOutlined";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
 import { notifyUser } from "../../common/toast/ToastProvider";
 
 const MAX_FILE_SIZE_BYTES = 5000000;
 const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
 
-function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
+function ChatMsgInput({
+  chat,
+  setUploadTask,
+  msgReply,
+  setMsgReply,
+  msgEdit,
+  setMsgEdit,
+  scroll,
+}) {
   const user = useSelector(selectUser);
   const chatId = chat.chatId;
   const userDraft = chat.drafts.find((draft) => draft.from.uid === user.uid);
@@ -48,30 +58,21 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   const [fileMsg, setFileMsg] = useState(null);
   const [isFileMsgDialogOpen, setIsFileMsgDialogOpen] = useState(false);
   const inputRef = useRef(null);
+  const editDraftBeforeStartRef = useRef(null);
+  const prevMsgEditRef = useRef(null);
   const isMobile = useMediaQuery("(max-width: 600px)");
   const theme = useTheme();
+  const isEditing = Boolean(msgEdit);
 
   useEffect(() => {
-    const listener = (e) => {
-      if (
-        (e.code === "Enter" || e.code === "NumpadEnter") &&
-        e.ctrlKey &&
-        e.target.nodeName == "TEXTAREA"
-      ) {
-        e.preventDefault();
-        msgInputForm.current.requestSubmit();
-      }
-    };
-
-    document.addEventListener("keydown", listener);
-
-    return () => {
-      document.removeEventListener("keydown", listener);
-    };
-  }, []);
-
-  useEffect(() => {
+    const wasEditing = Boolean(prevMsgEditRef.current);
+    if (wasEditing && inputRef.current) {
+      inputRef.current.value = editDraftBeforeStartRef.current ?? "";
+    }
     updateDraft();
+    prevMsgEditRef.current = null;
+    editDraftBeforeStartRef.current = null;
+    setAttachmentAnchorEl(null);
     if (document.activeElement !== inputRef.current && !isMobile)
       inputRef.current.focus();
     setChatDrafts({
@@ -82,14 +83,45 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   }, [chatId]);
 
   useEffect(() => {
+    if (!inputRef.current || msgEdit) return;
     inputRef.current.value = chatDrafts.userDraft
       ? chatDrafts.userDraft.msg
       : "";
-  }, [chatDrafts]);
+  }, [chatDrafts, msgEdit]);
 
   useEffect(() => {
-    if (msgReply) inputRef.current.focus();
-  }, [msgReply]);
+    if (msgReply || msgEdit) inputRef.current?.focus();
+  }, [msgReply, msgEdit]);
+
+  useEffect(() => {
+    if (!inputRef.current) return;
+
+    const prevMsgEdit = prevMsgEditRef.current;
+    const enteredEdit = !prevMsgEdit && msgEdit;
+    const switchedEditTarget =
+      prevMsgEdit &&
+      msgEdit &&
+      (prevMsgEdit.msgId !== msgEdit.msgId ||
+        prevMsgEdit.fieldKey !== msgEdit.fieldKey);
+    const exitedEdit = prevMsgEdit && !msgEdit;
+
+    if (enteredEdit) {
+      editDraftBeforeStartRef.current = inputRef.current.value;
+      inputRef.current.value = msgEdit.initialValue || "";
+      setAttachmentAnchorEl(null);
+      inputRef.current.focus();
+    } else if (switchedEditTarget) {
+      inputRef.current.value = msgEdit.initialValue || "";
+      inputRef.current.focus();
+    } else if (exitedEdit) {
+      if (editDraftBeforeStartRef.current !== null) {
+        inputRef.current.value = editDraftBeforeStartRef.current;
+      }
+      editDraftBeforeStartRef.current = null;
+    }
+
+    prevMsgEditRef.current = msgEdit;
+  }, [msgEdit]);
 
   useEffect(() => {
     if (!isEmojiPopoverOpen) return;
@@ -116,6 +148,56 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
 
   const handleSendMsg = async (e) => {
     e.preventDefault();
+    if (!inputRef.current) return;
+
+    if (msgEdit) {
+      const editSession = msgEdit;
+      const nextValue = inputRef.current.value;
+      const initialValue =
+        typeof editSession.initialValue === "string"
+          ? editSession.initialValue
+          : "";
+
+      if (editSession.fieldKey === "msg" && !nextValue.trim()) return;
+
+      if (nextValue === initialValue) {
+        setMsgEdit(null);
+        return;
+      }
+
+      setMsgEdit(null);
+
+      try {
+        const messageRef = doc(
+          db,
+          "chats",
+          `${chatId}`,
+          "chatMessages",
+          `${editSession.msgId}`
+        );
+        const chatRef = doc(db, "chats", `${chatId}`);
+        const editedAt = serverTimestamp();
+
+        await updateDoc(messageRef, {
+          [editSession.fieldKey]: nextValue,
+          isEdited: true,
+          editedAt,
+        });
+
+        if (chat.recentMsg?.msgId === editSession.msgId) {
+          await updateDoc(chatRef, {
+            [`recentMsg.${editSession.fieldKey}`]: nextValue,
+            "recentMsg.isEdited": true,
+            "recentMsg.editedAt": editedAt,
+          });
+        }
+      } catch (error) {
+        console.error("[ChatMsgInput] Failed to edit message:", error);
+        notifyUser("Failed to edit message. Please try again.", "error");
+      }
+
+      return;
+    }
 
     if (!inputRef.current.value) return;
 
@@ -170,6 +252,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const handleFileSelectClick = (e) => {
+    if (msgEdit) return;
     setAttachmentAnchorEl(e.currentTarget);
   };
 
@@ -178,6 +261,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
   };
 
   const triggerFilePicker = (accept) => {
+    if (msgEdit) return;
     closeAttachmentPicker();
     if (!fileInput.current) return;
     fileInput.current.accept = accept;
@@ -199,6 +283,12 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
     if (replyMsg.caption) return replyMsg.caption;
     if (replyMsg.type === "video") return "Video";
     return replyMsg.fileMsg.fileName;
+  };
+
+  const getEditPreviewText = () => {
+    if (!msgEdit) return "";
+    if (msgEdit.fieldKey === "msg") return msgEdit.initialValue || "Empty";
+    return msgEdit.initialValue || "Empty caption";
   };
 
   const getImageSize = (file) => {
@@ -369,6 +459,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           sx={{ position: "relative", display: "flex", alignItems: "center" }}
         >
           <IconButton
+            disableRipple
+            disableTouchRipple
             sx={{
               mr: { xs: "-0.625rem", sm: "-0.75rem" },
               "&.MuiButtonBase-root:hover": {
@@ -451,6 +543,9 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         />
 
         <IconButton
+          disableRipple
+          disableTouchRipple
+          disabled={isEditing}
           onClick={handleFileSelectClick}
           sx={{
             "&.MuiButtonBase-root:hover": {
@@ -554,7 +649,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
             alignItems: "center",
           }}
         >
-          {msgReply && (
+          {isEditing ? (
             <Box
               sx={{
                 width: "100%",
@@ -580,9 +675,10 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                   borderColor: "primary.main",
                   borderTopLeftRadius: "0.25rem",
                   borderBottomLeftRadius: "0.25rem",
+                  minWidth: 0,
                 }}
               >
-                {msgReply.fileMsg && <InsertDriveFileIcon fontSize="small" />}
+                <EditIcon fontSize="small" />
                 <div>
                   <Typography
                     variant="body1"
@@ -592,9 +688,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                       lineHeight: "1.125rem",
                     }}
                   >
-                    {msgReply.from.uid === user.uid
-                      ? "You"
-                      : msgReply.from.displayName}
+                    Edit message
                   </Typography>
                   <Typography
                     variant="body1"
@@ -607,12 +701,16 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                       textOverflow: "ellipsis",
                     }}
                   >
-                    {getReplyPreviewText(msgReply)}
+                    {getEditPreviewText()}
                   </Typography>
                 </div>
               </Box>
               <IconButton
-                onClick={() => setMsgReply(null)}
+                disableRipple
+                disableTouchRipple
+                onClick={() => {
+                  setMsgEdit(null);
+                }}
                 sx={{
                   marginLeft: "auto",
                   "&.MuiButtonBase-root:hover": {
@@ -623,6 +721,79 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 <CloseIcon sx={{ marginLeft: "auto" }} />
               </IconButton>
             </Box>
+          ) : (
+            msgReply && (
+              <Box
+                sx={{
+                  width: "100%",
+                  bgcolor: "background.paper",
+                  display: "flex",
+                  justifyContent: "flex-start",
+                  alignItems: "center",
+                  gap: "0.75rem",
+                  px: "1.25rem",
+                  pt: "0.5rem",
+                  boxSizing: "border-box",
+                  borderRadius: "20px 20px 0 0",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    fontSize: "0.9em",
+                    px: "0.5rem",
+                    borderLeft: "4px solid",
+                    borderColor: "primary.main",
+                    borderTopLeftRadius: "0.25rem",
+                    borderBottomLeftRadius: "0.25rem",
+                  }}
+                >
+                  {msgReply.fileMsg && <InsertDriveFileIcon fontSize="small" />}
+                  <div>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontSize: "inherit",
+                        fontWeight: "bold",
+                        lineHeight: "1.125rem",
+                      }}
+                    >
+                      {msgReply.from.uid === user.uid
+                        ? "You"
+                        : msgReply.from.displayName}
+                    </Typography>
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        fontSize: "inherit",
+                        lineHeight: "1.125rem",
+                        maxWidth: { xs: "12rem", sm: "20rem" },
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {getReplyPreviewText(msgReply)}
+                    </Typography>
+                  </div>
+                </Box>
+                <IconButton
+                  disableRipple
+                  disableTouchRipple
+                  onClick={() => setMsgReply(null)}
+                  sx={{
+                    marginLeft: "auto",
+                    "&.MuiButtonBase-root:hover": {
+                      bgcolor: "transparent",
+                    },
+                  }}
+                >
+                  <CloseIcon sx={{ marginLeft: "auto" }} />
+                </IconButton>
+              </Box>
+            )
           )}
           <form
             style={{ width: "100%" }}
@@ -641,10 +812,27 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
                 border: "none",
                 outline: "none",
                 resize: "none",
-                borderRadius: msgReply ? "0 0 20px 20px" : "30px",
+                borderRadius: msgReply || isEditing ? "0 0 20px 20px" : "30px",
                 boxSizing: "border-box",
               }}
               ref={inputRef}
+              onKeyDown={(event) => {
+                if (event.key !== "Enter" && event.code !== "NumpadEnter")
+                  return;
+                if (event.ctrlKey || event.metaKey) {
+                  // Ctrl/Cmd+Enter inserts newline (not submit) and triggers input
+                  // so TextareaAutosize updates height immediately.
+                  event.preventDefault();
+                  const target = event.currentTarget;
+                  const start = target.selectionStart;
+                  const end = target.selectionEnd;
+                  target.setRangeText("\n", start, end, "end");
+                  target.dispatchEvent(new Event("input", { bubbles: true }));
+                  return;
+                }
+                event.preventDefault();
+                msgInputForm.current?.requestSubmit();
+              }}
               placeholder="Message"
               maxRows={3}
             />
@@ -652,6 +840,8 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
         </Box>
 
         <IconButton
+          disableRipple
+          disableTouchRipple
           sx={{
             "&.MuiButtonBase-root:hover": {
               bgcolor: "transparent",
@@ -659,7 +849,7 @@ function ChatMsgInput({ chat, setUploadTask, msgReply, setMsgReply, scroll }) {
           }}
           onClick={() => msgInputForm.current.requestSubmit()}
         >
-          <SendIcon />
+          {isEditing ? <CheckIcon /> : <SendIcon />}
         </IconButton>
       </Box>
     </Box>
@@ -673,6 +863,13 @@ ChatMsgInput.propTypes = {
   setUploadTask: PropTypes.func,
   msgReply: PropTypes.object,
   setMsgReply: PropTypes.func,
+  msgEdit: PropTypes.shape({
+    msgId: PropTypes.string,
+    type: PropTypes.string,
+    fieldKey: PropTypes.oneOf(["msg", "caption"]),
+    initialValue: PropTypes.string,
+  }),
+  setMsgEdit: PropTypes.func,
   scroll: PropTypes.oneOfType([
     PropTypes.func,
     PropTypes.shape({ current: PropTypes.instanceOf(Element) }),

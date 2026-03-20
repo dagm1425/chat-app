@@ -18,7 +18,7 @@ import { useMediaQuery } from "@mui/material";
 const MAX_OPEN_CHATS_MOBILE = 8;
 const MAX_OPEN_CHATS_DESKTOP = 25;
 
-function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
+function ChatsSection({ userStatuses, makeCall }) {
   const { id } = useParams();
   const chat = useSelector((state) => selectChatById(state, id));
   const chats = useSelector(selectChats);
@@ -28,6 +28,7 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
   );
   const [uploadTask, setUploadTask] = useState(null);
   const [msgReply, setMsgReply] = useState(null);
+  const [msgEdit, setMsgEdit] = useState(null);
   const [openChatIds, setOpenChatIds] = useState(() => (id ? [id] : []));
   const scrollRefsByChatId = useRef(new Map());
 
@@ -66,6 +67,7 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
 
   useLayoutEffect(() => {
     setMsgReply(null);
+    setMsgEdit(null);
   }, [id]);
 
   const activeScrollRef = getScrollRef(id);
@@ -121,10 +123,9 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
             <ChatMsgDisp
               chat={warmChat}
               uploadTask={uploadTask}
-              msgReply={msgReply}
               setMsgReply={setMsgReply}
+              setMsgEdit={setMsgEdit}
               scroll={scrollRef}
-              setSelectedChatId={setSelectedChatId}
               userStatuses={userStatuses}
               makeCall={makeCall}
               isActive={isActive}
@@ -139,6 +140,8 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
           setUploadTask={setUploadTask}
           msgReply={msgReply}
           setMsgReply={setMsgReply}
+          msgEdit={msgEdit}
+          setMsgEdit={setMsgEdit}
           scroll={activeScrollRef}
         />
       )}
@@ -149,7 +152,6 @@ function ChatsSection({ setSelectedChatId, userStatuses, makeCall }) {
 export default ChatsSection;
 
 ChatsSection.propTypes = {
-  setSelectedChatId: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
   makeCall: PropTypes.func,
 };
