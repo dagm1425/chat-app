@@ -7,13 +7,10 @@ import "./index.css";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import { CssBaseline } from "@mui/material";
 import ToastProvider from "./common/toast/ToastProvider";
+import { ColorModeContext } from "./common/theme/ColorModeContext";
 
 const container = document.getElementById("root");
 const root = createRoot(container);
-
-export const ColorModeContext = React.createContext({
-  toggleColorMode: () => {},
-});
 
 const CustomThemeProvider = () => {
   const [mode, setMode] = React.useState("light");

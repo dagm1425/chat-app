@@ -34,7 +34,7 @@ import SignOutDialogContent from "./SignOutDialogContent";
 import { selectChats } from "./chatsSlice";
 import { useNavigate } from "react-router-dom";
 import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { ColorModeContext } from "../..";
+import { ColorModeContext } from "../../common/theme/ColorModeContext";
 import { useTheme } from "@emotion/react";
 import UserSettingsDialogContent from "../user/UserSettingsDialogContent";
 
