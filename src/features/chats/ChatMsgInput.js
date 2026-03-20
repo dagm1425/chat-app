@@ -321,6 +321,82 @@ function ChatMsgInput({
     return msgEdit.initialValue || "Empty caption";
   };
 
+  const composerContextBarContainerSx = {
+    width: "100%",
+    bgcolor: "background.paper",
+    display: "flex",
+    justifyContent: "flex-start",
+    alignItems: "center",
+    gap: "0.75rem",
+    px: "1.25rem",
+    pt: "0.5rem",
+    boxSizing: "border-box",
+    borderRadius: "20px 20px 0 0",
+  };
+  const composerContextBarContentSx = {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
+    fontSize: "0.9em",
+    px: "0.5rem",
+    borderLeft: "4px solid",
+    borderColor: "primary.main",
+    borderTopLeftRadius: "0.25rem",
+    borderBottomLeftRadius: "0.25rem",
+    minWidth: 0,
+  };
+  const composerContextBarTitleSx = {
+    fontSize: "inherit",
+    fontWeight: "bold",
+    lineHeight: "1.125rem",
+  };
+  const composerContextBarSubtitleSx = {
+    fontSize: "inherit",
+    lineHeight: "1.125rem",
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
+  };
+  const composerContextBarCloseSx = {
+    marginLeft: "auto",
+    "&.MuiButtonBase-root:hover": {
+      bgcolor: "transparent",
+    },
+  };
+
+  const renderComposerContextBar = ({
+    title,
+    subtitle,
+    subtitleMaxWidth,
+    icon,
+    onClose,
+  }) => (
+    <Box sx={composerContextBarContainerSx}>
+      <Box sx={composerContextBarContentSx}>
+        {icon}
+        <div>
+          <Typography variant="body1" sx={composerContextBarTitleSx}>
+            {title}
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{ ...composerContextBarSubtitleSx, maxWidth: subtitleMaxWidth }}
+          >
+            {subtitle}
+          </Typography>
+        </div>
+      </Box>
+      <IconButton
+        disableRipple
+        disableTouchRipple
+        onClick={onClose}
+        sx={composerContextBarCloseSx}
+      >
+        <CloseIcon sx={{ marginLeft: "auto" }} />
+      </IconButton>
+    </Box>
+  );
+
   const getImageSize = (file) => {
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -684,153 +760,27 @@ function ChatMsgInput({
             alignItems: "center",
           }}
         >
-          {isEditing ? (
-            <Box
-              sx={{
-                width: "100%",
-                bgcolor: "background.paper",
-                display: "flex",
-                justifyContent: "flex-start",
-                alignItems: "center",
-                gap: "0.75rem",
-                px: "1.25rem",
-                pt: "0.5rem",
-                boxSizing: "border-box",
-                borderRadius: "20px 20px 0 0",
-              }}
-            >
-              <Box
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  fontSize: "0.9em",
-                  px: "0.5rem",
-                  borderLeft: "4px solid",
-                  borderColor: "primary.main",
-                  borderTopLeftRadius: "0.25rem",
-                  borderBottomLeftRadius: "0.25rem",
-                  minWidth: 0,
-                }}
-              >
-                <EditIcon fontSize="small" />
-                <div>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      fontSize: "inherit",
-                      fontWeight: "bold",
-                      lineHeight: "1.125rem",
-                    }}
-                  >
-                    Edit message
-                  </Typography>
-                  <Typography
-                    variant="body1"
-                    sx={{
-                      fontSize: "inherit",
-                      lineHeight: "1.125rem",
-                      maxWidth: "100%",
-                      display: "block",
-                      whiteSpace: "nowrap",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                    }}
-                  >
-                    {getEditPreviewText()}
-                  </Typography>
-                </div>
-              </Box>
-              <IconButton
-                disableRipple
-                disableTouchRipple
-                onClick={() => {
-                  setMsgEdit(null);
-                }}
-                sx={{
-                  marginLeft: "auto",
-                  "&.MuiButtonBase-root:hover": {
-                    bgcolor: "transparent",
-                  },
-                }}
-              >
-                <CloseIcon sx={{ marginLeft: "auto" }} />
-              </IconButton>
-            </Box>
-          ) : (
-            msgReply && (
-              <Box
-                sx={{
-                  width: "100%",
-                  bgcolor: "background.paper",
-                  display: "flex",
-                  justifyContent: "flex-start",
-                  alignItems: "center",
-                  gap: "0.75rem",
-                  px: "1.25rem",
-                  pt: "0.5rem",
-                  boxSizing: "border-box",
-                  borderRadius: "20px 20px 0 0",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontSize: "0.9em",
-                    px: "0.5rem",
-                    borderLeft: "4px solid",
-                    borderColor: "primary.main",
-                    borderTopLeftRadius: "0.25rem",
-                    borderBottomLeftRadius: "0.25rem",
-                  }}
-                >
-                  {msgReply.fileMsg && <InsertDriveFileIcon fontSize="small" />}
-                  <div>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontSize: "inherit",
-                        fontWeight: "bold",
-                        lineHeight: "1.125rem",
-                      }}
-                    >
-                      {msgReply.from.uid === user.uid
-                        ? "You"
-                        : msgReply.from.displayName}
-                    </Typography>
-                    <Typography
-                      variant="body1"
-                      sx={{
-                        fontSize: "inherit",
-                        lineHeight: "1.125rem",
-                        maxWidth: { xs: "12rem", sm: "20rem" },
-                        whiteSpace: "nowrap",
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                      }}
-                    >
-                      {getReplyPreviewText(msgReply)}
-                    </Typography>
-                  </div>
-                </Box>
-                <IconButton
-                  disableRipple
-                  disableTouchRipple
-                  onClick={() => setMsgReply(null)}
-                  sx={{
-                    marginLeft: "auto",
-                    "&.MuiButtonBase-root:hover": {
-                      bgcolor: "transparent",
-                    },
-                  }}
-                >
-                  <CloseIcon sx={{ marginLeft: "auto" }} />
-                </IconButton>
-              </Box>
-            )
-          )}
+          {isEditing
+            ? renderComposerContextBar({
+                title: "Edit message",
+                subtitle: getEditPreviewText(),
+                subtitleMaxWidth: "100%",
+                icon: <EditIcon fontSize="small" />,
+                onClose: () => setMsgEdit(null),
+              })
+            : msgReply &&
+              renderComposerContextBar({
+                title:
+                  msgReply.from.uid === user.uid
+                    ? "You"
+                    : msgReply.from.displayName,
+                subtitle: getReplyPreviewText(msgReply),
+                subtitleMaxWidth: { xs: "12rem", sm: "20rem" },
+                icon: msgReply.fileMsg ? (
+                  <InsertDriveFileIcon fontSize="small" />
+                ) : null,
+                onClose: () => setMsgReply(null),
+              })}
           <form
             style={{ width: "100%" }}
             onSubmit={handleSendMsg}
