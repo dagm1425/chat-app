@@ -61,6 +61,7 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 const CallDuration = memo(CallDurationBase);
 const NO_ANSWER_AUTO_HANGUP_MS = 30000;
 const RECONNECT_AUTO_HANGUP_MS = 20000;
+const CALL_ENDED_VISIBLE_MS = 450;
 const CALL_MODAL_COLORS = {
   white: "#fff",
   overlayBlack30: "rgba(0, 0, 0, 0.3)",
@@ -293,6 +294,7 @@ const CallModal = (props) => {
   const localVideoFadeTimeoutRef = useRef(null);
   const noAnswerHangupTimeoutRef = useRef(null);
   const reconnectHangupTimeoutRef = useRef(null);
+  const callEndedCloseTimeoutRef = useRef(null);
   const latestHangUpRef = useRef(null);
   const localVideoIntroDoneRef = useRef(false);
   const previewRequestIdRef = useRef(0);
@@ -1052,7 +1054,7 @@ const CallModal = (props) => {
           // from re-setting the call status to "Ongoing call".
           isCleaningUpRef.current = true;
 
-          dispatch(setCall({ ...callState, status: "Call ended" }));
+          showCallEndedAndScheduleClose();
 
           // Run cleanup immediately (match local hangup behavior)
           handleLocalCallCleanup();
@@ -1176,6 +1178,27 @@ const CallModal = (props) => {
     }
   };
 
+  const showCallEndedAndScheduleClose = () => {
+    const latestCall = store.getState().chats.call;
+    if (latestCall.status !== "Call ended") {
+      dispatch(setCall({ ...latestCall, status: "Call ended" }));
+    }
+
+    if (callEndedCloseTimeoutRef.current) {
+      clearTimeout(callEndedCloseTimeoutRef.current);
+      callEndedCloseTimeoutRef.current = null;
+    }
+
+    callEndedCloseTimeoutRef.current = setTimeout(() => {
+      callEndedCloseTimeoutRef.current = null;
+      const currentCall = store.getState().chats.call;
+      if (!currentCall.isActive || currentCall.status !== "Call ended") {
+        return;
+      }
+      dispatch(setCall({ isActive: false, callData: {}, status: "" }));
+    }, CALL_ENDED_VISIBLE_MS);
+  };
+
   const hangUp = async () => {
     // Set cleanup flag IMMEDIATELY to prevent race conditions
     // (useEffect re-attaching streams, onPlaying resetting status)
@@ -1185,8 +1208,9 @@ const CallModal = (props) => {
       stopPreviewStream();
     }
 
-    // Set UI status immediately for user feedback
-    dispatch(setCall({ ...callState, status: "Call ended" }));
+    // Set UI status immediately, then close modal shortly after
+    // (without waiting for cleanup/network I/O).
+    showCallEndedAndScheduleClose();
 
     // Clear video elements immediately
     if (localVideoRef.current?.srcObject) {
@@ -1316,6 +1340,10 @@ const CallModal = (props) => {
       if (reconnectHangupTimeoutRef.current) {
         clearTimeout(reconnectHangupTimeoutRef.current);
         reconnectHangupTimeoutRef.current = null;
+      }
+      if (callEndedCloseTimeoutRef.current) {
+        clearTimeout(callEndedCloseTimeoutRef.current);
+        callEndedCloseTimeoutRef.current = null;
       }
     },
     []
@@ -1998,7 +2026,7 @@ const CallModal = (props) => {
                     ? `translate(0px, 60px) scale(0.5)`
                     : `translate(140px, 120px) scale(0.7)`
                   : `translateX(-50%) scale(1)`,
-                transition: "transform .3s ease-out",
+                transition: "transform .2s ease-out",
                 zIndex: 3,
                 marginBottom: isOngoingCall ? "0" : ".625rem",
               }}
@@ -2032,7 +2060,7 @@ const CallModal = (props) => {
                       isScreenSharing ? 1 : -1
                     })`
                 : `translateX(-50%) scale(1) scaleX(-1)`,
-              transition: "transform .3s ease-out, opacity .2s ease",
+              transition: "transform .2s ease-out, opacity .2s ease",
               opacity: isLocalVideoFading || isLocalVideoIntro ? 0 : 1,
               zIndex: 3, // Higher Z-Index than remote content
               marginBottom: isOngoingCall ? "0" : ".625rem",
