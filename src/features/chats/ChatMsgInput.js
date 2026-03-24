@@ -775,7 +775,7 @@ function ChatMsgInput({
                     ? "You"
                     : msgReply.from.displayName,
                 subtitle: getReplyPreviewText(msgReply),
-                subtitleMaxWidth: { xs: "12rem", sm: "20rem" },
+                subtitleMaxWidth: "100%",
                 icon: msgReply.fileMsg ? (
                   <InsertDriveFileIcon fontSize="small" />
                 ) : null,
