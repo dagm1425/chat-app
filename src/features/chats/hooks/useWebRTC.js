@@ -455,19 +455,15 @@ const useWebRTC = (db) => {
 
   const initiateConnectionsToExistingParticipants = async (
     chatId,
-    localStream
+    localStream,
+    participants = null
   ) => {
     // Called when I join. I am the "new" one.
-    const chatRef = doc(db, "chats", chatId);
-    const snap = await getDoc(chatRef);
-    const callData = snap.data()?.call?.callData;
-    if (!callData) {
-      return;
-    }
+    // Prefer participants from the already-fetched callData in joinCall to avoid
+    // an extra Firestore read on the hot join path.
+    const participantList = Array.isArray(participants) ? participants : [];
 
-    const participants = callData.participants || [];
-
-    for (const pUid of participants) {
+    for (const pUid of participantList) {
       if (pUid === user.uid) {
         continue;
       }
@@ -648,6 +644,7 @@ const useWebRTC = (db) => {
     const chatId = callState.callData?.chatId;
     let busySetOnJoin = false;
     let busyCallId = null;
+    let joinFailed = false;
 
     if (!chatId) {
       console.error("[L310] joinCall: Missing chatId in callState");
@@ -708,8 +705,27 @@ const useWebRTC = (db) => {
       localStreamRef.current = localStream;
 
       busyCallId = callData.id || null;
-      await setSelfBusy({ callId: busyCallId, chatId });
-      busySetOnJoin = true;
+      if (busyCallId) {
+        // Keep join path non-blocking: don't wait on busy metadata before signaling.
+        // If join fails while this is in-flight, clear it in the success handler below.
+        void setSelfBusy({ callId: busyCallId, chatId })
+          .then(() => {
+            busySetOnJoin = true;
+            if (joinFailed) {
+              clearSelfBusyIfMatch({ callId: busyCallId }).catch(
+                (busyError) => {
+                  console.warn(
+                    "[useWebRTC] Failed to clear busy after join error:",
+                    busyError
+                  );
+                }
+              );
+            }
+          })
+          .catch((error) => {
+            console.warn("[useWebRTC] Failed to set busy on join:", error);
+          });
+      }
 
       const currentParticipants = callData.participants || [];
       const shouldAddSelfToParticipants = !currentParticipants.includes(
@@ -747,16 +763,21 @@ const useWebRTC = (db) => {
       subscribeToSignals(chatId);
       subscribeToParticipants(chatId, localStream);
 
+      // 1. Initiate connections to everyone CURRENTLY in the list
+      await initiateConnectionsToExistingParticipants(
+        chatId,
+        localStream,
+        updatedParticipants
+      );
+
       const hasPendingCallUpdates = Object.keys(pendingCallUpdates).length > 0;
       if (hasPendingCallUpdates) {
-        // Fire-and-forget metadata sync; signaling starts immediately.
+        // Defer non-critical metadata write until after signaling offer(s).
+        // This avoids competing Firestore writes on the hot connect path.
         void updateDoc(chatRef, pendingCallUpdates).catch((error) => {
           console.warn("[useWebRTC] joinCall metadata update failed:", error);
         });
       }
-
-      // 1. Initiate connections to everyone CURRENTLY in the list
-      await initiateConnectionsToExistingParticipants(chatId, localStream);
 
       // Construct updated callData for Redux (mirror Firestore)
       const updatedCallData = {
@@ -775,6 +796,7 @@ const useWebRTC = (db) => {
         })
       );
     } catch (error) {
+      joinFailed = true;
       console.error("Error joining call:", error);
       if (busySetOnJoin && busyCallId) {
         clearSelfBusyIfMatch({ callId: busyCallId }).catch((busyError) => {
