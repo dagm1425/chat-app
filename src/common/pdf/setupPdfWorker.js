@@ -5,10 +5,8 @@ let isPdfWorkerReady = false;
 export function setupPdfWorker() {
   if (isPdfWorkerReady) return;
 
-  pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-    "pdfjs-dist/build/pdf.worker.min.mjs",
-    import.meta.url
-  ).toString();
+  // Use a stable worker URL that behaves consistently in dev and production builds.
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
   isPdfWorkerReady = true;
 }
