@@ -103,6 +103,96 @@ const ReconnectingBadge = ({ sx = {} }) => (
   </Box>
 );
 
+const CallTopInfoOverlay = ({
+  label,
+  startTime,
+  isOngoingCall,
+  isReconnecting,
+  formatCallDuration,
+}) => (
+  <>
+    <Box
+      sx={{
+        position: "absolute",
+        top: "25px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        bgcolor: "rgba(0, 0, 0, 0.3)",
+        backdropFilter: "blur(5px)",
+        color: "white",
+        fontSize: "0.875rem",
+        borderRadius: "10px",
+        px: 1.5,
+        py: 0.5,
+        display: isOngoingCall ? "flex" : "none",
+        gap: 1,
+        justifyContent: "space-between",
+        alignItems: "center",
+        zIndex: 2,
+      }}
+    >
+      <span>{label}</span>
+      <span> | </span>
+      <span>
+        <CallDuration
+          startTime={startTime}
+          visible={isOngoingCall}
+          formatCallDuration={formatCallDuration}
+        />
+      </span>
+    </Box>
+    {isOngoingCall && isReconnecting && (
+      <ReconnectingBadge
+        sx={{
+          position: "absolute",
+          top: "68px",
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: 2,
+        }}
+      />
+    )}
+  </>
+);
+
+const participantTileBaseSx = {
+  display: "flex",
+  flexDirection: "column",
+  justifyContent: "center",
+  alignItems: "center",
+  gap: 1,
+  color: "white",
+  backgroundColor: "#2A2F3A",
+  border: "1px solid rgba(255, 255, 255, 0.08)",
+  borderRadius: "12px",
+};
+
+const ParticipantIdentityTile = ({
+  name,
+  photoURL,
+  avatarText,
+  avatarSize = 72,
+  nameFontSize = "0.85rem",
+  sx = {},
+}) => {
+  const safeName = name || "Unknown";
+  const safeAvatarText = avatarText || safeName.charAt(0);
+
+  return (
+    <Box sx={{ ...participantTileBaseSx, ...sx }}>
+      <Avatar
+        src={photoURL || undefined}
+        sx={{ width: avatarSize, height: avatarSize }}
+      >
+        {safeAvatarText}
+      </Avatar>
+      <Typography variant="body2" sx={{ fontSize: nameFontSize }}>
+        {safeName}
+      </Typography>
+    </Box>
+  );
+};
+
 CallDurationBase.propTypes = {
   startTime: PropTypes.instanceOf(Date),
   visible: PropTypes.bool.isRequired,
@@ -110,6 +200,23 @@ CallDurationBase.propTypes = {
 };
 
 ReconnectingBadge.propTypes = {
+  sx: PropTypes.object,
+};
+
+CallTopInfoOverlay.propTypes = {
+  label: PropTypes.string.isRequired,
+  startTime: PropTypes.instanceOf(Date),
+  isOngoingCall: PropTypes.bool.isRequired,
+  isReconnecting: PropTypes.bool.isRequired,
+  formatCallDuration: PropTypes.func.isRequired,
+};
+
+ParticipantIdentityTile.propTypes = {
+  name: PropTypes.string.isRequired,
+  photoURL: PropTypes.string,
+  avatarText: PropTypes.string,
+  avatarSize: PropTypes.number,
+  nameFontSize: PropTypes.string,
   sx: PropTypes.object,
 };
 
@@ -1592,47 +1699,13 @@ const CallModal = (props) => {
           {callData.isGroupCall && (
             // GROUP CALL: Grid Layout (Remote Only)
             <>
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "25px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  bgcolor: "rgba(0, 0, 0, 0.3)",
-                  backdropFilter: "blur(5px)",
-                  color: "white",
-                  fontSize: "0.875rem",
-                  borderRadius: "10px",
-                  px: 1.5,
-                  py: 0.5,
-                  display: isOngoingCall ? "flex" : "none",
-                  gap: 1,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  zIndex: 2,
-                }}
-              >
-                <span>{remoteStreamsArray.length + 1} participants</span>
-                <span> | </span>
-                <span>
-                  <CallDuration
-                    startTime={startTimeRef.current}
-                    visible={isOngoingCall}
-                    formatCallDuration={formatCallDuration}
-                  />
-                </span>
-              </Box>
-              {isReconnecting && (
-                <ReconnectingBadge
-                  sx={{
-                    position: "absolute",
-                    top: "68px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 2,
-                  }}
-                />
-              )}
+              <CallTopInfoOverlay
+                label={`${remoteStreamsArray.length + 1} participants`}
+                startTime={startTimeRef.current}
+                isOngoingCall={isOngoingCall}
+                isReconnecting={isReconnecting}
+                formatCallDuration={formatCallDuration}
+              />
 
               {/* Grid Container (Remote Participants ONLY) */}
               <Box
@@ -1777,34 +1850,16 @@ const CallModal = (props) => {
                           {displayName}
                         </Box>
                       ) : (
-                        <Box
+                        <ParticipantIdentityTile
+                          name={displayName}
+                          photoURL={participantInfo?.photoURL}
+                          avatarSize={72}
+                          nameFontSize="0.85rem"
                           sx={{
                             position: "absolute",
                             inset: 0,
-                            display: "flex",
-                            flexDirection: "column",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            gap: 1,
-                            color: "white",
-                            backgroundColor: "#2A2F3A",
-                            border: "1px solid rgba(255, 255, 255, 0.08)",
-                            borderRadius: "12px",
                           }}
-                        >
-                          <Avatar
-                            src={participantInfo?.photoURL || undefined}
-                            sx={{ width: 72, height: 72 }}
-                          >
-                            {displayName.charAt(0)}
-                          </Avatar>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontSize: "0.85rem" }}
-                          >
-                            {displayName}
-                          </Typography>
-                        </Box>
+                        />
                       )}
                     </Box>
                   );
@@ -1826,48 +1881,19 @@ const CallModal = (props) => {
 
                 return (
                   <>
-                    <Box
-                      sx={{
-                        position: "absolute",
-                        top: "25px",
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        display: isOngoingCall ? "flex" : "none",
-                        flexDirection: "column",
-                        gap: 1,
-                        alignItems: "center",
-                        zIndex: 2,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          bgcolor: "rgba(0, 0, 0, 0.3)",
-                          backdropFilter: "blur(5px)",
-                          color: "white",
-                          fontSize: "0.875rem",
-                          borderRadius: "10px",
-                          px: 1.5,
-                          py: 0.5,
-                          display: "flex",
-                          gap: 1,
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <span>{remoteName}</span>
-                        <span> | </span>
-                        <span>
-                          <CallDuration
-                            startTime={startTimeRef.current}
-                            visible={isOngoingCall}
-                            formatCallDuration={formatCallDuration}
-                          />
-                        </span>
-                      </Box>
-                      {isReconnecting && <ReconnectingBadge />}
-                    </Box>
+                    <CallTopInfoOverlay
+                      label={remoteName}
+                      startTime={startTimeRef.current}
+                      isOngoingCall={isOngoingCall}
+                      isReconnecting={isReconnecting}
+                      formatCallDuration={formatCallDuration}
+                    />
                     {shouldRenderRemoteVideo === false && (
-                      <Box
+                      <ParticipantIdentityTile
+                        name={remoteName}
+                        photoURL={remoteInfo?.photoURL}
+                        avatarSize={96}
+                        nameFontSize="1rem"
                         sx={{
                           position: "absolute",
                           top: 0,
@@ -1875,27 +1901,9 @@ const CallModal = (props) => {
                           width: "100%",
                           height: "100%",
                           display: isOngoingCall ? "flex" : "none",
-                          flexDirection: "column",
-                          justifyContent: "center",
-                          alignItems: "center",
-                          gap: 1,
                           zIndex: 1,
-                          color: "white",
-                          backgroundColor: "#2A2F3A",
-                          border: "1px solid rgba(255, 255, 255, 0.08)",
-                          borderRadius: "12px",
                         }}
-                      >
-                        <Avatar
-                          src={remoteInfo?.photoURL || undefined}
-                          sx={{ width: 96, height: 96 }}
-                        >
-                          {remoteName.charAt(0)}
-                        </Avatar>
-                        <Typography variant="body2" sx={{ fontSize: "1rem" }}>
-                          {remoteName}
-                        </Typography>
-                      </Box>
+                      />
                     )}
                     <video
                       style={{
@@ -1936,7 +1944,12 @@ const CallModal = (props) => {
           )}
 
           {callData.isVideoCall && !isLocalVideoActive && (
-            <Box
+            <ParticipantIdentityTile
+              name="You"
+              photoURL={user.photoURL}
+              avatarText={user.displayName?.charAt(0) || "Y"}
+              avatarSize={72}
+              nameFontSize="0.9rem"
               sx={{
                 position: "absolute",
                 left: "50%",
@@ -1944,9 +1957,6 @@ const CallModal = (props) => {
                 display: callState.status === "Call ended" ? "none" : "flex",
                 width: 248,
                 height: 185,
-                backgroundColor: "#2A2F3A",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "12px",
                 overflow: "hidden",
                 boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
                 transform: isOngoingCall
@@ -1957,23 +1967,8 @@ const CallModal = (props) => {
                 transition: "transform .3s ease-out",
                 zIndex: 3,
                 marginBottom: isOngoingCall ? "0" : ".625rem",
-                flexDirection: "column",
-                justifyContent: "center",
-                alignItems: "center",
-                gap: 1,
-                color: "white",
               }}
-            >
-              <Avatar
-                src={user.photoURL || undefined}
-                sx={{ width: 72, height: 72 }}
-              >
-                {user.displayName?.charAt(0) || "Y"}
-              </Avatar>
-              <Typography variant="body2" sx={{ fontSize: "0.9rem" }}>
-                You
-              </Typography>
-            </Box>
+            />
           )}
 
           {/* Local Video - Rendered for BOTH modes (unification) */}
@@ -2022,47 +2017,13 @@ const CallModal = (props) => {
           {callData.isGroupCall ? (
             <>
               {/* Group Audio: Top status + timer */}
-              <Box
-                sx={{
-                  position: "absolute",
-                  top: "25px",
-                  left: "50%",
-                  transform: "translateX(-50%)",
-                  bgcolor: "rgba(0, 0, 0, 0.3)",
-                  backdropFilter: "blur(5px)",
-                  color: "white",
-                  fontSize: "0.875rem",
-                  borderRadius: "10px",
-                  px: 1.5,
-                  py: 0.5,
-                  display: isOngoingCall ? "flex" : "none",
-                  gap: 1,
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  zIndex: 2,
-                }}
-              >
-                <span>{remoteStreamsArray.length + 1} participants</span>
-                <span> | </span>
-                <span>
-                  <CallDuration
-                    startTime={startTimeRef.current}
-                    visible={isOngoingCall}
-                    formatCallDuration={formatCallDuration}
-                  />
-                </span>
-              </Box>
-              {isReconnecting && (
-                <ReconnectingBadge
-                  sx={{
-                    position: "absolute",
-                    top: "68px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    zIndex: 2,
-                  }}
-                />
-              )}
+              <CallTopInfoOverlay
+                label={`${remoteStreamsArray.length + 1} participants`}
+                startTime={startTimeRef.current}
+                isOngoingCall={isOngoingCall}
+                isReconnecting={isReconnecting}
+                formatCallDuration={formatCallDuration}
+              />
 
               {/* Group Audio: Remote Participants Grid */}
               <Box
@@ -2096,35 +2057,18 @@ const CallModal = (props) => {
                     participantInfo?.displayName?.split(" ")[0] ||
                     "Participant";
                   return (
-                    <Box
+                    <ParticipantIdentityTile
                       key={userId}
+                      name={displayName}
+                      photoURL={participantInfo?.photoURL}
+                      avatarSize={72}
+                      nameFontSize="0.85rem"
                       sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        justifyContent: "center",
-                        alignItems: "center",
-                        backgroundColor: "#2A2F3A",
-                        borderRadius: "12px",
-                        border: "1px solid rgba(255, 255, 255, 0.08)",
                         overflow: "hidden",
-                        gap: 1,
                         width: "100%",
                         height: "100%",
                       }}
-                    >
-                      <Avatar
-                        src={participantInfo?.photoURL || undefined}
-                        sx={{ width: 72, height: 72 }}
-                      >
-                        {displayName.charAt(0)}
-                      </Avatar>
-                      <Typography
-                        variant="body2"
-                        sx={{ color: "white", fontSize: "0.85rem" }}
-                      >
-                        {displayName}
-                      </Typography>
-                    </Box>
+                    />
                   );
                 })}
               </Box>
