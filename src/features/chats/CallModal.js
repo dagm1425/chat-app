@@ -61,6 +61,28 @@ const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
 const CallDuration = memo(CallDurationBase);
 const NO_ANSWER_AUTO_HANGUP_MS = 30000;
 const RECONNECT_AUTO_HANGUP_MS = 20000;
+const CALL_MODAL_COLORS = {
+  white: "#fff",
+  overlayBlack30: "rgba(0, 0, 0, 0.3)",
+  overlayBlack50: "rgba(0, 0, 0, 0.5)",
+  panelBg: "#20232A",
+  tileBg: "#2A2F3A",
+  subtleBorder: "rgba(255, 255, 255, 0.08)",
+  activeControlText: "#111",
+  statusText: "#d6d6c2",
+  busyInfoText: "#b7c1d1",
+  mediaBackdrop: "#1a1a1a",
+};
+const CALL_MODAL_SIZE_TOKENS = {
+  controlButton: 48,
+  controlIcon: "1.5rem",
+  participantAvatar: 72,
+  localPipTop: 250,
+  localPipWidth: 248,
+  localPipHeight: 185,
+};
+const PARTICIPANT_TILE_BORDER = `1px solid ${CALL_MODAL_COLORS.subtleBorder}`;
+const CALL_MODAL_SOFT_SHADOW = "0 0 5px rgba(0, 0, 0, 0.3)";
 
 const isRemoteParticipantReadyForOngoing = ({
   participantUid,
@@ -89,9 +111,9 @@ const isRemoteParticipantReadyForOngoing = ({
 const ReconnectingBadge = ({ sx = {} }) => (
   <Box
     sx={{
-      bgcolor: "rgba(0, 0, 0, 0.3)",
+      bgcolor: CALL_MODAL_COLORS.overlayBlack30,
       backdropFilter: "blur(5px)",
-      color: "white",
+      color: CALL_MODAL_COLORS.white,
       fontSize: "0.8rem",
       borderRadius: "10px",
       px: 1.5,
@@ -117,9 +139,9 @@ const CallTopInfoOverlay = ({
         top: "25px",
         left: "50%",
         transform: "translateX(-50%)",
-        bgcolor: "rgba(0, 0, 0, 0.3)",
+        bgcolor: CALL_MODAL_COLORS.overlayBlack30,
         backdropFilter: "blur(5px)",
-        color: "white",
+        color: CALL_MODAL_COLORS.white,
         fontSize: "0.875rem",
         borderRadius: "10px",
         px: 1.5,
@@ -161,9 +183,9 @@ const participantTileBaseSx = {
   justifyContent: "center",
   alignItems: "center",
   gap: 1,
-  color: "white",
-  backgroundColor: "#2A2F3A",
-  border: "1px solid rgba(255, 255, 255, 0.08)",
+  color: CALL_MODAL_COLORS.white,
+  backgroundColor: CALL_MODAL_COLORS.tileBg,
+  border: PARTICIPANT_TILE_BORDER,
   borderRadius: "12px",
 };
 
@@ -171,7 +193,7 @@ const ParticipantIdentityTile = ({
   name,
   photoURL,
   avatarText,
-  avatarSize = 72,
+  avatarSize = CALL_MODAL_SIZE_TOKENS.participantAvatar,
   nameFontSize = "0.85rem",
   sx = {},
 }) => {
@@ -479,11 +501,11 @@ const CallModal = (props) => {
     isOngoingCall &&
     (isOneToOneRemoteVideoStreaming || isGroupTwoParticipantVideoStreaming);
   const controlButtonBg = isDarkControlBg
-    ? "rgba(0, 0, 0, 0.3)"
-    : "rgba(255, 255, 255, 0.08)";
-  const controlButtonColor = "#fff";
-  const activeControlButtonBg = "#fff";
-  const activeControlButtonColor = "#111";
+    ? CALL_MODAL_COLORS.overlayBlack30
+    : CALL_MODAL_COLORS.subtleBorder;
+  const controlButtonColor = CALL_MODAL_COLORS.white;
+  const activeControlButtonBg = CALL_MODAL_COLORS.white;
+  const activeControlButtonColor = CALL_MODAL_COLORS.activeControlText;
   const isVideoControlDisabled =
     isConnectingCall || isScreenSharing || (!isOngoingCall && !isPreviewing);
   const isVideoDisabledByPreviewBootstrap =
@@ -1612,7 +1634,7 @@ const CallModal = (props) => {
         width: { xs: 380, sm: 725 },
         height: 540,
         p: 2,
-        bgcolor: "#20232A",
+        bgcolor: CALL_MODAL_COLORS.panelBg,
         overflow: "hidden",
         borderRadius: 2,
         boxShadow: 4,
@@ -1651,13 +1673,21 @@ const CallModal = (props) => {
           {callData?.isGroupCall && chat.displayName.charAt(0)}
         </Avatar>
         <Box sx={{ textAlign: "center" }}>
-          <Typography variant="h3" fontSize="1.625rem" color="#fff">
+          <Typography
+            variant="h3"
+            fontSize="1.625rem"
+            color={CALL_MODAL_COLORS.white}
+          >
             {callData?.isGroupCall
               ? chat?.displayName || "Group Call"
               : getPrimaryRemoteParticipant()?.displayName?.split(" ")[0] ||
                 "Unknown"}
           </Typography>
-          <Typography variant="subtitle1" fontWeight="normal" color="#d6d6c2">
+          <Typography
+            variant="subtitle1"
+            fontWeight="normal"
+            color={CALL_MODAL_COLORS.statusText}
+          >
             {callData?.isGroupCall &&
             isInitiator() &&
             !isOngoingCall &&
@@ -1674,7 +1704,11 @@ const CallModal = (props) => {
             !!groupBusyInfoLabel && (
               <Typography
                 variant="body2"
-                sx={{ mt: 0.25, fontSize: "0.8rem", color: "#b7c1d1" }}
+                sx={{
+                  mt: 0.25,
+                  fontSize: "0.8rem",
+                  color: CALL_MODAL_COLORS.busyInfoText,
+                }}
               >
                 {groupBusyInfoLabel}
               </Typography>
@@ -1683,7 +1717,7 @@ const CallModal = (props) => {
         <Typography
           variant="body2"
           sx={{
-            color: "#d6d6c2",
+            color: CALL_MODAL_COLORS.statusText,
             visibility: isOngoingCall ? "visible" : "hidden",
           }}
         >
@@ -1777,7 +1811,7 @@ const CallModal = (props) => {
                         left: shouldShowParticipantTile ? "auto" : 0,
                         width: shouldShowParticipantTile ? "100%" : "1px",
                         height: shouldShowParticipantTile ? "100%" : "1px",
-                        backgroundColor: "#1a1a1a",
+                        backgroundColor: CALL_MODAL_COLORS.mediaBackdrop,
                         borderRadius: "4px",
                         overflow: "hidden",
                         opacity: shouldShowParticipantTile ? 1 : 0,
@@ -1839,8 +1873,8 @@ const CallModal = (props) => {
                             position: "absolute",
                             bottom: 4,
                             left: 4,
-                            bgcolor: "rgba(0, 0, 0, 0.5)",
-                            color: "white",
+                            bgcolor: CALL_MODAL_COLORS.overlayBlack50,
+                            color: CALL_MODAL_COLORS.white,
                             px: 1,
                             py: 0.5,
                             borderRadius: "4px",
@@ -1853,7 +1887,7 @@ const CallModal = (props) => {
                         <ParticipantIdentityTile
                           name={displayName}
                           photoURL={participantInfo?.photoURL}
-                          avatarSize={72}
+                          avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
                           nameFontSize="0.85rem"
                           sx={{
                             position: "absolute",
@@ -1948,17 +1982,17 @@ const CallModal = (props) => {
               name="You"
               photoURL={user.photoURL}
               avatarText={user.displayName?.charAt(0) || "Y"}
-              avatarSize={72}
+              avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
               nameFontSize="0.9rem"
               sx={{
                 position: "absolute",
                 left: "50%",
-                top: 250,
+                top: CALL_MODAL_SIZE_TOKENS.localPipTop,
                 display: callState.status === "Call ended" ? "none" : "flex",
-                width: 248,
-                height: 185,
+                width: CALL_MODAL_SIZE_TOKENS.localPipWidth,
+                height: CALL_MODAL_SIZE_TOKENS.localPipHeight,
                 overflow: "hidden",
-                boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
+                boxShadow: isOngoingCall ? CALL_MODAL_SOFT_SHADOW : "",
                 transform: isOngoingCall
                   ? isMobile
                     ? `translate(0px, 60px) scale(0.5)`
@@ -1976,17 +2010,19 @@ const CallModal = (props) => {
             style={{
               position: "absolute",
               left: "50%",
-              top: 250,
+              top: CALL_MODAL_SIZE_TOKENS.localPipTop,
               display:
                 callState.status === "Call ended" || !isLocalVideoActive
                   ? "none"
                   : "block",
-              width: 248,
-              height: 185,
-              backgroundColor: isScreenSharing ? "#1a1a1a" : "transparent",
+              width: CALL_MODAL_SIZE_TOKENS.localPipWidth,
+              height: CALL_MODAL_SIZE_TOKENS.localPipHeight,
+              backgroundColor: isScreenSharing
+                ? CALL_MODAL_COLORS.mediaBackdrop
+                : "transparent",
               borderRadius: "10px",
               overflow: "hidden",
-              boxShadow: isOngoingCall ? "0 0 5px rgba(0, 0, 0, 0.3)" : "",
+              boxShadow: isOngoingCall ? CALL_MODAL_SOFT_SHADOW : "",
               transform: isOngoingCall
                 ? isMobile
                   ? `translate(0px, 60px) scale(0.5) scaleX(${
@@ -2061,7 +2097,7 @@ const CallModal = (props) => {
                       key={userId}
                       name={displayName}
                       photoURL={participantInfo?.photoURL}
-                      avatarSize={72}
+                      avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
                       nameFontSize="0.85rem"
                       sx={{
                         overflow: "hidden",
@@ -2146,9 +2182,9 @@ const CallModal = (props) => {
             disabled={callData.isVideoCall && previewPermissionDenied}
             sx={{
               bgcolor: "success.main",
-              color: "#fff",
-              width: 48,
-              height: 48,
+              color: CALL_MODAL_COLORS.white,
+              width: CALL_MODAL_SIZE_TOKENS.controlButton,
+              height: CALL_MODAL_SIZE_TOKENS.controlButton,
 
               "&:hover": {
                 bgcolor: "success.main",
@@ -2164,7 +2200,7 @@ const CallModal = (props) => {
             }}
             disableRipple
           >
-            <Call sx={{ fontSize: "1.5rem" }} />
+            <Call sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
           </IconButton>
         )}
 
@@ -2173,15 +2209,15 @@ const CallModal = (props) => {
             onClick={toggleVideo}
             disabled={isVideoControlDisabled}
             sx={{
-              width: 48,
-              height: 48,
+              width: CALL_MODAL_SIZE_TOKENS.controlButton,
+              height: CALL_MODAL_SIZE_TOKENS.controlButton,
               display: shouldShowVideoToggle ? "flex" : "none",
               pointerEvents: isVideoControlDisabled ? "none" : "auto",
               bgcolor: videoControlBg,
               color: videoControlColor,
               opacity: videoControlOpacity,
               transition: controlOpacityTransition,
-              boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+              boxShadow: CALL_MODAL_SOFT_SHADOW,
               "&:hover": {
                 bgcolor: videoControlBg,
               },
@@ -2197,9 +2233,11 @@ const CallModal = (props) => {
             disableRipple
           >
             {isVideoButtonEnabled ? (
-              <Videocam sx={{ fontSize: "1.5rem" }} />
+              <Videocam sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
             ) : (
-              <VideocamOff sx={{ fontSize: "1.5rem" }} />
+              <VideocamOff
+                sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
+              />
             )}
           </IconButton>
         )}
@@ -2209,8 +2247,8 @@ const CallModal = (props) => {
             onClick={toggleScreenShare}
             disabled={isScreenShareControlDisabled}
             sx={{
-              width: 48,
-              height: 48,
+              width: CALL_MODAL_SIZE_TOKENS.controlButton,
+              height: CALL_MODAL_SIZE_TOKENS.controlButton,
               display:
                 callState.status === "" ||
                 (!isInitiator() && !isOngoingCall && !isConnectingCall)
@@ -2221,7 +2259,7 @@ const CallModal = (props) => {
               pointerEvents: isScreenShareControlDisabled ? "none" : "auto",
               opacity: screenShareControlOpacity,
               transition: controlOpacityTransition,
-              boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+              boxShadow: CALL_MODAL_SOFT_SHADOW,
               "&:hover": {
                 bgcolor: screenShareControlBg,
               },
@@ -2236,7 +2274,9 @@ const CallModal = (props) => {
             }}
             disableRipple
           >
-            <ScreenShare sx={{ fontSize: "1.5rem" }} />
+            <ScreenShare
+              sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
+            />
           </IconButton>
         )}
 
@@ -2244,8 +2284,8 @@ const CallModal = (props) => {
           onClick={toggleMute}
           disabled={isMuteControlDisabled}
           sx={{
-            width: 48,
-            height: 48,
+            width: CALL_MODAL_SIZE_TOKENS.controlButton,
+            height: CALL_MODAL_SIZE_TOKENS.controlButton,
             display:
               callState.status === "" ||
               (!isInitiator() && !isOngoingCall && !isConnectingCall)
@@ -2256,7 +2296,7 @@ const CallModal = (props) => {
             pointerEvents: isMuteControlDisabled ? "none" : "auto",
             opacity: muteControlOpacity,
             transition: controlOpacityTransition,
-            boxShadow: "0 0 5px rgba(0, 0, 0, 0.3)",
+            boxShadow: CALL_MODAL_SOFT_SHADOW,
             "&:hover": {
               bgcolor: muteControlBg,
             },
@@ -2272,9 +2312,9 @@ const CallModal = (props) => {
           disableRipple
         >
           {isMuted ? (
-            <MicOff sx={{ fontSize: "1.5rem" }} />
+            <MicOff sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
           ) : (
-            <Mic sx={{ fontSize: "1.5rem" }} />
+            <Mic sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
           )}
         </IconButton>
 
@@ -2282,9 +2322,9 @@ const CallModal = (props) => {
           onClick={hangUp}
           sx={{
             bgcolor: "error.main",
-            color: "#fff",
-            width: 48,
-            height: 48,
+            color: CALL_MODAL_COLORS.white,
+            width: CALL_MODAL_SIZE_TOKENS.controlButton,
+            height: CALL_MODAL_SIZE_TOKENS.controlButton,
 
             "&:hover": {
               bgcolor: "error.main",
@@ -2295,7 +2335,7 @@ const CallModal = (props) => {
           }}
           disableRipple
         >
-          <CallEnd sx={{ fontSize: "1.5rem" }} />
+          <CallEnd sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
         </IconButton>
       </Box>
     </Box>
