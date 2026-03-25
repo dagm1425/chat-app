@@ -35,12 +35,12 @@ import {
   Typography,
   useMediaQuery,
 } from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import DeleteMsgDialogContent from "./DeleteMsgDialogContent";
-import ReplyIcon from "@mui/icons-material/Reply";
-import EditIcon from "@mui/icons-material/Edit";
-import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
+import SubdirectoryArrowLeftOutlinedIcon from "@mui/icons-material/SubdirectoryArrowLeftOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SubdirectoryArrowRightOutlinedIcon from "@mui/icons-material/SubdirectoryArrowRightOutlined";
 import DoneAllIcon from "@mui/icons-material/DoneAll";
 import ChatMsgImgDisp from "./ChatMsgImgDisp";
 import ChatMsgVideoDisp from "./ChatMsgVideoDisp";
@@ -1069,7 +1069,7 @@ function ChatMsgDisp({
           sx={msgOptionsItemSx}
           {...msgOptionsItemProps}
         >
-          <DeleteIcon sx={msgOptionsIconSx} />
+          <DeleteOutlineIcon sx={msgOptionsIconSx} />
           <Typography variant="body2">Delete</Typography>
         </MenuItem>
         {!isSelectedCallStatusMsg && (
@@ -1078,7 +1078,7 @@ function ChatMsgDisp({
             sx={msgOptionsItemSx}
             {...msgOptionsItemProps}
           >
-            <ReplyIcon sx={msgOptionsIconSx} />
+            <SubdirectoryArrowLeftOutlinedIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Reply</Typography>
           </MenuItem>
         )}
@@ -1088,7 +1088,7 @@ function ChatMsgDisp({
             sx={msgOptionsItemSx}
             {...msgOptionsItemProps}
           >
-            <EditIcon sx={msgOptionsIconSx} />
+            <EditOutlinedIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Edit</Typography>
           </MenuItem>
         )}
@@ -1099,7 +1099,7 @@ function ChatMsgDisp({
             sx={msgOptionsItemSx}
             {...msgOptionsItemProps}
           >
-            <ArrowForwardIcon sx={msgOptionsIconSx} />
+            <SubdirectoryArrowRightOutlinedIcon sx={msgOptionsIconSx} />
             <Typography variant="body2">Forward</Typography>
           </MenuItem>
         )}

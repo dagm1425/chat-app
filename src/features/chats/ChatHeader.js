@@ -13,9 +13,9 @@ import {
 } from "@mui/material";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
-import DeleteIcon from "@mui/icons-material/Delete";
-import GroupAddIcon from "@mui/icons-material/GroupAdd";
-import ExitToAppIcon from "@mui/icons-material/ExitToApp";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import GroupAddOutlinedIcon from "@mui/icons-material/GroupAddOutlined";
+import ExitToAppOutlinedIcon from "@mui/icons-material/ExitToAppOutlined";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocalPhoneOutlinedIcon from "@mui/icons-material/LocalPhoneOutlined";
 import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
@@ -134,14 +134,18 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
   );
 
   const privateChatMenuItems = () => {
-    return renderChatOptionsItem(DeleteIcon, "Delete", handleDeleteChatOpen);
+    return renderChatOptionsItem(
+      DeleteOutlineIcon,
+      "Delete",
+      handleDeleteChatOpen
+    );
   };
 
   const publicChatMenuItems = () => {
     return (
       <>
         {renderChatOptionsItem(
-          GroupAddIcon,
+          GroupAddOutlinedIcon,
           "Add members",
           handleAddPublicChatMembersOpen
         )}
@@ -151,8 +155,16 @@ function ChatHeader({ chat, userStatuses, makeCall }) {
           handleRenamePublicChatOpen
         )}
         {chat.createdBy.uid === user.uid
-          ? renderChatOptionsItem(DeleteIcon, "Delete", handleDeleteChatOpen)
-          : renderChatOptionsItem(ExitToAppIcon, "Leave", handleLeaveChatOpen)}
+          ? renderChatOptionsItem(
+              DeleteOutlineIcon,
+              "Delete",
+              handleDeleteChatOpen
+            )
+          : renderChatOptionsItem(
+              ExitToAppOutlinedIcon,
+              "Leave",
+              handleLeaveChatOpen
+            )}
       </>
     );
   };
