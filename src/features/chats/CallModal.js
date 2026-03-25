@@ -274,6 +274,7 @@ const CallModal = (props) => {
   const [isPreviewing, setIsPreviewing] = useState(false);
   const [previewPermissionDenied, setPreviewPermissionDenied] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
+  const [isEndingCallVisual, setIsEndingCallVisual] = useState(false);
   const [isLocalVideoFading, setIsLocalVideoFading] = useState(false);
   const [isLocalVideoIntro, setIsLocalVideoIntro] = useState(false);
   const [videoButtonEnabled, setVideoButtonEnabled] = useState(null);
@@ -499,6 +500,7 @@ const CallModal = (props) => {
       readyStreamIds: readyRemoteStreamIds,
     });
   })();
+
   const isDarkControlBg =
     isOngoingCall &&
     (isOneToOneRemoteVideoStreaming || isGroupTwoParticipantVideoStreaming);
@@ -718,6 +720,7 @@ const CallModal = (props) => {
 
   useEffect(() => {
     stopPreviewStream();
+    setIsEndingCallVisual(false);
     setReadyRemoteStreamIds(new Set());
     setVideoEnabledMap({});
     setPreJoinVideoEnabled(true);
@@ -1045,16 +1048,16 @@ const CallModal = (props) => {
           callDataFromFirestore &&
           callDataFromFirestore.isActive === false
         ) {
-          if (localVideoRef.current?.srcObject)
-            localVideoRef.current.srcObject = null;
-          if (remoteVideoRef.current?.srcObject)
-            remoteVideoRef.current.srcObject = null;
-
           // Set cleanup flag FIRST to prevent media `onPlaying` handlers
           // from re-setting the call status to "Ongoing call".
           isCleaningUpRef.current = true;
 
           showCallEndedAndScheduleClose();
+
+          if (localVideoRef.current?.srcObject)
+            localVideoRef.current.srcObject = null;
+          if (remoteVideoRef.current?.srcObject)
+            remoteVideoRef.current.srcObject = null;
 
           // Run cleanup immediately (match local hangup behavior)
           handleLocalCallCleanup();
@@ -1089,6 +1092,7 @@ const CallModal = (props) => {
   useEffect(() => {
     if (!callState.isActive) {
       startTimeRef.current = null;
+      setIsEndingCallVisual(false);
     }
   }, [callState.isActive, callData?.chatId]);
 
@@ -1179,6 +1183,13 @@ const CallModal = (props) => {
   };
 
   const showCallEndedAndScheduleClose = () => {
+    // Force the "ending" visual gate (which hides remote videos) to render immediately.
+    // Purpose: avoid a rare race where remote video srcObject is cleared first,
+    // but the "Call ended" UI hide renders a frame later, causing a brief black flash.
+    flushSync(() => {
+      setIsEndingCallVisual(true);
+    });
+
     const latestCall = store.getState().chats.call;
     if (latestCall.status !== "Call ended") {
       dispatch(setCall({ ...latestCall, status: "Call ended" }));
@@ -1778,6 +1789,7 @@ const CallModal = (props) => {
                   width: "100%",
                   height: "100%",
                   display:
+                    !isEndingCallVisual &&
                     (isOngoingCall || isInitiator()) &&
                     callState.status !== "Call ended"
                       ? "grid"
@@ -1826,7 +1838,10 @@ const CallModal = (props) => {
                     screenShareByUid: screenSharingUids,
                     readyStreamIds: readyRemoteStreamIds,
                   });
-                  const shouldShowParticipantTile = isOngoingCall && isReady;
+                  const shouldShowParticipantTile =
+                    !isEndingCallVisual && isOngoingCall && isReady;
+                  const shouldShowParticipantVideo =
+                    shouldShowParticipantTile && isVideoEnabled;
 
                   return (
                     <Box
@@ -1864,25 +1879,16 @@ const CallModal = (props) => {
                           markRemoteFrameReady(userId, videoRef?.current)
                         }
                         style={{
-                          width:
-                            shouldShowParticipantTile && isVideoEnabled
-                              ? "100%"
-                              : "1px",
-                          height:
-                            shouldShowParticipantTile && isVideoEnabled
-                              ? "100%"
-                              : "1px",
+                          width: shouldShowParticipantVideo ? "100%" : "1px",
+                          height: shouldShowParticipantVideo ? "100%" : "1px",
                           objectFit: isThisUserSharing ? "contain" : "cover",
-                          opacity:
-                            shouldShowParticipantTile && isVideoEnabled ? 1 : 0,
-                          position:
-                            shouldShowParticipantTile && isVideoEnabled
-                              ? "static"
-                              : "absolute",
-                          pointerEvents:
-                            shouldShowParticipantTile && isVideoEnabled
-                              ? "auto"
-                              : "none",
+                          opacity: shouldShowParticipantVideo ? 1 : 0,
+                          position: shouldShowParticipantVideo
+                            ? "static"
+                            : "absolute",
+                          pointerEvents: shouldShowParticipantVideo
+                            ? "auto"
+                            : "none",
                         }}
                       />
                       {shouldShowParticipantTile && !isVideoEnabled && (
@@ -1937,6 +1943,10 @@ const CallModal = (props) => {
                 const remoteUid = oneToOneRemote.remoteUid;
                 const shouldRenderRemoteVideo =
                   oneToOneRemote.shouldRenderRemoteVideo;
+                const shouldShowRemoteVideo =
+                  !isEndingCallVisual &&
+                  isOngoingCall &&
+                  shouldRenderRemoteVideo;
                 const remoteInfo = getParticipantInfo(remoteUid);
                 const remoteName =
                   remoteInfo?.displayName?.split(" ")[0] || "Unknown";
@@ -1962,7 +1972,10 @@ const CallModal = (props) => {
                           left: 0,
                           width: "100%",
                           height: "100%",
-                          display: isOngoingCall ? "flex" : "none",
+                          display:
+                            isOngoingCall && !isEndingCallVisual
+                              ? "flex"
+                              : "none",
                           zIndex: 1,
                         }}
                       />
@@ -1977,10 +1990,7 @@ const CallModal = (props) => {
                         objectFit: isRemoteScreenSharing ? "contain" : "cover",
                         transform: "scaleX(1)",
                         borderRadius: 0,
-                        display:
-                          isOngoingCall && shouldRenderRemoteVideo
-                            ? "block"
-                            : "none",
+                        display: shouldShowRemoteVideo ? "block" : "none",
                         zIndex: 1,
                       }}
                       onPlaying={() => {
@@ -2016,7 +2026,10 @@ const CallModal = (props) => {
                 position: "absolute",
                 left: "50%",
                 top: CALL_MODAL_SIZE_TOKENS.localPipTop,
-                display: callState.status === "Call ended" ? "none" : "flex",
+                display:
+                  callState.status === "Call ended" || isEndingCallVisual
+                    ? "none"
+                    : "flex",
                 width: CALL_MODAL_SIZE_TOKENS.localPipWidth,
                 height: CALL_MODAL_SIZE_TOKENS.localPipHeight,
                 overflow: "hidden",
@@ -2040,7 +2053,9 @@ const CallModal = (props) => {
               left: "50%",
               top: CALL_MODAL_SIZE_TOKENS.localPipTop,
               display:
-                callState.status === "Call ended" || !isLocalVideoActive
+                callState.status === "Call ended" ||
+                isEndingCallVisual ||
+                !isLocalVideoActive
                   ? "none"
                   : "block",
               width: CALL_MODAL_SIZE_TOKENS.localPipWidth,
