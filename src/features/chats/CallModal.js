@@ -67,7 +67,9 @@ const CALL_MODAL_COLORS = {
   overlayBlack30: "rgba(0, 0, 0, 0.3)",
   overlayBlack50: "rgba(0, 0, 0, 0.5)",
   panelBg: "#20232A",
-  tileBg: "#2A2F3A",
+  tileBg: "#2F3748",
+  localPipBg: "#2F3748",
+  localPipBorder: "rgba(255, 255, 255, 0.16)",
   subtleBorder: "rgba(255, 255, 255, 0.08)",
   activeControlText: "#111",
   statusText: "#d6d6c2",
@@ -84,6 +86,7 @@ const CALL_MODAL_SIZE_TOKENS = {
 };
 const PARTICIPANT_TILE_BORDER = `1px solid ${CALL_MODAL_COLORS.subtleBorder}`;
 const CALL_MODAL_SOFT_SHADOW = "0 0 5px rgba(0, 0, 0, 0.3)";
+const CALL_MODAL_PIP_STRONG_SHADOW = "0 12px 28px rgba(0, 0, 0, 0.45)";
 
 const isRemoteParticipantReadyForOngoing = ({
   participantUid,
@@ -1854,7 +1857,9 @@ const CallModal = (props) => {
                         left: shouldShowParticipantTile ? "auto" : 0,
                         width: shouldShowParticipantTile ? "100%" : "1px",
                         height: shouldShowParticipantTile ? "100%" : "1px",
-                        backgroundColor: CALL_MODAL_COLORS.mediaBackdrop,
+                        backgroundColor: shouldShowParticipantVideo
+                          ? CALL_MODAL_COLORS.mediaBackdrop
+                          : CALL_MODAL_COLORS.panelBg,
                         borderRadius: "4px",
                         overflow: "hidden",
                         opacity: shouldShowParticipantTile ? 1 : 0,
@@ -1918,16 +1923,30 @@ const CallModal = (props) => {
                           {displayName}
                         </Box>
                       ) : (
-                        <ParticipantIdentityTile
-                          name={displayName}
-                          photoURL={participantInfo?.photoURL}
-                          avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
-                          nameFontSize="0.85rem"
+                        <Box
                           sx={{
                             position: "absolute",
                             inset: 0,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            p: 1.5,
                           }}
-                        />
+                        >
+                          <ParticipantIdentityTile
+                            name={displayName}
+                            photoURL={participantInfo?.photoURL}
+                            avatarSize={
+                              CALL_MODAL_SIZE_TOKENS.participantAvatar
+                            }
+                            nameFontSize="0.85rem"
+                            sx={{
+                              width: "min(320px, calc(100% - 24px))",
+                              height: "min(220px, calc(100% - 24px))",
+                              boxShadow: CALL_MODAL_SOFT_SHADOW,
+                            }}
+                          />
+                        </Box>
                       )}
                     </Box>
                   );
@@ -1976,6 +1995,9 @@ const CallModal = (props) => {
                             isOngoingCall && !isEndingCallVisual
                               ? "flex"
                               : "none",
+                          background: CALL_MODAL_COLORS.panelBg,
+                          border: "none",
+                          borderRadius: 0,
                           zIndex: 1,
                         }}
                       />
@@ -2032,8 +2054,10 @@ const CallModal = (props) => {
                     : "flex",
                 width: CALL_MODAL_SIZE_TOKENS.localPipWidth,
                 height: CALL_MODAL_SIZE_TOKENS.localPipHeight,
+                backgroundColor: CALL_MODAL_COLORS.localPipBg,
+                border: `1px solid ${CALL_MODAL_COLORS.localPipBorder}`,
                 overflow: "hidden",
-                boxShadow: isOngoingCall ? CALL_MODAL_SOFT_SHADOW : "",
+                boxShadow: isOngoingCall ? CALL_MODAL_PIP_STRONG_SHADOW : "",
                 transform: isOngoingCall
                   ? isMobile
                     ? `translate(0px, 60px) scale(0.5)`
@@ -2112,19 +2136,15 @@ const CallModal = (props) => {
                   left: 0,
                   width: "100%",
                   height: "100%",
-                  display:
-                    (isOngoingCall || isInitiator()) && //?
-                    callState.status !== "Call ended"
-                      ? "grid"
-                      : "none",
+                  display: isOngoingCall ? "grid" : "none",
                   gridTemplateColumns:
-                    remoteStreamsArray.length <= 9
-                      ? "1fr 1fr 1fr"
-                      : "1fr 1fr 1fr",
+                    remoteStreamsArray.length <= 1 ? "1fr" : "1fr 1fr",
                   gridTemplateRows:
-                    remoteStreamsArray.length <= 9
-                      ? "1fr 1fr 1fr"
-                      : "1fr 1fr 1fr 1fr",
+                    remoteStreamsArray.length <= 2
+                      ? "1fr"
+                      : remoteStreamsArray.length <= 4
+                      ? "1fr 1fr"
+                      : "1fr 1fr 1fr",
                   gap: "8px",
                   padding: "72px 24px 24px",
                   zIndex: 1,
@@ -2136,18 +2156,33 @@ const CallModal = (props) => {
                     participantInfo?.displayName?.split(" ")[0] ||
                     "Participant";
                   return (
-                    <ParticipantIdentityTile
+                    <Box
                       key={userId}
-                      name={displayName}
-                      photoURL={participantInfo?.photoURL}
-                      avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
-                      nameFontSize="0.85rem"
                       sx={{
-                        overflow: "hidden",
+                        position: "relative",
                         width: "100%",
                         height: "100%",
+                        background: CALL_MODAL_COLORS.panelBg,
+                        borderRadius: "4px",
+                        overflow: "hidden",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        p: 1.5,
                       }}
-                    />
+                    >
+                      <ParticipantIdentityTile
+                        name={displayName}
+                        photoURL={participantInfo?.photoURL}
+                        avatarSize={CALL_MODAL_SIZE_TOKENS.participantAvatar}
+                        nameFontSize="0.85rem"
+                        sx={{
+                          width: "min(320px, calc(100% - 24px))",
+                          height: "min(220px, calc(100% - 24px))",
+                          boxShadow: CALL_MODAL_SOFT_SHADOW,
+                        }}
+                      />
+                    </Box>
                   );
                 })}
               </Box>
