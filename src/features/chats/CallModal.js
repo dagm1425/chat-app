@@ -69,6 +69,7 @@ const CALL_MODAL_COLORS = {
   panelBg: "#20232A",
   tileBg: "#2F3748",
   localPipBg: "#2F3748",
+  controlBg: "rgba(255, 255, 255, 0.14)",
   localPipBorder: "rgba(255, 255, 255, 0.16)",
   subtleBorder: "rgba(255, 255, 255, 0.08)",
   activeControlText: "#111",
@@ -485,41 +486,27 @@ const CallModal = (props) => {
     videoEnabledMap,
   ]);
 
-  const isOneToOneRemoteVideoStreaming =
-    !callData?.isGroupCall &&
-    !!oneToOneRemote.remoteUid &&
-    oneToOneRemote.shouldRenderRemoteVideo === true &&
-    readyRemoteStreamIds.has(oneToOneRemote.remoteUid);
-  const isGroupTwoParticipantVideoStreaming = (() => {
-    if (!callData?.isGroupCall) return false;
-    if (remoteStreamsArray.length !== 1) return false;
-    const remoteUid = remoteStreamsArray[0]?.[0];
-    if (!remoteUid) return false;
-    return isRemoteParticipantReadyForOngoing({
-      participantUid: remoteUid,
-      remoteStreamPresent: true,
-      videoPreferenceByUid: videoEnabledMap,
-      screenShareByUid: screenSharingUids,
-      readyStreamIds: readyRemoteStreamIds,
-    });
-  })();
-
-  const isDarkControlBg =
-    isOngoingCall &&
-    (isOneToOneRemoteVideoStreaming || isGroupTwoParticipantVideoStreaming);
-  const controlButtonBg = isDarkControlBg
-    ? CALL_MODAL_COLORS.overlayBlack30
-    : CALL_MODAL_COLORS.subtleBorder;
+  // Keep control colors consistent across all call paths (1:1/group, audio/video),
+  // while still allowing state toggles (muted/video off/screen-share on) and disabled opacity.
+  const controlButtonBg = CALL_MODAL_COLORS.controlBg;
   const controlButtonColor = CALL_MODAL_COLORS.white;
   const activeControlButtonBg = CALL_MODAL_COLORS.white;
   const activeControlButtonColor = CALL_MODAL_COLORS.activeControlText;
   const isVideoControlDisabled =
     isConnectingCall || isScreenSharing || (!isOngoingCall && !isPreviewing);
-  const isVideoDisabledByPreviewBootstrap =
-    !isConnectingCall && !isScreenSharing && !isOngoingCall && !isPreviewing;
-  const videoControlOpacity = isConnectingCall
+  // During the short pre-join bootstrap window (before preview is ready),
+  // keep the video button visually stable to avoid a brief disabled flash.
+  const isPreJoinPreviewBootstrap =
+    !isRejoinCall &&
+    !isConnectingCall &&
+    !isScreenSharing &&
+    !isOngoingCall &&
+    !isPreviewing;
+  const videoControlOpacity = previewPermissionDenied
     ? 0.4
-    : isVideoControlDisabled && !isVideoDisabledByPreviewBootstrap
+    : isConnectingCall
+    ? 0.4
+    : isVideoControlDisabled && !isPreJoinPreviewBootstrap
     ? 0.4
     : 1;
   const videoControlBg = isVideoButtonEnabled
@@ -553,8 +540,7 @@ const CallModal = (props) => {
   const controlOpacityTransition = isConnectingCall
     ? "none"
     : "opacity 0.12s ease";
-  const shouldShowVideoToggle =
-    !isInitiator() || isOngoingCall || isConnectingCall || isRejoinCall;
+  const shouldShowVideoToggle = true;
 
   useEffect(() => {
     if (callData?.isGroupCall) return;
