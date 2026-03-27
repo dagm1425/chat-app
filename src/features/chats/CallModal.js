@@ -497,11 +497,14 @@ const CallModal = (props) => {
   // During the short pre-join bootstrap window (before preview is ready),
   // keep the video button visually stable to avoid a brief disabled flash.
   const isPreJoinPreviewBootstrap =
+    !isInitiator() &&
+    callState.status === "" &&
     !isRejoinCall &&
     !isConnectingCall &&
     !isScreenSharing &&
     !isOngoingCall &&
-    !isPreviewing;
+    !isPreviewing &&
+    !previewPermissionDenied;
   const videoControlOpacity = previewPermissionDenied
     ? 0.4
     : isConnectingCall
@@ -540,7 +543,17 @@ const CallModal = (props) => {
   const controlOpacityTransition = isConnectingCall
     ? "none"
     : "opacity 0.12s ease";
-  const shouldShowVideoToggle = true;
+  const shouldShowControlBar =
+    callState.status !== "Call ended" && !isBusyOutcomeStatus;
+  const shouldShowJoinControl =
+    callState?.status === "" && (!isInitiator() || isRejoinCall);
+  const shouldShowPreOngoingControls =
+    callState.status !== "" &&
+    (isInitiator() || isOngoingCall || isConnectingCall);
+  const shouldShowVideoControl = callData.isVideoCall;
+  const shouldShowScreenShareControl =
+    callData.isVideoCall && shouldShowPreOngoingControls;
+  const shouldShowMuteControl = shouldShowPreOngoingControls;
 
   useEffect(() => {
     if (callData?.isGroupCall) return;
@@ -2215,193 +2228,185 @@ const CallModal = (props) => {
         </>
       )}
 
-      <Box
-        sx={{
-          position: "absolute",
-          top: "86%",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display:
-            callState.status === "Call ended" || isBusyOutcomeStatus
-              ? "none"
-              : "flex",
-          gap: 2,
-          zIndex: 2,
-        }}
-      >
-        {callState?.status === "" && (!isInitiator() || isRejoinCall) && (
+      {shouldShowControlBar && (
+        <Box
+          sx={{
+            position: "absolute",
+            top: "86%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            display: "flex",
+            gap: 2,
+            zIndex: 2,
+          }}
+        >
+          {shouldShowJoinControl && (
+            <IconButton
+              onClick={async () => {
+                const latestCall = store.getState().chats.call;
+                if (latestCall.status === "") {
+                  dispatch(
+                    setCall({
+                      ...latestCall,
+                      status: "Connecting...",
+                    })
+                  );
+                }
+                await joinCall(previewStreamRef.current, isLocalVideoEnabled);
+              }}
+              disabled={callData.isVideoCall && previewPermissionDenied}
+              sx={{
+                bgcolor: "success.main",
+                color: CALL_MODAL_COLORS.white,
+                width: CALL_MODAL_SIZE_TOKENS.controlButton,
+                height: CALL_MODAL_SIZE_TOKENS.controlButton,
+
+                "&:hover": {
+                  bgcolor: "success.main",
+                },
+                "&.MuiButtonBase-root:hover": {
+                  bgcolor: "success.main",
+                },
+                "&.Mui-disabled": {
+                  bgcolor: controlButtonBg,
+                  color: controlButtonColor,
+                  opacity: 0.4,
+                },
+              }}
+              disableRipple
+            >
+              <Call sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
+            </IconButton>
+          )}
+
+          {shouldShowVideoControl && (
+            <IconButton
+              onClick={toggleVideo}
+              disabled={isVideoControlDisabled}
+              sx={{
+                width: CALL_MODAL_SIZE_TOKENS.controlButton,
+                height: CALL_MODAL_SIZE_TOKENS.controlButton,
+                pointerEvents: isVideoControlDisabled ? "none" : "auto",
+                bgcolor: videoControlBg,
+                color: videoControlColor,
+                opacity: videoControlOpacity,
+                transition: controlOpacityTransition,
+                boxShadow: CALL_MODAL_SOFT_SHADOW,
+                "&:hover": {
+                  bgcolor: videoControlBg,
+                },
+                "&.MuiButtonBase-root:hover": {
+                  bgcolor: videoControlBg,
+                },
+                "&.Mui-disabled": {
+                  bgcolor: `${videoControlBg} !important`,
+                  color: `${videoControlColor} !important`,
+                  opacity: `${videoControlOpacity} !important`,
+                },
+              }}
+              disableRipple
+            >
+              {isVideoButtonEnabled ? (
+                <Videocam
+                  sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
+                />
+              ) : (
+                <VideocamOff
+                  sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
+                />
+              )}
+            </IconButton>
+          )}
+
+          {shouldShowScreenShareControl && (
+            <IconButton
+              onClick={toggleScreenShare}
+              disabled={isScreenShareControlDisabled}
+              sx={{
+                width: CALL_MODAL_SIZE_TOKENS.controlButton,
+                height: CALL_MODAL_SIZE_TOKENS.controlButton,
+                bgcolor: screenShareControlBg,
+                color: screenShareControlColor,
+                pointerEvents: isScreenShareControlDisabled ? "none" : "auto",
+                opacity: screenShareControlOpacity,
+                transition: controlOpacityTransition,
+                boxShadow: CALL_MODAL_SOFT_SHADOW,
+                "&:hover": {
+                  bgcolor: screenShareControlBg,
+                },
+                "&.MuiButtonBase-root:hover": {
+                  bgcolor: screenShareControlBg,
+                },
+                "&.Mui-disabled": {
+                  bgcolor: `${screenShareControlBg} !important`,
+                  color: `${screenShareControlColor} !important`,
+                  opacity: `${screenShareControlOpacity} !important`,
+                },
+              }}
+              disableRipple
+            >
+              <ScreenShare
+                sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
+              />
+            </IconButton>
+          )}
+
+          {shouldShowMuteControl && (
+            <IconButton
+              onClick={toggleMute}
+              disabled={isMuteControlDisabled}
+              sx={{
+                width: CALL_MODAL_SIZE_TOKENS.controlButton,
+                height: CALL_MODAL_SIZE_TOKENS.controlButton,
+                bgcolor: muteControlBg,
+                color: muteControlColor,
+                pointerEvents: isMuteControlDisabled ? "none" : "auto",
+                opacity: muteControlOpacity,
+                transition: controlOpacityTransition,
+                boxShadow: CALL_MODAL_SOFT_SHADOW,
+                "&:hover": {
+                  bgcolor: muteControlBg,
+                },
+                "&.MuiButtonBase-root:hover": {
+                  bgcolor: muteControlBg,
+                },
+                "&.Mui-disabled": {
+                  bgcolor: `${muteControlBg} !important`,
+                  color: `${muteControlColor} !important`,
+                  opacity: `${muteControlOpacity} !important`,
+                },
+              }}
+              disableRipple
+            >
+              {isMuted ? (
+                <MicOff sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
+              ) : (
+                <Mic sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
+              )}
+            </IconButton>
+          )}
+
           <IconButton
-            onClick={async () => {
-              const latestCall = store.getState().chats.call;
-              if (latestCall.status === "") {
-                dispatch(
-                  setCall({
-                    ...latestCall,
-                    status: "Connecting...",
-                  })
-                );
-              }
-              await joinCall(previewStreamRef.current, isLocalVideoEnabled);
-            }}
-            disabled={callData.isVideoCall && previewPermissionDenied}
+            onClick={hangUp}
             sx={{
-              bgcolor: "success.main",
+              bgcolor: "error.main",
               color: CALL_MODAL_COLORS.white,
               width: CALL_MODAL_SIZE_TOKENS.controlButton,
               height: CALL_MODAL_SIZE_TOKENS.controlButton,
 
               "&:hover": {
-                bgcolor: "success.main",
+                bgcolor: "error.main",
               },
               "&.MuiButtonBase-root:hover": {
-                bgcolor: "success.main",
-              },
-              "&.Mui-disabled": {
-                bgcolor: controlButtonBg,
-                color: controlButtonColor,
-                opacity: 0.4,
+                bgcolor: "error.main",
               },
             }}
             disableRipple
           >
-            <Call sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
+            <CallEnd sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
           </IconButton>
-        )}
-
-        {callData.isVideoCall && (
-          <IconButton
-            onClick={toggleVideo}
-            disabled={isVideoControlDisabled}
-            sx={{
-              width: CALL_MODAL_SIZE_TOKENS.controlButton,
-              height: CALL_MODAL_SIZE_TOKENS.controlButton,
-              display: shouldShowVideoToggle ? "flex" : "none",
-              pointerEvents: isVideoControlDisabled ? "none" : "auto",
-              bgcolor: videoControlBg,
-              color: videoControlColor,
-              opacity: videoControlOpacity,
-              transition: controlOpacityTransition,
-              boxShadow: CALL_MODAL_SOFT_SHADOW,
-              "&:hover": {
-                bgcolor: videoControlBg,
-              },
-              "&.MuiButtonBase-root:hover": {
-                bgcolor: videoControlBg,
-              },
-              "&.Mui-disabled": {
-                bgcolor: `${videoControlBg} !important`,
-                color: `${videoControlColor} !important`,
-                opacity: `${videoControlOpacity} !important`,
-              },
-            }}
-            disableRipple
-          >
-            {isVideoButtonEnabled ? (
-              <Videocam sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
-            ) : (
-              <VideocamOff
-                sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
-              />
-            )}
-          </IconButton>
-        )}
-
-        {callData.isVideoCall && (
-          <IconButton
-            onClick={toggleScreenShare}
-            disabled={isScreenShareControlDisabled}
-            sx={{
-              width: CALL_MODAL_SIZE_TOKENS.controlButton,
-              height: CALL_MODAL_SIZE_TOKENS.controlButton,
-              display:
-                callState.status === "" ||
-                (!isInitiator() && !isOngoingCall && !isConnectingCall)
-                  ? "none"
-                  : "flex",
-              bgcolor: screenShareControlBg,
-              color: screenShareControlColor,
-              pointerEvents: isScreenShareControlDisabled ? "none" : "auto",
-              opacity: screenShareControlOpacity,
-              transition: controlOpacityTransition,
-              boxShadow: CALL_MODAL_SOFT_SHADOW,
-              "&:hover": {
-                bgcolor: screenShareControlBg,
-              },
-              "&.MuiButtonBase-root:hover": {
-                bgcolor: screenShareControlBg,
-              },
-              "&.Mui-disabled": {
-                bgcolor: `${screenShareControlBg} !important`,
-                color: `${screenShareControlColor} !important`,
-                opacity: `${screenShareControlOpacity} !important`,
-              },
-            }}
-            disableRipple
-          >
-            <ScreenShare
-              sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }}
-            />
-          </IconButton>
-        )}
-
-        <IconButton
-          onClick={toggleMute}
-          disabled={isMuteControlDisabled}
-          sx={{
-            width: CALL_MODAL_SIZE_TOKENS.controlButton,
-            height: CALL_MODAL_SIZE_TOKENS.controlButton,
-            display:
-              callState.status === "" ||
-              (!isInitiator() && !isOngoingCall && !isConnectingCall)
-                ? "none"
-                : "flex",
-            bgcolor: muteControlBg,
-            color: muteControlColor,
-            pointerEvents: isMuteControlDisabled ? "none" : "auto",
-            opacity: muteControlOpacity,
-            transition: controlOpacityTransition,
-            boxShadow: CALL_MODAL_SOFT_SHADOW,
-            "&:hover": {
-              bgcolor: muteControlBg,
-            },
-            "&.MuiButtonBase-root:hover": {
-              bgcolor: muteControlBg,
-            },
-            "&.Mui-disabled": {
-              bgcolor: `${muteControlBg} !important`,
-              color: `${muteControlColor} !important`,
-              opacity: `${muteControlOpacity} !important`,
-            },
-          }}
-          disableRipple
-        >
-          {isMuted ? (
-            <MicOff sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
-          ) : (
-            <Mic sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
-          )}
-        </IconButton>
-
-        <IconButton
-          onClick={hangUp}
-          sx={{
-            bgcolor: "error.main",
-            color: CALL_MODAL_COLORS.white,
-            width: CALL_MODAL_SIZE_TOKENS.controlButton,
-            height: CALL_MODAL_SIZE_TOKENS.controlButton,
-
-            "&:hover": {
-              bgcolor: "error.main",
-            },
-            "&.MuiButtonBase-root:hover": {
-              bgcolor: "error.main",
-            },
-          }}
-          disableRipple
-        >
-          <CallEnd sx={{ fontSize: CALL_MODAL_SIZE_TOKENS.controlIcon }} />
-        </IconButton>
-      </Box>
+        </Box>
+      )}
     </Box>
   );
 };
