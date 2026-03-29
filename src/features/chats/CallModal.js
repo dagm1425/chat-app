@@ -27,6 +27,7 @@ import { selectUser } from "../user/userSlice";
 import { notifyUser } from "../../common/toast/ToastProvider";
 import { getMediaPermissionMessage } from "../../common/utils";
 import { sendOneToOneCallHistoryMsg } from "./callHistory";
+import useCallStatusAudio from "./hooks/useCallStatusAudio";
 
 const CallDurationBase = ({ startTime, visible, formatCallDuration }) => {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -388,6 +389,14 @@ const CallModal = (props) => {
   const isInitiator = () => {
     return callData?.initiator === user.uid;
   };
+
+  useCallStatusAudio({
+    callId: callData?.id || null,
+    isActive: callState.isActive,
+    status: callState.status,
+    isInitiator: isInitiator(),
+    isRejoinCall,
+  });
 
   const getParticipantInfo = (uid) => {
     if (!uid || !callData?.participantDetails) return null;
