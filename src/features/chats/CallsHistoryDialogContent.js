@@ -221,6 +221,7 @@ function CallsHistoryDialogContent({ onClose, startCall }) {
                     </Avatar>
                   </ListItemAvatar>
                   <ListItemText
+                    disableTypography
                     sx={{ my: 0 }}
                     primary={
                       <Typography
