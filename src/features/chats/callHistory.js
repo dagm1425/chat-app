@@ -14,6 +14,13 @@ const formatCallDuration = (seconds) => {
   return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
 };
 
+const MAX_CALL_HISTORY_ENTRIES = 30;
+
+const appendCallHistoryEntry = (existingEntries, nextEntry) => {
+  const history = Array.isArray(existingEntries) ? existingEntries : [];
+  return [...history, nextEntry].slice(-MAX_CALL_HISTORY_ENTRIES);
+};
+
 export const sendOneToOneCallHistoryMsg = async ({
   db,
   chatId,
@@ -41,6 +48,7 @@ export const sendOneToOneCallHistoryMsg = async ({
     !wasOngoingCall && senderUid === initiatorInfo?.uid;
   const msgId = uuid();
   const timestamp = serverTimestamp();
+  const historyTimestamp = new Date().toISOString();
 
   const newMsg = {
     msgId,
@@ -59,6 +67,14 @@ export const sendOneToOneCallHistoryMsg = async ({
     isMsgDelivered: true,
     timestamp,
   };
+  const callHistoryEntry = {
+    entryId: msgId,
+    timestamp: historyTimestamp,
+    chatId: chatData.chatId || chatId,
+    isVideoCall: !!isVideoCall,
+    fromUid: initiatorInfo.uid,
+    statusByUid: statusByUid || {},
+  };
 
   await setDoc(doc(chatRef, "chatMessages", msgId), newMsg);
 
@@ -74,6 +90,7 @@ export const sendOneToOneCallHistoryMsg = async ({
     recentMsg: newMsg,
     timestamp,
     unreadCounts,
+    callHistory: appendCallHistoryEntry(chatData.callHistory, callHistoryEntry),
   });
 };
 
@@ -110,6 +127,14 @@ export const sendGroupCallSystemMsg = async ({
       initiatorUid: callData.initiator,
     },
   };
+  const historyTimestamp = new Date().toISOString();
+  const callHistoryEntry = {
+    entryId: msgId,
+    timestamp: historyTimestamp,
+    chatId: chatData.chatId || chatRef.id,
+    isVideoCall,
+    fromUid: callData.initiator,
+  };
   const unreadCounts = { ...(chatData.unreadCounts || {}) };
   const msgSenderUid = newMsg.from?.uid;
   const shouldIncrementUnread =
@@ -127,5 +152,6 @@ export const sendGroupCallSystemMsg = async ({
     recentMsg: newMsg,
     timestamp: newMsg.timestamp,
     unreadCounts,
+    callHistory: appendCallHistoryEntry(chatData.callHistory, callHistoryEntry),
   });
 };

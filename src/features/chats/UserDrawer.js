@@ -25,6 +25,7 @@ import LogoutIcon from "@mui/icons-material/Logout";
 import MenuIcon from "@mui/icons-material/Menu";
 import SettingsIcon from "@mui/icons-material/Settings";
 import Brightness4Icon from "@mui/icons-material/Brightness4";
+import CallIcon from "@mui/icons-material/Call";
 import { useSelector } from "react-redux";
 import { selectUser } from "../user/userSlice";
 import { signOut } from "firebase/auth";
@@ -37,8 +38,14 @@ import { doc, serverTimestamp, setDoc } from "firebase/firestore";
 import { ColorModeContext } from "../../common/theme/ColorModeContext";
 import { useTheme } from "@emotion/react";
 import UserSettingsDialogContent from "../user/UserSettingsDialogContent";
+import CallsHistoryDialogContent from "./CallsHistoryDialogContent";
 
-function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
+function UserDrawer({
+  setSelectedChatId,
+  userStatuses,
+  setUserStatus,
+  startCall,
+}) {
   const user = useSelector(selectUser);
   const chats = useSelector(selectChats);
   const navigate = useNavigate();
@@ -48,6 +55,7 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isSignOutOpen, setIsSignOutOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isCallsOpen, setIsCallsOpen] = useState(false);
   const [isCreatingPrivateChat, setIsCreatingPrivateChat] = useState(false);
   const colorMode = React.useContext(ColorModeContext);
 
@@ -99,6 +107,15 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
 
   const handleSettingsClose = () => {
     setIsSettingsOpen(false);
+  };
+
+  const handleCallsOpen = () => {
+    setIsDrawerOpen(false);
+    setIsCallsOpen(true);
+  };
+
+  const handleCallsClose = () => {
+    setIsCallsOpen(false);
   };
 
   const createNewPrivateChat = async (otherChatMember) => {
@@ -206,6 +223,14 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
               </ListItemButton>
             </ListItem>
             <ListItem disablePadding>
+              <ListItemButton onClick={handleCallsOpen}>
+                <ListItemIcon>
+                  <CallIcon />
+                </ListItemIcon>
+                <ListItemText primary="Calls" />
+              </ListItemButton>
+            </ListItem>
+            <ListItem disablePadding>
               <ListItemButton onClick={colorMode.toggleColorMode}>
                 <ListItemIcon>
                   <Brightness4Icon />
@@ -287,6 +312,24 @@ function UserDrawer({ setSelectedChatId, userStatuses, setUserStatus }) {
         </DialogTitle>
         <UserSettingsDialogContent onClose={handleSettingsClose} />
       </Dialog>
+
+      <Dialog open={isCallsOpen} onClose={handleCallsClose}>
+        <DialogTitle
+          sx={{
+            fontSize: "1.1rem",
+            fontWeight: "normal",
+            px: "1.05rem",
+            pt: "0.875rem",
+            pb: "0.35rem",
+          }}
+        >
+          Calls
+        </DialogTitle>
+        <CallsHistoryDialogContent
+          onClose={handleCallsClose}
+          startCall={startCall}
+        />
+      </Dialog>
     </>
   );
 }
@@ -297,4 +340,5 @@ UserDrawer.propTypes = {
   setSelectedChatId: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
   setUserStatus: PropTypes.func,
+  startCall: PropTypes.func.isRequired,
 };

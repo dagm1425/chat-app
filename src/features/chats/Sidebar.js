@@ -10,6 +10,7 @@ function Sidebar({
   setSelectedChatId,
   userStatuses,
   setUserStatus,
+  startCall,
 }) {
   const [searchValue, setSearchValue] = useState("");
   const location = useLocation();
@@ -59,6 +60,7 @@ function Sidebar({
           setSelectedChatId={setSelectedChatId}
           setUserStatus={setUserStatus}
           userStatuses={userStatuses}
+          startCall={startCall}
         />
         <TextareaAutosize
           style={{
@@ -96,4 +98,5 @@ Sidebar.propTypes = {
   setSelectedChatId: PropTypes.func,
   userStatuses: PropTypes.objectOf(PropTypes.string),
   setUserStatus: PropTypes.func,
+  startCall: PropTypes.func.isRequired,
 };

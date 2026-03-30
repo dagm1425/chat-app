@@ -117,6 +117,7 @@ function Home({ setUserStatus }) {
           setSelectedChatId={setSelectedChatId}
           userStatuses={userStatuses}
           setUserStatus={setUserStatus}
+          startCall={startCall}
         />
         {callState.isActive && (
           <CallModal
