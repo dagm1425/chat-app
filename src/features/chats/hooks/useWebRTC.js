@@ -819,7 +819,11 @@ const useWebRTC = (db) => {
   };
 
   const cleanupLocalCall = async () => {
-    const activeCallId = callState.callData?.id || null;
+    const latestCallState = store.getState().chats.call;
+    const latestCallId = latestCallState.callData?.id || null;
+    const latestStatus = latestCallState.status || "";
+    const activeCallId = latestCallId;
+    const chatId = latestCallState.callData?.chatId;
 
     try {
       // 0. Stop local tracks early so camera/mic release isn't blocked by Firestore latency
@@ -832,12 +836,10 @@ const useWebRTC = (db) => {
       }
 
       // 2. Set "Call ended" status for UI feedback MAY NOT BE NEEDED SINCE WE HAVE IT IN LISTENER AND ()
-      if (callState.status !== "Call ended") {
-        dispatch(setCall({ ...callState, status: "Call ended" }));
+      if (latestStatus !== "Call ended") {
+        dispatch(setCall({ ...latestCallState, status: "Call ended" }));
       }
 
-      // Capture chatId before clearing Redux state
-      const chatId = callState.callData?.chatId;
       let shouldDeleteAllSignals = false;
 
       // 6. Remove self from participants and cleanup Firestore
