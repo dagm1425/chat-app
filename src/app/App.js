@@ -74,14 +74,19 @@ function App() {
   }, [user]);
 
   const fetchUserData = async () => {
-    if (!user) return;
+    try {
+      if (!user) return;
 
-    const userRef = doc(db, "users", `${user.uid}`);
-    const usern = await getDoc(userRef);
+      const userRef = doc(db, "users", `${user.uid}`);
+      const usern = await getDoc(userRef);
 
-    if (!usern.exists()) return;
-    setFetchingUserData(false);
-    dispatch(setUser(toSerializable(usern.data())));
+      if (!usern.exists()) return;
+      dispatch(setUser(toSerializable(usern.data())));
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+    } finally {
+      setFetchingUserData(false);
+    }
   };
 
   const subscribeChats = () => {
@@ -93,83 +98,97 @@ function App() {
       orderBy("timestamp", "desc")
     );
 
-    return onSnapshot(q, (querySnapshot) => {
-      let chats = [];
-      let call = null;
+    return onSnapshot(
+      q,
+      (querySnapshot) => {
+        try {
+          let chats = [];
+          let call = null;
 
-      querySnapshot.forEach((doc) => {
-        // eslint-disable-next-line no-unused-vars
-        const { timestamp, ...chat } = doc.data();
-        chats.push(chat);
+          querySnapshot.forEach((doc) => {
+            // eslint-disable-next-line no-unused-vars
+            const { timestamp, ...chat } = doc.data();
+            chats.push(chat);
 
-        if (chat.call?.isActive && chat.call?.callData) {
-          const startTime =
-            chat.call.callData.startTime &&
-            typeof chat.call.callData.startTime.toDate === "function"
+            if (chat.call?.isActive && chat.call?.callData) {
+              const startTime =
+                chat.call.callData.startTime &&
+                typeof chat.call.callData.startTime.toDate === "function"
+                  ? chat.call.callData.startTime.toDate().toISOString()
+                  : chat.call.callData.startTime;
+              call = {
+                isActive: chat.call.isActive,
+                callData: { ...chat.call.callData, startTime },
+                status: "",
+              };
+            }
+          });
+          chats = chats.map((chat) => {
+            const normalizedReadState = Object.entries(
+              chat.readState || {}
+            ).reduce((acc, [uid, state]) => {
+              const cursor = state?.lastReadAt;
+              acc[uid] = {
+                lastReadAt:
+                  cursor && typeof cursor.toDate === "function"
+                    ? cursor.toDate().toISOString()
+                    : cursor instanceof Date
+                    ? cursor.toISOString()
+                    : cursor || null,
+              };
+              return acc;
+            }, {});
+
+            if (!chat.recentMsg) {
+              return toSerializable({
+                ...chat,
+                readState: normalizedReadState,
+              });
+            }
+
+            const date = chat.recentMsg.timestamp
+              ? chat.recentMsg.timestamp.toDate().toISOString()
+              : null;
+            const callStartDate = chat.call?.callData?.startTime
               ? chat.call.callData.startTime.toDate().toISOString()
-              : chat.call.callData.startTime;
-          call = {
-            isActive: chat.call.isActive,
-            callData: { ...chat.call.callData, startTime },
-            status: "",
-          };
+              : undefined;
+
+            return toSerializable({
+              ...chat,
+              readState: normalizedReadState,
+              recentMsg: {
+                ...chat.recentMsg,
+                timestamp: formatDate(date),
+              },
+              call: chat.call
+                ? {
+                    ...chat.call,
+                    callData: {
+                      ...chat.call.callData,
+                      startTime: callStartDate,
+                    },
+                  }
+                : undefined,
+            });
+          });
+
+          dispatch(setChats(chats));
+
+          const currentCallState = store.getState().chats.call;
+          if (call && !currentCallState.isActive) {
+            dispatch(setCall(toSerializable(call)));
+          }
+        } catch (error) {
+          console.error("Error processing chats snapshot:", error);
+        } finally {
+          setFetchingChatsData(false);
         }
-      });
-      chats = chats.map((chat) => {
-        const normalizedReadState = Object.entries(chat.readState || {}).reduce(
-          (acc, [uid, state]) => {
-            const cursor = state?.lastReadAt;
-            acc[uid] = {
-              lastReadAt:
-                cursor && typeof cursor.toDate === "function"
-                  ? cursor.toDate().toISOString()
-                  : cursor instanceof Date
-                  ? cursor.toISOString()
-                  : cursor || null,
-            };
-            return acc;
-          },
-          {}
-        );
-
-        if (!chat.recentMsg) {
-          return toSerializable({ ...chat, readState: normalizedReadState });
-        }
-
-        const date = chat.recentMsg.timestamp
-          ? chat.recentMsg.timestamp.toDate().toISOString()
-          : null;
-        const callStartDate = chat.call?.callData?.startTime
-          ? chat.call.callData.startTime.toDate().toISOString()
-          : undefined;
-
-        return toSerializable({
-          ...chat,
-          readState: normalizedReadState,
-          recentMsg: {
-            ...chat.recentMsg,
-            timestamp: formatDate(date),
-          },
-          call: chat.call
-            ? {
-                ...chat.call,
-                callData: {
-                  ...chat.call.callData,
-                  startTime: callStartDate,
-                },
-              }
-            : undefined,
-        });
-      });
-
-      setFetchingChatsData(false);
-      dispatch(setChats(chats));
-
-      const currentCallState = store.getState().chats.call;
-      if (call && !currentCallState.isActive) {
-        dispatch(setCall(toSerializable(call)));
+      },
+      (error) => {
+        console.error("Error subscribing to chats:", error);
+        setFetchingChatsData(false);
       }
-    });
+    );
   };
 
   const setUserStatus = (userId, isOnline) => {
