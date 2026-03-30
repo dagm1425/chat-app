@@ -1062,7 +1062,6 @@ const CallModal = (props) => {
           // Set cleanup flag FIRST to prevent media `onPlaying` handlers
           // from re-setting the call status to "Ongoing call".
           isCleaningUpRef.current = true;
-
           showCallEndedAndScheduleClose();
 
           if (localVideoRef.current?.srcObject)

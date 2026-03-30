@@ -22,6 +22,7 @@ const useCallStatusAudio = ({
   const loopAudioRef = useRef(null);
   const activeLoopTypeRef = useRef(null);
   const prevStatusRef = useRef(undefined);
+  const oneShotAudioCacheRef = useRef(new Map());
   const playedEventKeysRef = useRef(new Set());
   const loggedPlaybackErrorsRef = useRef(new Set());
 
@@ -73,7 +74,19 @@ const useCallStatusAudio = ({
     const src = CALL_STATUS_AUDIO_ASSETS[eventKey];
     if (!src) return;
 
-    const audio = new Audio(src);
+    let audio;
+    // Cache only call-ended audio because that's the only one-shot we observed
+    // as latency-sensitive in real call flow.
+    if (eventKey === "callEnded") {
+      audio = oneShotAudioCacheRef.current.get(eventKey);
+      if (!audio) {
+        audio = new Audio(src);
+        audio.preload = "auto";
+        oneShotAudioCacheRef.current.set(eventKey, audio);
+      }
+    } else {
+      audio = new Audio(src);
+    }
     audio.loop = false;
     audio.volume = CALL_STATUS_AUDIO_VOLUME[eventKey] ?? 0.85;
     const playPromise = audio.play();
@@ -87,6 +100,22 @@ const useCallStatusAudio = ({
       });
     }
   };
+
+  useEffect(() => {
+    if (!isActive || !callId) {
+      return;
+    }
+    const src = CALL_STATUS_AUDIO_ASSETS.callEnded;
+    if (!src) {
+      return;
+    }
+    if (!oneShotAudioCacheRef.current.has("callEnded")) {
+      const audio = new Audio(src);
+      audio.preload = "auto";
+      oneShotAudioCacheRef.current.set("callEnded", audio);
+      audio.load();
+    }
+  }, [callId, isActive]);
 
   useEffect(() => {
     if (!isActive || !callId) {
@@ -121,6 +150,10 @@ const useCallStatusAudio = ({
   useEffect(() => {
     return () => {
       stopLoopAudio();
+      oneShotAudioCacheRef.current.forEach((audio) => {
+        stopAudioInstance(audio);
+      });
+      oneShotAudioCacheRef.current.clear();
     };
   }, []);
 };
