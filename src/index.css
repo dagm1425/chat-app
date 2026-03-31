@@ -1,8 +1,25 @@
-  body {
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;700&display=swap");
+
+body {
   margin: 0;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+h1.MuiTypography-root,
+h2.MuiTypography-root,
+h3.MuiTypography-root,
+h4.MuiTypography-root,
+h5.MuiTypography-root,
+h6.MuiTypography-root {
+  font-family: 'Inter', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 code {

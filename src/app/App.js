@@ -20,6 +20,12 @@ import { formatDate } from "../common/utils";
 import { Box } from "@mui/material";
 import { ref, set, serverTimestamp, onDisconnect } from "firebase/database";
 import { store } from "../app/store";
+import {
+  BrowserRouter as Router,
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 const toSerializable = (value) => {
   if (value === null || value === undefined) return value;
@@ -201,15 +207,51 @@ function App() {
     }
   };
 
-  if (!user && !localStorage.getItem("auth"))
-    return <UserLogin setUserStatus={setUserStatus} />;
   if (loading || (user && (fetchingUserData || fetchingChatsData)))
     return (
       <Box sx={{ height: "100vh", display: "grid", placeItems: "center" }}>
         <CircularProgress />
       </Box>
     );
-  return <Home setUserStatus={setUserStatus} />;
+
+  const shouldShowAuthRoutes = !user && !localStorage.getItem("auth");
+
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/sign-in"
+          element={
+            shouldShowAuthRoutes ? (
+              <UserLogin mode="signin" setUserStatus={setUserStatus} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/sign-up"
+          element={
+            shouldShowAuthRoutes ? (
+              <UserLogin mode="signup" setUserStatus={setUserStatus} />
+            ) : (
+              <Navigate to="/" replace />
+            )
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            shouldShowAuthRoutes ? (
+              <Navigate to="/sign-in" replace />
+            ) : (
+              <Home setUserStatus={setUserStatus} />
+            )
+          }
+        />
+      </Routes>
+    </Router>
+  );
 }
 
 export default App;

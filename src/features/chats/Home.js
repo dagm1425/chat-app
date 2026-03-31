@@ -4,7 +4,7 @@ import Sidebar from "./Sidebar";
 import ChatsSection from "./ChatsSection";
 import ChatsHome from "./ChatsHome";
 import CallModal from "./CallModal";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { Routes, Route } from "react-router-dom";
 import { auth, db } from "../../firebase";
 import { off, onValue, ref } from "firebase/database";
 import { rtDb } from "../../firebase";
@@ -111,40 +111,38 @@ function Home({ setUserStatus }) {
 
   return (
     <>
-      <Router>
-        <Sidebar
-          selectedChatId={selectedChatId}
-          setSelectedChatId={setSelectedChatId}
-          userStatuses={userStatuses}
-          setUserStatus={setUserStatus}
-          startCall={startCall}
+      <Sidebar
+        selectedChatId={selectedChatId}
+        setSelectedChatId={setSelectedChatId}
+        userStatuses={userStatuses}
+        setUserStatus={setUserStatus}
+        startCall={startCall}
+      />
+      {callState.isActive && (
+        <CallModal
+          peerConnectionsRef={peerConnectionsRef}
+          localStreamRef={localStreamRef}
+          remoteStreamsRef={remoteStreamsRef}
+          streamsVersion={streamsVersion}
+          joinCall={joinCall}
+          cleanupLocalCall={cleanupLocalCall}
+          startScreenShare={startScreenShare}
+          stopScreenShare={stopScreenShare}
         />
-        {callState.isActive && (
-          <CallModal
-            peerConnectionsRef={peerConnectionsRef}
-            localStreamRef={localStreamRef}
-            remoteStreamsRef={remoteStreamsRef}
-            streamsVersion={streamsVersion}
-            joinCall={joinCall}
-            cleanupLocalCall={cleanupLocalCall}
-            startScreenShare={startScreenShare}
-            stopScreenShare={stopScreenShare}
-          />
-        )}
-        <Routes>
-          <Route path="/" element={<ChatsHome />}></Route>
-          <Route
-            path="/:id"
-            element={
-              <ChatsSection
-                setSelectedChatId={setSelectedChatId}
-                userStatuses={userStatuses}
-                makeCall={startCall}
-              />
-            }
-          ></Route>
-        </Routes>
-      </Router>
+      )}
+      <Routes>
+        <Route path="/" element={<ChatsHome />}></Route>
+        <Route
+          path="/:id"
+          element={
+            <ChatsSection
+              setSelectedChatId={setSelectedChatId}
+              userStatuses={userStatuses}
+              makeCall={startCall}
+            />
+          }
+        ></Route>
+      </Routes>
     </>
   );
 }
