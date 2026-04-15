@@ -33,6 +33,11 @@ const FileMsg = ({
   const isPdf =
     fileType === "application/pdf" || fileName.toLowerCase().endsWith(".pdf");
   const isPdfUploadComplete = isPdf && isUploadComplete;
+  const hasPdfPreviewField = Object.prototype.hasOwnProperty.call(
+    fileMsg,
+    "pdfPreviewUrl"
+  );
+  const isPdfPreviewPending = hasPdfPreviewField && !fileMsg.pdfPreviewUrl;
   const uploadProgress = Number.isFinite(progress) ? progress : 0;
 
   const pdfThumbSx = {
@@ -73,6 +78,8 @@ const FileMsg = ({
           isPdfUploadComplete ? (
             <PdfFilePreview
               fileUrl={fileUrl}
+              previewUrl={fileMsg.pdfPreviewUrl || ""}
+              isPreviewPending={isPdfPreviewPending}
               onDownload={() => downloadFile(fileUrl, fileName)}
             />
           ) : (
@@ -98,12 +105,13 @@ const FileMsg = ({
                 <Box sx={{ display: "grid" }}>
                   <CircularProgress
                     size={24}
-                    sx={{ gridColumn: 1, gridRow: 1, color: "text.secondary" }}
+                    sx={{ gridColumn: 1, gridRow: 1, color: "action.active" }}
                   />
                   <IconButton
                     sx={{
                       gridColumn: 1,
                       gridRow: 1,
+                      color: "action.active",
                       p: 0,
                       "&.MuiButtonBase-root:hover": {
                         bgcolor: "transparent",
@@ -134,11 +142,14 @@ const FileMsg = ({
           >
             {isUploadPending ? (
               <Box sx={{ display: "grid" }}>
-                <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
+                <CircularProgress
+                  sx={{ gridColumn: 1, gridRow: 1, color: "action.active" }}
+                />
                 <IconButton
                   sx={{
                     gridColumn: 1,
                     gridRow: 1,
+                    color: "action.active",
                     "&.MuiButtonBase-root:hover": {
                       bgcolor: "transparent",
                     },

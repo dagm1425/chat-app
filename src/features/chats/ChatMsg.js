@@ -25,7 +25,6 @@ function ChatMsg({
   scroll,
   scrollToMsg,
   makeCall,
-  isActive,
 }) {
   const isSentFromUser = message.from.uid === user.uid;
   const isMsgFromOtherPublicChatMembers =
@@ -152,7 +151,6 @@ function ChatMsg({
             }
             cancelUpload={cancelUpload}
             openVideoModal={openVideoModal}
-            isActive={isActive}
           />
         )}
         {message.type === "file" && (
@@ -225,7 +223,6 @@ ChatMsg.propTypes = {
   ]),
   scrollToMsg: PropTypes.func,
   makeCall: PropTypes.func.isRequired,
-  isActive: PropTypes.bool.isRequired,
 };
 
 function MsgReply({ message, user, scrollToMsg }) {

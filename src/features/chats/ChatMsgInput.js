@@ -39,6 +39,9 @@ import { extractFirstUrl } from "../../common/utils";
 const MAX_FILE_SIZE_BYTES = 5000000;
 const MAX_VIDEO_SIZE_BYTES = 8 * 1024 * 1024;
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const VIDEO_POSTER_MAX_EDGE = 160;
+const VIDEO_POSTER_WEBP_QUALITY = 0.25;
+const VIDEO_POSTER_JPEG_QUALITY = 0.35;
 
 function ChatMsgInput({
   chat,
@@ -439,6 +442,146 @@ function ChatMsgInput({
     });
   };
 
+  const canvasToBlob = (canvas, type, quality) =>
+    new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), type, quality);
+    });
+
+  // Generate a temporary low-res poster on client so sender can preview
+  // immediately. This is only a provisional poster used until the server-side
+  // canonical poster is generated and written to Firestore.
+  const getVideoPosterData = (file) =>
+    new Promise((resolve, reject) => {
+      const objectUrl = URL.createObjectURL(file);
+      const video = document.createElement("video");
+      let isDone = false;
+
+      const finish = (result) => {
+        if (isDone) return;
+        isDone = true;
+        URL.revokeObjectURL(objectUrl);
+        resolve(result);
+      };
+
+      const fail = (error) => {
+        if (isDone) return;
+        isDone = true;
+        URL.revokeObjectURL(objectUrl);
+        reject(error);
+      };
+
+      const capturePoster = async () => {
+        const sourceWidth = video.videoWidth;
+        const sourceHeight = video.videoHeight;
+        if (!sourceWidth || !sourceHeight) {
+          fail(new Error("Missing video dimensions for poster"));
+          return;
+        }
+
+        const scale = Math.min(
+          1,
+          VIDEO_POSTER_MAX_EDGE / Math.max(sourceWidth, sourceHeight)
+        );
+        const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+        const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+        const canvas = document.createElement("canvas");
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+
+        const context = canvas.getContext("2d");
+        if (!context) {
+          fail(new Error("Unable to create canvas context"));
+          return;
+        }
+
+        context.drawImage(video, 0, 0, targetWidth, targetHeight);
+
+        // URL.createObjectURL(...) needs a Blob/File/MediaSource input;
+        // canvas itself is not a Blob.
+        const webpBlob = await canvasToBlob(
+          canvas,
+          "image/webp",
+          VIDEO_POSTER_WEBP_QUALITY
+        );
+        if (webpBlob && webpBlob.size > 0) {
+          finish({
+            blob: webpBlob,
+            contentType: "image/webp",
+            extension: "webp",
+          });
+          return;
+        }
+
+        const jpegBlob = await canvasToBlob(
+          canvas,
+          "image/jpeg",
+          VIDEO_POSTER_JPEG_QUALITY
+        );
+        if (jpegBlob && jpegBlob.size > 0) {
+          finish({
+            blob: jpegBlob,
+            contentType: "image/jpeg",
+            extension: "jpg",
+          });
+          return;
+        }
+
+        fail(new Error("Unable to encode poster blob"));
+      };
+
+      // requestAnimationFrame runs before page paint, but this element is off DOM and never painted.
+      // CaptureWhenFrameReady only needs decoded frame data in the media pipeline.
+      // It does not need the frame to be visually painted on the page.
+      const captureWhenFrameReady = () => {
+        // HAVE_CURRENT_DATA (2) (video.readyState >= 2) means at least one video frame is decoded and ready to draw.
+        if (video.readyState >= 2) {
+          capturePoster();
+          return;
+        }
+
+        // If metadata is loaded but frame pixels are not ready yet, wait for
+        // loadeddata, then capture. loadeddata is a reliable signal that the
+        // element has decoded current-frame data that can be drawn to canvas.
+        video.addEventListener(
+          "loadeddata",
+          () => {
+            capturePoster();
+          },
+          { once: true }
+        );
+      };
+
+      video.preload = "metadata";
+      video.muted = true;
+      video.playsInline = true;
+      video.onloadedmetadata = () => {
+        const durationSec =
+          Number.isFinite(video.duration) && video.duration > 0
+            ? video.duration
+            : 0;
+        // 0.1s is usually safer than 0s because the very first instant of many
+        // videos can be black/fade-in or not ideal for thumbnails.
+        // For very short videos (< 0.15s), seeking to 0.1s can be near/outside
+        // the usable range, so we fall back to 0s.
+        const seekTarget = durationSec >= 0.15 ? 0.1 : 0;
+
+        if (seekTarget === 0) {
+          captureWhenFrameReady();
+          return;
+        }
+
+        video.currentTime = seekTarget;
+      };
+      video.onseeked = () => {
+        captureWhenFrameReady();
+      };
+      video.onerror = () => {
+        fail(new Error("Unable to extract video poster"));
+      };
+      // Starts entire chain of events including media loading/decoding pipeline, even though this <video> is off-DOM.
+      video.src = objectUrl;
+    });
+
   const handleFileSize = (file) => {
     const isVideo = file.type.startsWith("video/");
     if (isVideo && !ALLOWED_VIDEO_TYPES.has(file.type)) {
@@ -470,7 +613,13 @@ function ChatMsgInput({
       return { file, imgSize: dimensions };
     } else if (ALLOWED_VIDEO_TYPES.has(file.type)) {
       const metadata = await getVideoMetadata(file);
-      return { file, videoMeta: metadata };
+      try {
+        const videoPoster = await getVideoPosterData(file);
+        return { file, videoMeta: metadata, videoPoster };
+      } catch (error) {
+        console.warn("[ChatMsgInput] Video poster generation failed:", error);
+        return { file, videoMeta: metadata };
+      }
     } else {
       return { file };
     }

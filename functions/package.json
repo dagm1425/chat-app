@@ -13,9 +13,12 @@
   },
   "main": "index.js",
   "dependencies": {
+    "@napi-rs/canvas": "^0.1.80",
     "cheerio": "^1.2.0",
+    "ffmpeg-static": "^5.2.0",
     "firebase-admin": "^13.6.0",
-    "firebase-functions": "^7.0.0"
+    "firebase-functions": "^7.0.0",
+    "pdfjs-dist": "^4.10.38"
   },
   "devDependencies": {
     "firebase-functions-test": "^3.4.1"

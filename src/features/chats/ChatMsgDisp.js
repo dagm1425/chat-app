@@ -50,6 +50,8 @@ import ChatMsg from "./ChatMsg";
 import UsersSearch from "./UsersSearch";
 import { formatDate } from "../../common/utils";
 import { notifyUser } from "../../common/toast/ToastProvider";
+import { clearLocalImagePreview } from "./localImagePreviewCache";
+import { clearLocalVideoPoster } from "./localVideoPosterCache";
 
 const savedScrollTopByChatId = new Map();
 const READ_BOTTOM_THRESHOLD_PX = 56;
@@ -601,6 +603,8 @@ function ChatMsgDisp({
 
   const cancelUpload = async (msgId) => {
     uploadTask.cancel();
+    clearLocalImagePreview(msgId);
+    clearLocalVideoPoster(msgId);
 
     await deleteDoc(doc(db, "chats", `${chatId}`, "chatMessages", `${msgId}`));
   };
@@ -632,6 +636,13 @@ function ChatMsgDisp({
     const msg = chatMsg.find((msg) => msg.msgId === msgId);
     const unreadCounts = { ...chat.unreadCounts };
     const msgTimestampMs = toMillis(msg.timestamp);
+
+    if (msg?.type === "video") {
+      clearLocalVideoPoster(msg.msgId);
+    }
+    if (msg?.type === "image") {
+      clearLocalImagePreview(msg.msgId);
+    }
 
     await deleteDoc(messageRef);
 
@@ -874,7 +885,6 @@ function ChatMsgDisp({
                   scroll={scroll}
                   scrollToMsg={scrollToMsg}
                   makeCall={makeCall}
-                  isActive={isActive}
                 />
               )}
             </React.Fragment>

@@ -5,12 +5,17 @@ const {
   onDocumentCreated,
   onDocumentUpdated,
 } = require("firebase-functions/v2/firestore");
+const { onObjectFinalized } = require("firebase-functions/v2/storage");
 const logger = require("firebase-functions/logger");
 const { REGION } = require("./src/linkPreview/constants");
 const {
   buildLinkPreviewHandler,
   buildLinkPreviewUpdateHandler,
 } = require("./src/linkPreview/handler");
+const {
+  buildVideoPosterFinalizeHandler,
+} = require("./src/videoPoster/handler");
+const { buildPdfPreviewFinalizeHandler } = require("./src/pdfPreview/handler");
 
 admin.initializeApp();
 setGlobalOptions({ maxInstances: 10 });
@@ -35,4 +40,22 @@ exports.refreshLinkPreviewOnMessageUpdate = onDocumentUpdated(
     memory: "256MiB",
   },
   buildLinkPreviewUpdateHandler({ admin, db, logger })
+);
+
+exports.generateCanonicalVideoPoster = onObjectFinalized(
+  {
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: "1GiB",
+  },
+  buildVideoPosterFinalizeHandler({ admin, db, logger })
+);
+
+exports.generateCanonicalPdfPreview = onObjectFinalized(
+  {
+    region: REGION,
+    timeoutSeconds: 120,
+    memory: "1GiB",
+  },
+  buildPdfPreviewFinalizeHandler({ admin, db, logger })
 );

@@ -12,8 +12,11 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
+import { setLocalImagePreview } from "./localImagePreviewCache";
+import { setLocalVideoPoster } from "./localVideoPosterCache";
 
 const ALLOWED_VIDEO_TYPES = new Set(["video/mp4", "video/webm"]);
+const UPLOAD_CACHE_CONTROL = "public,max-age=604800,immutable";
 
 function FileMsgDialogContent({
   chat,
@@ -60,6 +63,9 @@ function FileMsgDialogContent({
     let unreadCounts = { ...chat.unreadCounts };
     const isImage = fileType.includes("image");
     const isVideo = ALLOWED_VIDEO_TYPES.has(fileType);
+    const isPdf =
+      fileType === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf");
     const message = {
       msgId,
       from: user,
@@ -72,6 +78,7 @@ function FileMsgDialogContent({
         fileName: file.name,
         fileType,
         fileSize,
+        fileSizeBytes: file.size,
         fileUrl: "",
         progress: 0,
         uploadTask: null,
@@ -84,16 +91,38 @@ function FileMsgDialogContent({
     } else if (isVideo && fileMsg.videoMeta) {
       message.fileMsg.videoWidth = fileMsg.videoMeta.width;
       message.fileMsg.videoHeight = fileMsg.videoMeta.height;
-      message.fileMsg.videoDurationSec = fileMsg.videoMeta.durationSec;
+      message.fileMsg.videoPosterUrl = "";
+    } else if (isPdf) {
+      message.fileMsg.pdfPreviewUrl = "";
+    }
+
+    if (isImage) {
+      setLocalImagePreview(msgId, file);
+    }
+
+    if (isVideo && fileMsg.videoPoster?.blob) {
+      setLocalVideoPoster(msgId, fileMsg.videoPoster.blob);
     }
 
     await setDoc(msgRef, message);
-
     lastMmsg.scrollIntoView({ behavior: "smooth" });
 
     const filePath = `${user.uid}/${msgId}/${file.name}`;
     const newFileRef = ref(storage, filePath);
-    const uploadTask = uploadBytesResumable(newFileRef, file);
+    const uploadMetadata = {
+      contentType: fileType || undefined,
+      cacheControl: UPLOAD_CACHE_CONTROL,
+      ...(isVideo || isPdf
+        ? {
+            customMetadata: {
+              chatId,
+              msgId,
+              mediaRole: isVideo ? "chat_video" : "chat_pdf",
+            },
+          }
+        : {}),
+    };
+    const uploadTask = uploadBytesResumable(newFileRef, file, uploadMetadata);
 
     setUploadTask(uploadTask);
 
@@ -109,8 +138,8 @@ function FileMsgDialogContent({
         console.error("There was a problem uploading the file", error);
       },
       () => {
-        getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-          updateURL(msgRef, downloadURL);
+        getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+          await updateURL(msgRef, downloadURL);
         });
       }
     );

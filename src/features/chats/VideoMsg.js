@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import PropTypes from "prop-types";
 import {
   Box,
@@ -9,12 +15,165 @@ import {
 } from "@mui/material";
 import CloseIcon from "@mui/icons-material/Close";
 import VolumeOffRoundedIcon from "@mui/icons-material/VolumeOffRounded";
+import {
+  clearLocalVideoPoster,
+  getLocalVideoPoster,
+} from "./localVideoPosterCache";
 
 const toPositiveNumber = (value) => {
   const parsed = Number(value);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
 };
 const videoMetaByUrlCache = new Map();
+const warmVideoFrameByUrlCache = new Map();
+const WARM_VIDEO_FRAME_CACHE_LIMIT = 16;
+const WARM_VIDEO_FRAME_CACHE_MAX_BYTES = 24 * 1024 * 1024;
+const WARM_VIDEO_FRAME_MAX_EDGE = 540;
+const WARM_VIDEO_FRAME_JPEG_QUALITY = 0.78;
+const OVERLAY_MIN_HOLD_MS = 100;
+const OVERLAY_FADE_MS = 120;
+const UPLOAD_CHIP_BG = "rgba(68, 72, 79, 0.68)";
+let warmVideoFrameCacheBytes = 0;
+
+const formatUploadBytes = (bytes) => {
+  if (!Number.isFinite(bytes) || bytes < 0) return "";
+  if (bytes === 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let value = bytes;
+  let unitIndex = 0;
+  while (value >= 1024 && unitIndex < units.length - 1) {
+    value /= 1024;
+    unitIndex += 1;
+  }
+  const fractionDigits = unitIndex === 0 ? 0 : value >= 100 ? 0 : 1;
+  return `${value.toFixed(fractionDigits)} ${units[unitIndex]}`;
+};
+
+const revokeObjectUrl = (objectUrl) => {
+  if (!objectUrl || typeof URL === "undefined") return;
+  URL.revokeObjectURL(objectUrl);
+};
+
+const getWarmVideoFrame = (url) => {
+  if (!url) return null;
+  const entry = warmVideoFrameByUrlCache.get(url);
+  if (!entry) return null;
+  warmVideoFrameByUrlCache.delete(url);
+  warmVideoFrameByUrlCache.set(url, entry);
+  return entry;
+};
+
+const peekWarmVideoFrame = (url) => {
+  if (!url) return null;
+  return warmVideoFrameByUrlCache.get(url) || null;
+};
+
+const disposeWarmFrameImage = (image) => {
+  if (!image) return;
+  // Defensive cleanup: in the decode() path handlers are already null, but in
+  // the onload/onerror fallback they can still be pending at eviction time.
+  image.onload = null;
+  image.onerror = null;
+  // Detach this Image from the blob URL. Blob memory becomes truly releasable
+  // once URL.revokeObjectURL(...) is also called for the same URL.
+  image.src = "";
+};
+
+const createPersistentWarmFrameImage = (objectUrl) => {
+  if (!objectUrl || typeof Image === "undefined") return;
+  const image = new Image();
+  image.decoding = "async";
+  image.src = objectUrl;
+
+  if (typeof image.decode === "function") {
+    image.decode().catch(() => {});
+    return image;
+  }
+
+  image.onload = () => {
+    image.onload = null;
+    image.onerror = null;
+  };
+  image.onerror = () => {
+    image.onload = null;
+    image.onerror = null;
+  };
+  return image;
+};
+
+const setWarmVideoFrame = (url, blob) => {
+  if (!url || !blob || !blob.size || typeof URL === "undefined") return;
+
+  const previousEntry = warmVideoFrameByUrlCache.get(url);
+  if (previousEntry) {
+    warmVideoFrameByUrlCache.delete(url);
+    warmVideoFrameCacheBytes = Math.max(
+      0,
+      warmVideoFrameCacheBytes - previousEntry.bytes
+    );
+    disposeWarmFrameImage(previousEntry.image);
+    revokeObjectUrl(previousEntry.objectUrl);
+  }
+
+  const objectUrl = URL.createObjectURL(blob);
+  const image = createPersistentWarmFrameImage(objectUrl) || null;
+  const entry = { objectUrl, bytes: blob.size, image };
+  warmVideoFrameByUrlCache.set(url, entry);
+  warmVideoFrameCacheBytes += entry.bytes;
+
+  while (
+    warmVideoFrameByUrlCache.size > WARM_VIDEO_FRAME_CACHE_LIMIT ||
+    warmVideoFrameCacheBytes > WARM_VIDEO_FRAME_CACHE_MAX_BYTES
+  ) {
+    const oldestEntry = warmVideoFrameByUrlCache.entries().next().value;
+    if (!oldestEntry) break;
+    const [oldestUrl, oldestValue] = oldestEntry;
+    warmVideoFrameByUrlCache.delete(oldestUrl);
+    warmVideoFrameCacheBytes = Math.max(
+      0,
+      warmVideoFrameCacheBytes - oldestValue.bytes
+    );
+    disposeWarmFrameImage(oldestValue.image);
+    revokeObjectUrl(oldestValue.objectUrl);
+  }
+};
+
+const captureWarmVideoFrame = async (video, url) => {
+  if (!video || !url || warmVideoFrameByUrlCache.has(url)) return;
+
+  const sourceWidth = toPositiveNumber(video.videoWidth);
+  const sourceHeight = toPositiveNumber(video.videoHeight);
+  if (!sourceWidth || !sourceHeight) return;
+
+  const scale = Math.min(
+    1,
+    WARM_VIDEO_FRAME_MAX_EDGE / Math.max(sourceWidth, sourceHeight)
+  );
+  const targetWidth = Math.max(1, Math.round(sourceWidth * scale));
+  const targetHeight = Math.max(1, Math.round(sourceHeight * scale));
+  const canvas = document.createElement("canvas");
+  canvas.width = targetWidth;
+  canvas.height = targetHeight;
+
+  const context = canvas.getContext("2d");
+  if (!context) return;
+
+  try {
+    context.drawImage(video, 0, 0, targetWidth, targetHeight);
+  } catch (error) {
+    return;
+  }
+
+  const blob = await new Promise((resolve) => {
+    canvas.toBlob(
+      (nextBlob) => resolve(nextBlob),
+      "image/jpeg",
+      WARM_VIDEO_FRAME_JPEG_QUALITY
+    );
+  });
+  if (!blob) return;
+  setWarmVideoFrame(url, blob);
+};
 
 function VideoMsg({
   message,
@@ -22,20 +181,71 @@ function VideoMsg({
   containerWidth,
   cancelUpload,
   openVideoModal,
-  isActive,
 }) {
   const fileMsg = message.fileMsg || {};
+  const msgId = message.msgId;
   const hasVideoUrl = !!fileMsg.fileUrl;
+  const effectivePosterSrc = useMemo(
+    () => fileMsg.videoPosterUrl || getLocalVideoPoster(msgId),
+    [fileMsg.videoPosterUrl, msgId]
+  );
   const videoRef = useRef(null);
+  const videoFrameCallbackIdRef = useRef(null);
+  const fallbackRafIdsRef = useRef([]);
+  const overlayHoldTimeoutRef = useRef(null);
+  const overlayFadeTimeoutRef = useRef(null);
+  const hasHandledFirstFrameRef = useRef(false);
   const lastKnownContainerWidthRef = useRef(null);
   const lastKnownVideoMetaRef = useRef({ width: null, height: null });
+  const warmOverlayImgRef = useRef(null);
   const [urlVideoMeta, setUrlVideoMeta] = useState({
     width: null,
     height: null,
   });
-  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [hasPaintedFirstFrame, setHasPaintedFirstFrame] = useState(false);
+  const [overlayStage, setOverlayStage] = useState(() => {
+    if (!hasVideoUrl) return "hidden";
+    const hasWarmFrame = Boolean(peekWarmVideoFrame(fileMsg.fileUrl));
+    return hasWarmFrame || Boolean(effectivePosterSrc) ? "visible" : "hidden";
+  });
+  const [warmFrameSrc, setWarmFrameSrc] = useState(() => {
+    if (!hasVideoUrl) return "";
+    const cachedFrame = peekWarmVideoFrame(fileMsg.fileUrl);
+    return cachedFrame ? cachedFrame.objectUrl : "";
+  });
+  const [isPosterLoaded, setIsPosterLoaded] = useState(false);
+  const [isWarmFrameLoaded, setIsWarmFrameLoaded] = useState(false);
+  const [hasPosterLoadError, setHasPosterLoadError] = useState(false);
   const [hasPlaybackError, setHasPlaybackError] = useState(false);
   const [progressPct, setProgressPct] = useState(0);
+  const uploadProgressPct = Math.max(
+    0,
+    Math.min(100, Number(fileMsg.progress) || 0)
+  );
+  const uploadSizeBytes = toPositiveNumber(fileMsg.fileSizeBytes);
+  const uploadedBytes = uploadSizeBytes
+    ? Math.min(
+        uploadSizeBytes,
+        Math.round((uploadProgressPct / 100) * uploadSizeBytes)
+      )
+    : null;
+  let uploadProgressLabel = `${Math.round(uploadProgressPct)}%`;
+  if (uploadSizeBytes) {
+    uploadProgressLabel = `${formatUploadBytes(
+      uploadedBytes || 0
+    )} / ${formatUploadBytes(uploadSizeBytes)}`;
+  }
+
+  const clearOverlayTimers = () => {
+    if (overlayHoldTimeoutRef.current !== null) {
+      clearTimeout(overlayHoldTimeoutRef.current);
+      overlayHoldTimeoutRef.current = null;
+    }
+    if (overlayFadeTimeoutRef.current !== null) {
+      clearTimeout(overlayFadeTimeoutRef.current);
+      overlayFadeTimeoutRef.current = null;
+    }
+  };
 
   const parsedContainerWidth = toPositiveNumber(containerWidth);
   if (parsedContainerWidth) {
@@ -57,13 +267,20 @@ function VideoMsg({
     };
   }
 
+  // Once canonical poster URL from Firetore is available, clear sender-only local poster URL.
+  useEffect(() => {
+    if (!msgId || !fileMsg.videoPosterUrl) return;
+    clearLocalVideoPoster(msgId);
+  }, [fileMsg.videoPosterUrl, msgId]);
+
   useEffect(() => {
     if (!hasVideoUrl) return;
     const cachedMeta = videoMetaByUrlCache.get(fileMsg.fileUrl);
     if (!cachedMeta) return;
     setUrlVideoMeta(cachedMeta);
-  }, [hasVideoUrl, fileMsg.fileUrl]);
+  }, [fileMsg.fileUrl, hasVideoUrl]);
 
+  // If metadata is not already known for this URL, probe it with an off-DOM video.
   useEffect(() => {
     if (!hasVideoUrl || (parsedVideoWidth && parsedVideoHeight)) return;
     if (urlVideoMeta.width && urlVideoMeta.height) return;
@@ -156,38 +373,52 @@ function VideoMsg({
     urlVideoMeta.width,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!hasVideoUrl) return;
 
-    setIsVideoReady(false);
+    // A VideoMsg instance can be reused for a different message without a full
+    // unmount. Reset all per-session flags here so stale state from a previous
+    // video does not leak into the next one.
+    hasHandledFirstFrameRef.current = false;
+    clearOverlayTimers();
+    const cachedFrame = getWarmVideoFrame(fileMsg.fileUrl);
+    const nextWarmFrameSrc = cachedFrame ? cachedFrame.objectUrl : "";
+    const hasPreviewOnReset = Boolean(nextWarmFrameSrc || effectivePosterSrc);
+    setWarmFrameSrc(nextWarmFrameSrc);
+    setIsPosterLoaded(false);
+    setIsWarmFrameLoaded(false);
+    setHasPosterLoadError(false);
+    setHasPaintedFirstFrame(false);
+    setOverlayStage(hasPreviewOnReset ? "visible" : "hidden");
     setHasPlaybackError(false);
     setProgressPct(0);
-  }, [hasVideoUrl, fileMsg.fileUrl]);
+  }, [effectivePosterSrc, fileMsg.fileUrl, hasVideoUrl]);
 
   useEffect(() => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    if (!isActive) {
-      video.pause();
-      return;
-    }
-
-    if (!hasVideoUrl || !isVideoReady) return;
-
-    const playPromise = video.play();
-    if (typeof playPromise?.catch === "function") {
-      playPromise.catch(() => {});
-    }
-  }, [hasVideoUrl, isActive, isVideoReady]);
+    return () => {
+      // Cancel async frame/timer work on unmount to avoid callbacks from an old
+      // VideoMsg instance mutating state/logs after this message leaves the tree.
+      const video = videoRef.current;
+      if (
+        video &&
+        typeof video.cancelVideoFrameCallback === "function" &&
+        videoFrameCallbackIdRef.current !== null
+      ) {
+        video.cancelVideoFrameCallback(videoFrameCallbackIdRef.current);
+      }
+      videoFrameCallbackIdRef.current = null;
+      fallbackRafIdsRef.current.forEach((rafId) => cancelAnimationFrame(rafId));
+      fallbackRafIdsRef.current = [];
+      clearOverlayTimers();
+    };
+  }, [fileMsg.fileUrl]);
 
   const handleTimeUpdate = (event) => {
     const video = event.currentTarget;
-    const fallbackDuration = Number(fileMsg.videoDurationSec) || 0;
     const duration =
       Number.isFinite(video.duration) && video.duration > 0
         ? video.duration
-        : fallbackDuration;
+        : 0;
     if (!duration) return;
     setProgressPct((video.currentTime / duration) * 100);
   };
@@ -205,6 +436,71 @@ function VideoMsg({
       videoHeight: modalVideoHeight,
     });
   };
+  const hasOverlayPreview = Boolean(warmFrameSrc || effectivePosterSrc);
+  const hasPreviewForGapCover = Boolean(
+    (warmFrameSrc && isWarmFrameLoaded) ||
+      (effectivePosterSrc && isPosterLoaded && !hasPosterLoadError)
+  );
+  const isOverlayVisible =
+    hasOverlayPreview && overlayStage !== "hidden" && !hasPlaybackError;
+
+  // Initializer inside state definition handles first render baseline cheaply.
+  // useLayoutEffect guarantees runtime correction for changing conditions.
+  useLayoutEffect(() => {
+    if (!hasVideoUrl || hasPlaybackError) {
+      clearOverlayTimers();
+      setOverlayStage("hidden");
+      return;
+    }
+
+    if (!hasPaintedFirstFrame) {
+      setOverlayStage(hasOverlayPreview ? "visible" : "hidden");
+    }
+  }, [hasVideoUrl, hasPlaybackError, hasPaintedFirstFrame, hasOverlayPreview]);
+
+  useLayoutEffect(() => {
+    if (
+      !hasVideoUrl ||
+      !warmFrameSrc ||
+      isWarmFrameLoaded ||
+      !isOverlayVisible
+    ) {
+      return;
+    }
+    const warmOverlayImg = warmOverlayImgRef.current;
+    const isElementReadyNow = Boolean(
+      warmOverlayImg &&
+        warmOverlayImg.complete &&
+        warmOverlayImg.naturalWidth > 0
+    );
+    if (!isElementReadyNow) return;
+    setIsWarmFrameLoaded(true);
+  }, [hasVideoUrl, isOverlayVisible, isWarmFrameLoaded, warmFrameSrc]);
+
+  const shouldShowSkeleton =
+    !hasPreviewForGapCover && !hasPaintedFirstFrame && !hasPlaybackError;
+
+  const markFirstFramePainted = (video) => {
+    if (hasHandledFirstFrameRef.current) return;
+
+    hasHandledFirstFrameRef.current = true;
+    setHasPaintedFirstFrame(true);
+    captureWarmVideoFrame(video, fileMsg.fileUrl);
+
+    if (!hasOverlayPreview) {
+      setOverlayStage("hidden");
+      return;
+    }
+
+    clearOverlayTimers();
+    // Keep overlay briefly, then start fade, then hide after fade duration.
+    overlayHoldTimeoutRef.current = setTimeout(() => {
+      setOverlayStage("fading");
+      overlayFadeTimeoutRef.current = setTimeout(() => {
+        setOverlayStage("hidden");
+      }, OVERLAY_FADE_MS);
+    }, OVERLAY_MIN_HOLD_MS);
+  };
 
   return (
     <>
@@ -215,7 +511,7 @@ function VideoMsg({
           overflow: "hidden",
           borderRadius: "8px",
           backgroundColor:
-            hasVideoUrl && isVideoReady && !hasPlaybackError
+            hasVideoUrl && hasPaintedFirstFrame && !hasPlaybackError
               ? "#000"
               : "rgba(0,0,0,0.04)",
           mb: "0.125rem",
@@ -228,33 +524,153 @@ function VideoMsg({
             sx={{
               position: "absolute",
               inset: 0,
-              display: "grid",
-              placeItems: "center",
               bgcolor: "rgba(0,0,0,0.04)",
             }}
           >
-            <Box sx={{ display: "grid" }}>
-              <CircularProgress sx={{ gridColumn: 1, gridRow: 1 }} />
-              <IconButton
-                sx={{ gridColumn: 1, gridRow: 1 }}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  cancelUpload(message.msgId);
+            {Boolean(effectivePosterSrc) && (
+              <img
+                src={effectivePosterSrc}
+                alt=""
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                  filter: "blur(5px)",
+                  transform: "scale(1.03)",
+                }}
+              />
+            )}
+            <Box
+              sx={{
+                position: "absolute",
+                inset: 0,
+                display: "grid",
+                placeItems: "center",
+                bgcolor: effectivePosterSrc
+                  ? "rgba(0,0,0,0.14)"
+                  : "transparent",
+              }}
+            >
+              <Box
+                sx={{
+                  position: "relative",
+                  width: 46,
+                  height: 46,
+                  borderRadius: "999px",
+                  display: "grid",
+                  placeItems: "center",
+                  bgcolor: UPLOAD_CHIP_BG,
                 }}
               >
-                <CloseIcon />
-              </IconButton>
+                <CircularProgress
+                  size={46}
+                  thickness={2.4}
+                  sx={{
+                    position: "absolute",
+                    color: "rgba(255,255,255,0.8)",
+                  }}
+                />
+                <IconButton
+                  sx={{
+                    width: 46,
+                    height: 46,
+                    color: "#fff",
+                    "&:hover": {
+                      bgcolor: "transparent",
+                    },
+                  }}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    cancelUpload(message.msgId);
+                  }}
+                >
+                  <CloseIcon sx={{ fontSize: 20 }} />
+                </IconButton>
+              </Box>
+              <Typography
+                variant="caption"
+                sx={{
+                  position: "absolute",
+                  top: 8,
+                  left: 8,
+                  px: "0.45rem",
+                  py: "0.1rem",
+                  borderRadius: "999px",
+                  fontWeight: 500,
+                  lineHeight: 1.2,
+                  letterSpacing: "0.01em",
+                  color: "#fff",
+                  bgcolor: UPLOAD_CHIP_BG,
+                }}
+              >
+                {uploadProgressLabel}
+              </Typography>
             </Box>
-            <Typography
-              variant="caption"
-              sx={{ position: "absolute", bottom: 8, color: "text.secondary" }}
-            >
-              {`${Math.round(fileMsg.progress || 0)}% done`}
-            </Typography>
           </Box>
         ) : (
           <>
-            {!isVideoReady && !hasPlaybackError && (
+            {isOverlayVisible && (
+              <Box
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  opacity: overlayStage === "fading" ? 0 : 1,
+                  transition: `opacity ${OVERLAY_FADE_MS}ms ease`,
+                }}
+              >
+                {Boolean(effectivePosterSrc) && (
+                  <img
+                    src={effectivePosterSrc}
+                    alt=""
+                    onLoad={() => {
+                      setIsPosterLoaded(true);
+                      setHasPosterLoadError(false);
+                    }}
+                    onError={() => {
+                      setIsPosterLoaded(false);
+                      setHasPosterLoadError(true);
+                    }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      filter: "blur(5px)",
+                      transform: "scale(1.03)",
+                    }}
+                  />
+                )}
+                {Boolean(warmFrameSrc) && (
+                  <img
+                    ref={warmOverlayImgRef}
+                    src={warmFrameSrc}
+                    alt=""
+                    onLoad={(event) => {
+                      const loadedSrc =
+                        event.currentTarget.currentSrc ||
+                        event.currentTarget.src;
+                      if (loadedSrc !== warmFrameSrc) return;
+                      setIsWarmFrameLoaded(true);
+                    }}
+                    onError={() => {
+                      setIsWarmFrameLoaded(false);
+                      setWarmFrameSrc("");
+                    }}
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
+                  />
+                )}
+              </Box>
+            )}
+            {shouldShowSkeleton && (
               <Box sx={{ position: "absolute", inset: 0 }}>
                 <Skeleton
                   variant="rectangular"
@@ -287,21 +703,65 @@ function VideoMsg({
               loop
               playsInline
               preload="metadata"
-              onLoadedData={() => setIsVideoReady(true)}
+              crossOrigin="anonymous"
+              onLoadedData={(event) => {
+                const video = event.currentTarget;
+
+                // Cancel old pending callbacks first.
+                // If a previous "wait for frame" callback exists, remove it:
+                // - cancelVideoFrameCallback(...) for RVFC path
+                // - cancelAnimationFrame(...) for RAF fallback path
+                // This avoids duplicate/stale callbacks.
+                if (
+                  typeof video.cancelVideoFrameCallback === "function" &&
+                  videoFrameCallbackIdRef.current !== null
+                ) {
+                  video.cancelVideoFrameCallback(
+                    videoFrameCallbackIdRef.current
+                  );
+                  videoFrameCallbackIdRef.current = null;
+                }
+                fallbackRafIdsRef.current.forEach((rafId) =>
+                  cancelAnimationFrame(rafId)
+                );
+                fallbackRafIdsRef.current = [];
+
+                // Prefer requestVideoFrameCallback if browser supports it:
+                // "call me when a video frame is actually ready",
+                // then run markFirstFramePainted(video).
+                if (typeof video.requestVideoFrameCallback === "function") {
+                  videoFrameCallbackIdRef.current =
+                    video.requestVideoFrameCallback(() => {
+                      videoFrameCallbackIdRef.current = null;
+                      markFirstFramePainted(video);
+                    });
+                } else {
+                  // Fallback if RVFC is not supported:
+                  // use two nested requestAnimationFrame(...) calls,
+                  // wait a couple paint ticks, then run markFirstFramePainted(video).
+                  // This is an approximation for older browsers.
+                  const rafOne = requestAnimationFrame(() => {
+                    const rafTwo = requestAnimationFrame(() => {
+                      markFirstFramePainted(video);
+                    });
+                    fallbackRafIdsRef.current.push(rafTwo);
+                  });
+                  fallbackRafIdsRef.current.push(rafOne);
+                }
+              }}
               onTimeUpdate={handleTimeUpdate}
               onError={() => {
                 setHasPlaybackError(true);
-                setIsVideoReady(true);
               }}
               style={{
                 display: "block",
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
-                opacity: isVideoReady ? 1 : 0,
+                opacity: hasPaintedFirstFrame ? 1 : 0,
               }}
             />
-            {isVideoReady && !hasPlaybackError && (
+            {hasPaintedFirstFrame && !hasPlaybackError && (
               <>
                 <Box
                   sx={{
@@ -357,5 +817,4 @@ VideoMsg.propTypes = {
   containerWidth: PropTypes.number,
   cancelUpload: PropTypes.func.isRequired,
   openVideoModal: PropTypes.func.isRequired,
-  isActive: PropTypes.bool.isRequired,
 };
